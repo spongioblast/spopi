@@ -1,0 +1,533 @@
+/* ABOUTME: Styles the workspace header, its pills, and the model control. */
+/* ABOUTME: The left cluster stays fixed while the right cluster can scroll. */
+/* Main Area layout — header bar, status pill, model dropdown, thinking tag,
+   token-usage, workspace/git indicators, compact control
+   (public/app/app.js + public/app/context-usage.js)
+   ═══════════════════════════════════════════════════════ */
+
+.main {
+  --messages-top-inset: 0px;
+  --messages-bottom-inset: 128px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  position: relative;
+  z-index: 1;
+}
+
+/* Header — translucent toolbar */
+.header {
+  /* Flex, not grid: header-left is a fixed/shrink-0 block sized to its own
+     content (sidebar toggle + session title) and must never be squeezed.
+     header-right absorbs all remaining space and scrolls internally when its
+     pills (model dropdown, thinking tag, git branch, token usage, ...) don't
+     fit — the header bar itself no longer scrolls as a whole. */
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  background: var(--header-bg);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-bottom: 1px solid var(--border);
+  min-height: 36px;
+  -webkit-app-region: drag;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  overflow: hidden;
+}
+
+.header::before {
+  display: none;
+}
+
+.header-left,
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  -webkit-app-region: no-drag;
+}
+
+.header-left {
+  flex: 0 0 auto;
+  min-width: max-content;
+}
+
+.header-right {
+  flex: 1 1 auto;
+  min-width: 0;
+  justify-content: flex-end;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+
+.header-right::-webkit-scrollbar {
+  display: none;
+}
+
+.sidebar-toggle,
+.settings-btn {
+  background: none;
+  border: none;
+  font-size: var(--font-size-lg);
+  cursor: pointer;
+  padding: var(--space-1-5);
+  line-height: 1;
+  border-radius: var(--radius-md);
+  transition:
+    background var(--duration) var(--ease),
+    color var(--duration) var(--ease),
+    opacity var(--duration) var(--ease);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sidebar-toggle:hover,
+.settings-btn:hover {
+  background: var(--bg-glass-hover);
+}
+
+.sidebar-toggle:active,
+.settings-btn:active {
+  opacity: 0.7;
+}
+
+.header h1 {
+  font-size: var(--font-size-md);
+  color: var(--text-primary);
+}
+
+/* Pill — unified base for header pills */
+.pill {
+  font-size: var(--font-size-sm);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--bg-glass);
+  border: 1px solid var(--border);
+  white-space: nowrap;
+  transition:
+    background var(--duration) var(--ease),
+    border-color var(--duration) var(--ease),
+    color var(--duration) var(--ease),
+    box-shadow var(--duration) var(--ease);
+}
+
+/* Session cost pill */
+.session-cost {
+  color: var(--header-pill-text, var(--text-secondary));
+  display: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.session-cost.visible {
+  display: block;
+}
+
+/* Token usage pill */
+.token-usage {
+  color: var(--header-pill-text, var(--text-secondary));
+  display: none;
+  transition:
+    color 0.3s var(--ease),
+    opacity 0.3s var(--ease);
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+}
+
+/* File sidebar toggle (merged file-sidebar-toggle + workspace-path pill).
+ * Stays a square icon until the path label is shown, then expands like git. */
+.file-sidebar-toggle:has(.file-sidebar-toggle__label:not(.hidden)) {
+  width: auto;
+  max-width: min(360px, 32vw);
+  padding: 0 var(--space-2);
+  gap: var(--space-1);
+}
+
+.file-sidebar-toggle__label {
+  font-size: var(--font-size-sm);
+  max-width: min(320px, 28vw);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Git branch toggle button (merged diff-sidebar-toggle + branch pill) */
+.git-branch-toggle {
+  /* Override the fixed square width from .ui-icon-button--sm */
+  width: auto;
+  max-width: min(200px, 28vw);
+  padding: 0 var(--space-2);
+  gap: var(--space-1);
+}
+
+.git-branch-toggle.hidden {
+  display: none;
+}
+
+.git-branch-toggle__label {
+  font-size: var(--text-xs);
+  font-family: var(--font-mono);
+  max-width: min(160px, 20vw);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Extension package update pill (hidden until the package manager reports updates) */
+.update-indicator {
+  position: relative;
+  color: var(--accent, #3b82f6);
+}
+
+.update-indicator.hidden {
+  display: none;
+}
+
+.update-indicator-count {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 var(--space-0-5);
+  /* design-token-ignore: counter glyph below smallest type token, fits 14px pill */
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 14px;
+  text-align: center;
+  color: var(--on-accent);
+  background: var(--accent);
+  border-radius: var(--radius-pill);
+}
+
+.token-usage:hover {
+  border-color: var(--border-hover);
+  background: var(--bg-glass-hover);
+}
+
+.token-usage.visible {
+  display: block;
+}
+
+.token-usage.warning {
+  color: var(--warning);
+  border-color: rgba(251, 191, 36, 0.25);
+}
+
+.token-usage.critical {
+  color: var(--error);
+  border-color: rgba(248, 113, 113, 0.25);
+  animation: pulse 2s infinite;
+}
+
+.context-viz-summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.context-viz-compact-btn {
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.context-edit-note {
+  text-align: center;
+  padding: var(--space-3);
+  font-size: var(--font-size-md);
+  opacity: 0.7;
+}
+
+/* Model button — prominent in header */
+/* Model dropdown */
+.model-dropdown {
+  position: relative;
+}
+
+.model-dropdown-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  background: var(--bg-glass);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition:
+    background var(--duration) var(--ease),
+    color var(--duration) var(--ease),
+    border-color var(--duration) var(--ease);
+  white-space: nowrap;
+}
+
+.model-dropdown-btn:hover {
+  background: var(--bg-glass-hover);
+  border-color: var(--border-hover);
+}
+
+.model-dropdown-chevron {
+  opacity: 0.5;
+  flex-shrink: 0;
+  transition: transform var(--duration) var(--ease);
+}
+
+.model-dropdown.open .model-dropdown-chevron {
+  transform: rotate(180deg);
+}
+
+.model-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 260px;
+  max-height: 360px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--bg-solid);
+  border: 1px solid var(--border-hover);
+  border-radius: var(--radius-md);
+  padding: var(--space-1);
+  box-shadow: var(--shadow-lg);
+  z-index: 1001;
+  animation: dropdownIn 0.15s var(--ease);
+}
+
+@keyframes dropdownIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.model-dropdown-search {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  background: var(--bg-glass);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+  outline: none;
+  margin-bottom: 4px;
+  box-sizing: border-box;
+}
+
+.model-dropdown-search:focus {
+  border-color: var(--accent);
+}
+
+.model-dropdown-menu.hidden {
+  display: none;
+}
+
+.model-dropdown-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-1);
+  width: 100%;
+  padding: 0 var(--space-1) 0 var(--space-3);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+  transition: background var(--duration) var(--ease);
+}
+
+.model-dropdown-item:hover {
+  background: var(--bg-glass-hover);
+}
+
+.model-dropdown-item.active {
+  background: var(--accent-quiet);
+  color: var(--accent-text);
+}
+
+/* Main select button fills the row; the star is a sibling control so a
+   nested interactive element never sits inside another button. */
+.model-dropdown-item-main {
+  appearance: none;
+  display: flex;
+  flex: 1;
+  justify-content: space-between;
+  align-items: center;
+  min-width: 0;
+  padding: var(--space-2) 0;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  font-size: var(--font-size-sm);
+  text-align: left;
+  cursor: pointer;
+}
+
+.model-dropdown-section {
+  padding: var(--space-2) var(--space-3) var(--space-1);
+  color: var(--text-dim);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+}
+
+.model-dropdown-star {
+  appearance: none;
+  flex: 0 0 auto;
+  padding: var(--space-1);
+  border: 0;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: var(--font-size-lg);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.model-dropdown-star:hover,
+.model-dropdown-star.active {
+  color: var(--accent-text);
+}
+
+.model-dropdown-star:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.model-dropdown-empty {
+  padding: var(--space-3);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-relaxed);
+}
+
+.model-dropdown-empty-title {
+  margin-bottom: var(--space-1-5);
+  color: var(--text-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+.model-dropdown-empty-action {
+  margin-top: var(--space-2);
+}
+
+.model-dropdown-item-ctx {
+  font-size: var(--font-size-sm);
+  margin-left: 12px;
+}
+
+.model-dropdown-item-provider {
+  font-size: var(--font-size-sm);
+  margin-left: 4px;
+}
+
+/* Thinking tag — matches settings-value-btn style */
+.thinking-tag {
+  padding: var(--space-1) var(--space-2);
+  background: var(--bg-glass);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition:
+    background var(--duration) var(--ease),
+    color var(--duration) var(--ease),
+    border-color var(--duration) var(--ease);
+  white-space: nowrap;
+}
+
+.thinking-tag.off {
+  border-color: var(--border);
+}
+
+.thinking-tag:hover {
+  background: var(--bg-glass-hover);
+  border-color: var(--border-hover);
+}
+
+/* Status */
+.status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  font-size: var(--font-size-sm);
+}
+
+.status.status-cockpit {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.status-indicator {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-secondary);
+  transition: background 0.4s var(--ease);
+}
+
+.status-indicator.connected {
+  background: var(--success);
+  box-shadow: 0 0 8px rgba(52, 211, 153, 0.5);
+  animation: connectPop 0.4s var(--spring);
+}
+
+@keyframes connectPop {
+  from {
+    transform: scale(0);
+  }
+  50% {
+    transform: scale(1.5);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+.status-indicator.disconnected {
+  background: var(--error);
+  box-shadow: 0 0 8px rgba(248, 113, 113, 0.4);
+}
+
+.status-indicator.streaming {
+  background: var(--accent);
+  animation: pulse 1.5s infinite;
+  box-shadow: 0 0 12px var(--accent-glow);
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+@keyframes sheetIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -48%) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}

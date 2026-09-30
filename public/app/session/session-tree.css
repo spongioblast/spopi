@@ -1,0 +1,24 @@
+/* ABOUTME: Session tree rows in the center tab. */
+/* ABOUTME: The current leaf is marked, and branches indent by depth. */
+
+.session-tree-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  align-items: center;
+  padding-inline-start: calc(var(--depth, 0) * var(--space-3));
+}
+
+.session-tree-node {
+  font-size: var(--font-size-sm);
+  text-align: left;
+}
+
+.session-tree-leaf {
+  font-weight: 600;
+}
+
+.session-tree-edit,
+.session-tree-summarize {
+  font-size: var(--font-size-sm);
+}

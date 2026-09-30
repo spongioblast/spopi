@@ -1,0 +1,220 @@
+/* ABOUTME: Styles the subagent strip above the composer and a subagent's transcript tab. */
+/* ABOUTME: Colors come from theme tokens; a row's dot follows the child's state. */
+
+.subagent-strip {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0-5);
+  margin: 0 0 var(--space-1-5);
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-glass);
+  font-size: var(--font-size-sm);
+}
+
+.subagent-strip.hidden {
+  display: none;
+}
+
+.subagent-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--control-height-sm);
+  min-width: 0;
+}
+
+.subagent-dot {
+  flex: none;
+  width: var(--space-2);
+  height: var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--text-muted);
+}
+
+.subagent-row[data-state="running"] .subagent-dot,
+.subagent-view-state[data-state="running"]::before {
+  background: var(--accent);
+  animation: subagent-pulse 1.4s var(--ease) infinite;
+}
+
+.subagent-row[data-state="complete"] .subagent-dot,
+.subagent-view-state[data-state="complete"]::before {
+  background: var(--success);
+}
+
+.subagent-row:is([data-state="failed"], [data-state="stopped"], [data-state="rejected"])
+  .subagent-dot,
+.subagent-view-state:is(
+  [data-state="failed"],
+  [data-state="stopped"],
+  [data-state="rejected"]
+)::before {
+  background: var(--error);
+}
+
+.subagent-row:is([data-state="paused"], [data-state="partial"]) .subagent-dot,
+.subagent-view-state:is([data-state="paused"], [data-state="partial"])::before {
+  background: var(--warning);
+}
+
+@keyframes subagent-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.subagent-name {
+  flex: none;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.subagent-meta {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.spopi-subagent {
+  display: none;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--bg-solid);
+}
+
+.spopi-subagent.is-visible {
+  display: flex;
+}
+
+.subagent-view-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--border);
+}
+
+.subagent-view-title {
+  margin: 0;
+  font-size: var(--font-size-md);
+}
+
+.subagent-view-state {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.subagent-view-state::before {
+  content: "";
+  width: var(--space-2);
+  height: var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--text-muted);
+}
+
+.subagent-view-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  font-size: var(--font-size-sm);
+}
+
+.subagent-text {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.subagent-section-label {
+  margin-bottom: var(--space-1);
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.subagent-task,
+.subagent-final {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-glass);
+}
+
+.subagent-msg.is-user {
+  align-self: flex-end;
+  max-width: 85%;
+  padding: var(--space-1-5) var(--space-2);
+  border-radius: var(--radius-md);
+  background: var(--bg-glass-hover);
+}
+
+.subagent-msg.is-tool {
+  align-self: flex-start;
+  padding: 0 var(--space-1-5);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-glass);
+  color: var(--text-secondary);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: var(--font-size-xs);
+}
+
+.subagent-msg.is-result {
+  margin-left: var(--space-3);
+  padding-left: var(--space-2);
+  border-left: 2px solid var(--border);
+}
+
+.subagent-msg.is-result summary {
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: var(--font-size-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.subagent-msg.is-result pre {
+  max-height: 320px;
+  overflow: auto;
+  margin-top: var(--space-1);
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--bg-glass);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: var(--font-size-xs);
+}
+
+.subagent-msg.is-error summary {
+  color: var(--error);
+}
+
+.subagent-steer {
+  display: flex;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-top: 1px solid var(--border);
+}
+
+.subagent-steer[hidden] {
+  display: none;
+}
+
+.subagent-steer-input {
+  flex: 1;
+  min-width: 0;
+}

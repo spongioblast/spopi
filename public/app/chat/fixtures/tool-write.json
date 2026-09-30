@@ -1,0 +1,38 @@
+[
+  { "type": "agent_start", "timestamp": 1000 },
+  {
+    "type": "message_start",
+    "timestamp": 1000,
+    "message": { "id": "user-1", "role": "user", "content": "TOOL:write" }
+  },
+  {
+    "type": "message_end",
+    "timestamp": 1000,
+    "message": { "id": "user-1", "role": "user", "content": "TOOL:write" }
+  },
+  {
+    "type": "tool_execution_start",
+    "timestamp": 1100,
+    "toolCallId": "w1",
+    "toolName": "write",
+    "args": { "path": "note.txt", "content": "hi\n" }
+  },
+  {
+    "type": "tool_execution_end",
+    "timestamp": 1400,
+    "toolCallId": "w1",
+    "toolName": "write",
+    "isError": false,
+    "result": "ok"
+  },
+  {
+    "type": "message_end",
+    "timestamp": 1500,
+    "message": {
+      "id": "asst-1",
+      "role": "assistant",
+      "content": [{ "type": "text", "text": "Wrote note.txt." }]
+    }
+  },
+  { "type": "agent_settled", "timestamp": 1600 }
+]

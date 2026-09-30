@@ -1,0 +1,59 @@
+/* ABOUTME: File tree row text and Git state (tinted name plus a bare letter). */
+/* ABOUTME: Also the pressed look of the sidebar show-hidden toggle. */
+
+.file-name {
+  font-size: var(--font-size-md);
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Git state is one colour per meaning, shared by the name and a bare letter:
+   amber = changed, green = new, red = needs attention. No boxes. */
+.file-tree-row[data-git] {
+  --git-tone: var(--warning);
+}
+
+.file-tree-row:is([data-git="added"], [data-git="untracked"]) {
+  --git-tone: var(--success);
+}
+
+.file-tree-row:is([data-git="deleted"], [data-git="conflict"]) {
+  --git-tone: var(--danger);
+}
+
+.file-tree-row[data-git] .file-name {
+  color: color-mix(in srgb, var(--git-tone) 80%, var(--text-primary));
+}
+
+/* A folder with changes inside gets a dot in the colour of the most urgent one. */
+.file-git-dot {
+  flex-shrink: 0;
+  width: var(--space-1-5);
+  height: var(--space-1-5);
+  margin: 0 var(--space-0-5) 0 var(--space-1);
+  border-radius: var(--radius-pill);
+  background: var(--git-tone);
+  opacity: 0.85;
+}
+
+.file-git-badge {
+  flex-shrink: 0;
+  min-width: var(--space-3);
+  color: var(--git-tone, var(--text-muted));
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  text-align: center;
+  opacity: 0.85;
+}
+
+/* Sidebar header show-hidden toggle: pressed state stays visibly active
+   while dotfiles are included in the listing. */
+.file-sidebar-action[aria-pressed="true"] {
+  background: var(--bg-glass-hover);
+  color: var(--accent);
+}

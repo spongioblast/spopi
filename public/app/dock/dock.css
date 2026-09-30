@@ -1,0 +1,250 @@
+/* ABOUTME: Dock under the editor: tab strip, status chips, Cockpit layout. */
+/* ABOUTME: The editor pane stays above the dock. */
+
+.app-layout.spopi-shell .spopi-dock {
+  flex: 0 0 var(--dock-height, 300px);
+  display: flex;
+  flex-direction: column;
+  min-height: 28px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-solid);
+}
+
+.app-layout.spopi-shell .spopi-dock-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 28px;
+  padding: var(--space-1) var(--space-2);
+}
+
+.app-layout.spopi-shell .spopi-dock-tabs,
+.app-layout.spopi-shell .spopi-dock-tools {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.app-layout.spopi-shell .spopi-dock-tools {
+  margin-left: auto;
+}
+
+.app-layout.spopi-shell .spopi-dock-tab {
+  height: 22px;
+  padding: 0 var(--space-2);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+
+.app-layout.spopi-shell .spopi-dock-tab.active {
+  color: var(--text-primary);
+  background: var(--bg-glass-hover);
+}
+
+.app-layout.spopi-shell .spopi-dock-tab.has-activity::after {
+  content: "";
+  display: inline-block;
+  width: var(--space-1-5);
+  height: var(--space-1-5);
+  margin-left: var(--space-1);
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  vertical-align: middle;
+}
+
+.app-layout.spopi-shell .spopi-dock-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-left: auto;
+}
+
+.app-layout.spopi-shell .spopi-dock-actions .terminal-new-tab-group {
+  display: inline-flex;
+  align-items: center;
+}
+
+.app-layout.spopi-shell .spopi-dock-actions > [hidden] {
+  display: none;
+}
+
+.app-layout.spopi-shell .spopi-dock-status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  height: 22px;
+  padding: 0 var(--space-2);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.app-layout.spopi-shell .spopi-dock-status:hover {
+  background: var(--bg-glass-hover);
+  color: var(--text-primary);
+}
+
+.app-layout.spopi-shell .spopi-workbench-panel {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: var(--space-2) var(--space-3);
+}
+
+.app-layout.spopi-shell .spopi-workbench-panel[hidden] {
+  display: none;
+}
+
+.app-layout.spopi-shell .spopi-dock #spopi-dock-terminal:not([hidden]),
+.app-layout.spopi-shell .spopi-dock #spopi-dock-cockpit:not([hidden]) {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+.app-layout.spopi-shell .spopi-dock .terminal-resizer,
+.app-layout.spopi-shell .spopi-dock .terminal-enlarge,
+.app-layout.spopi-shell .spopi-dock .terminal-collapse {
+  display: none;
+}
+
+.app-layout.spopi-shell .spopi-dock #terminal-panel,
+.app-layout.spopi-shell .spopi-dock .terminal-panel {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  height: auto !important;
+  display: flex;
+  flex-direction: row;
+  border-top: 0;
+  background: var(--bg-solid);
+}
+
+/* Cursor-style instance list: one row per PTY, stacked beside the terminal.
+   Hidden by terminal-panel.js while there is a single instance. */
+.app-layout.spopi-shell .spopi-dock .terminal-instances {
+  flex: 0 0 160px;
+  flex-direction: column;
+  align-items: stretch;
+  height: auto;
+  margin: var(--space-2) 0;
+  padding: var(--space-1);
+  border-bottom: 0;
+  border-left: 1px solid var(--border);
+  overflow-y: auto;
+}
+
+.app-layout.spopi-shell .spopi-dock .terminal-instances[hidden] {
+  display: none;
+}
+
+.app-layout.spopi-shell .spopi-dock .terminal-instances .terminal-tab {
+  justify-content: flex-start;
+  width: 100%;
+  text-align: left;
+}
+
+/* The list is narrow: row actions take no space until the row is hovered or focused,
+   so shell names are not cut off. */
+.app-layout.spopi-shell
+  .spopi-dock
+  .terminal-instances
+  .terminal-tab:not(:hover, :focus-within)
+  :is(.terminal-tab-send, .terminal-tab-restart, .terminal-tab-close) {
+  display: none;
+}
+
+.app-layout.spopi-shell .spopi-dock .terminal-instances .terminal-tab-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: none;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-layout.spopi-shell .spopi-dock .terminal-body {
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: var(--bg-solid);
+}
+
+.app-layout.spopi-shell .spopi-dock[data-terminal-theme="system"] .xterm-viewport,
+.app-layout.spopi-shell .spopi-dock[data-terminal-theme="system"] .xterm-screen {
+  background: var(--bg-solid);
+}
+
+.spopi-dock-statuses {
+  color: var(--text-muted);
+}
+
+.app-layout.spopi-shell .spopi-dock .terminal-body .xterm {
+  /* left matches the "Terminal" tab label; top/bottom keep the same air */
+  inset: var(--space-2) var(--space-4);
+}
+
+.app-layout.spopi-shell .spopi-dock .terminal-body .terminal-restart-notice,
+.app-layout.spopi-shell .spopi-dock .terminal-body .terminal-start-error {
+  margin: var(--space-1);
+  border: 0;
+  border-radius: var(--radius-xs);
+}
+
+.app-layout.spopi-shell .spopi-dock .metrics-overlay {
+  position: static;
+  width: auto;
+  max-height: none;
+  box-shadow: none;
+  border: 0;
+  animation: none;
+  inset: auto;
+}
+
+.app-layout.spopi-shell .spopi-dock .metrics-overlay.hidden {
+  display: block;
+}
+
+#header-metrics {
+  display: none;
+  font-variant-numeric: tabular-nums;
+}
+
+body.dock-hidden #header-metrics {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1-5);
+}
+
+body.dock-hidden .app-layout.spopi-shell #spopi-dock,
+body.dock-hidden .app-layout.spopi-shell .spopi-dock-resizer,
+body.review-open .app-layout.spopi-shell #spopi-dock,
+body.review-open .app-layout.spopi-shell .spopi-dock-resizer,
+body.subagent-open .app-layout.spopi-shell #spopi-dock,
+body.subagent-open .app-layout.spopi-shell .spopi-dock-resizer {
+  display: none;
+}
+
+.cache-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--success);
+  vertical-align: middle;
+}

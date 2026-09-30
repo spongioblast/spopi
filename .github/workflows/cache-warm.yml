@@ -1,0 +1,124 @@
+name: Warm build cache
+
+# GitHub Actions caches are scoped by ref: a run can restore caches created by
+# its own ref or by the default branch, and nothing else. release.yml only ever
+# runs on tags, so anything it saved was written into a `refs/tags/vX` scope
+# that no later run could read -- every release recompiled the entire Rust
+# dependency graph from scratch (~11-13 min per platform).
+#
+# This workflow does the saving from main, the one scope every tag run can
+# restore from. It compiles the exact same binary as a release does, minus the
+# bundling and publishing, so the artifacts it caches are the ones the release
+# build is looking for. It doubles as an early warning that main still compiles
+# on every release target.
+#
+# Manual only: six builds (two on macOS runners) cost more minutes than a
+# cold release build saves, so run it by hand shortly before tagging.
+#
+# Keep the matrix, the CARGO_* env block and the rust-cache inputs identical to
+# release.yml. rust-cache hashes every CARGO*/RUST* environment variable into
+# its key, so a difference in any of them silently stops the cache resolving.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cache-warm-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  warm:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+          - os: macos-14
+            pi_target_platform: darwin-x64
+            rust_target: x86_64-apple-darwin
+          - os: ubuntu-24.04
+            pi_target_platform: linux-x64
+          - os: ubuntu-24.04-arm
+            pi_target_platform: linux-arm64
+          - os: windows-2022
+            pi_target_platform: windows-x64
+          - os: windows-11-arm
+            pi_target_platform: windows-arm64
+
+    runs-on: ${{ matrix.os }}
+
+    env:
+      CARGO_HTTP_MULTIPLEXING: "false"
+      CARGO_NET_RETRY: "10"
+      CARGO_REGISTRIES_CRATES_IO_PROTOCOL: sparse
+      CARGO_HTTP_CHECK_REVOKE: "false"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust_target }}
+
+      - name: Cache cargo + build artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          # The cargo workspace is `src-tauri/` with no target-dir override.
+          workspaces: src-tauri -> target
+          shared-key: spopi-release-${{ matrix.os }}-${{ matrix.rust_target }}
+          save-if: "true"
+
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          WEBKIT_DEV_PKG="libwebkit2gtk-4.1-dev"
+          if ! apt-cache show "$WEBKIT_DEV_PKG" >/dev/null 2>&1; then
+            WEBKIT_DEV_PKG="libwebkit2gtk-4.0-dev"
+          fi
+          sudo apt-get install -y \
+            desktop-file-utils \
+            "$WEBKIT_DEV_PKG" \
+            libappindicator3-dev \
+            librsvg2-dev \
+            gstreamer1.0-tools \
+            gstreamer1.0-plugins-base \
+            gstreamer1.0-plugins-good \
+            rpm \
+            patchelf
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # Same key as release.yml so the release restores these too -- they were
+      # missing for exactly the same ref-scoping reason as the cargo cache.
+      - name: Cache embedded release downloads
+        uses: actions/cache@v5
+        with:
+          path: |
+            .cache/pi-binaries
+            .cache/agent-browser-binaries
+            .cache/terminal-fonts
+            .cache/cjk-fonts
+          key: embedded-assets-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('scripts/pi-version.json', 'scripts/agent-browser-version.json', 'scripts/terminal-font-version.json', 'scripts/cjk-font-version.json') }}
+
+      # `--no-bundle` stops after the Rust binary: same cargo invocation and
+      # therefore the same crate fingerprints as a release build, without the
+      # bundler, the code signing or the release upload. tauri.conf.json's
+      # beforeBuildCommand still fetches the embedded assets and builds the
+      # frontend, so this is the release compile in every way that the cache
+      # cares about.
+      - name: Build the Rust binary (no bundling)
+        env:
+          PI_TARGET_PLATFORM: ${{ matrix.pi_target_platform }}
+        run: bun run tauri build --no-bundle ${{ matrix.rust_target && format('--target {0}', matrix.rust_target) || '' }}

@@ -1,0 +1,452 @@
+/* ABOUTME: Styles Packages → Installed: bundled switches, toolbar, list, and detail pane. */
+/* ABOUTME: The list and the detail scroll on their own inside a box sized to the window. */
+
+/* ── Bundled with SPOPI ───────────────────────────────────────────── */
+
+.pkg-bundled {
+  margin-bottom: var(--space-5);
+}
+
+.pkg-bundled-list {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.pkg-bundled-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+}
+
+.pkg-bundled-row + .pkg-bundled-row {
+  border-top: 1px solid var(--border);
+}
+
+.pkg-bundled-label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-2);
+  min-width: 0;
+}
+
+.pkg-bundled-name {
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.pkg-bundled-state,
+.pkg-bundled-restart {
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+}
+
+.pkg-bundled-state.is-warning {
+  color: var(--warning);
+}
+
+.pkg-bundled-restart {
+  font-style: italic;
+}
+
+/* ── Toolbar: totals and page-wide actions ────────────────────────── */
+
+.pkg-manager-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.pkg-manager-toolbar-summary {
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+}
+
+.pkg-manager-toolbar-actions {
+  display: flex;
+  gap: var(--space-1-5);
+}
+
+.pkg-manager-message {
+  flex-basis: 100%;
+  padding: var(--space-1-5) var(--space-2);
+  font-size: var(--font-size-sm);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  background: var(--bg-glass);
+  border: 1px solid var(--border);
+}
+
+.pkg-manager-message.is-error,
+.pkg-manager-notice-error {
+  color: var(--danger);
+}
+
+.pkg-manager-message.is-error {
+  border-color: color-mix(in srgb, var(--danger) 40%, var(--border));
+}
+
+/* Update-check state, inline after the totals. */
+.pkg-manager-notice::before {
+  content: " · ";
+}
+
+.pkg-manager-notice {
+  color: var(--text-muted);
+}
+
+/* ── Master-detail box ────────────────────────────────────────────── */
+
+/* The list and the detail each scroll inside the box instead of lengthening the
+   settings page. packages-installed.js sets the height left below the box's top. */
+.pkg-manager-shell {
+  --pkg-shell-height: clamp(22rem, calc(100dvh - 12rem), 60rem);
+  display: flex;
+  height: var(--pkg-shell-height);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.pkg-manager-sidebar {
+  display: flex;
+  flex-direction: column;
+  width: 16rem;
+  flex-shrink: 0;
+  background: var(--bg-glass);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.pkg-manager-groups {
+  padding: var(--space-1-5);
+}
+
+.pkg-manager-group-header {
+  margin: var(--space-3) var(--space-2) var(--space-1);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.pkg-manager-group-header:first-child {
+  margin-top: var(--space-1);
+}
+
+.pkg-manager-sidebar-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0-5);
+  width: 100%;
+  padding: var(--space-1-5) var(--space-2);
+  text-align: left;
+  color: inherit;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.pkg-manager-sidebar-row:hover {
+  background: var(--bg-glass-hover);
+}
+
+.pkg-manager-sidebar-row.is-selected {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+.pkg-manager-row-top {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  min-width: 0;
+}
+
+.pkg-manager-sidebar-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.pkg-manager-sidebar-row[data-status="disabled"] .pkg-manager-sidebar-name {
+  color: var(--text-muted);
+}
+
+.pkg-manager-sidebar-meta {
+  padding-left: calc(var(--space-2) + var(--space-1-5));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+.pkg-manager-sidebar-row[data-status="failed"] .pkg-manager-sidebar-meta {
+  color: var(--danger);
+}
+
+.pkg-manager-status-dot {
+  flex-shrink: 0;
+  width: var(--space-2);
+  height: var(--space-2);
+  border-radius: 50%;
+  background: var(--text-ghost);
+}
+
+.pkg-manager-status-dot[data-status="loaded"] {
+  background: var(--success);
+}
+
+.pkg-manager-status-dot[data-status="installed"] {
+  background: var(--warning);
+}
+
+.pkg-manager-status-dot[data-status="failed"] {
+  background: var(--danger);
+}
+
+.pkg-manager-update-badge {
+  flex-shrink: 0;
+  padding: 0 var(--space-1-5);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  line-height: 1.6;
+  color: var(--accent-text);
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  border-radius: var(--radius-pill);
+}
+
+/* ── Detail pane ──────────────────────────────────────────────────── */
+
+.pkg-manager-detail {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: var(--space-3) var(--space-4);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.pkg-manager-detail-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-3);
+}
+
+.pkg-manager-title-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.pkg-manager-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.pkg-manager-subtitle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1-5);
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+}
+
+.pkg-manager-source {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+}
+
+.pkg-manager-scope {
+  flex-shrink: 0;
+  padding: 0 var(--space-1-5);
+  font-size: var(--font-size-xs);
+  line-height: 1.6;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+}
+
+.pkg-manager-detail-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.pkg-manager-enable {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  margin-right: var(--space-1);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.pkg-manager-description {
+  margin: var(--space-3) 0 0;
+  font-size: var(--font-size-md);
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.pkg-health-line {
+  margin-top: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-size-sm);
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--danger) 35%, var(--border));
+  border-radius: var(--radius-md);
+}
+
+.pkg-health-error {
+  color: var(--text-secondary);
+}
+
+.pkg-manager-status-grid {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: var(--space-1-5) var(--space-4);
+  margin-top: var(--space-4);
+  font-size: var(--font-size-sm);
+}
+
+.pkg-manager-status-row {
+  display: contents;
+}
+
+.pkg-manager-status-label {
+  color: var(--text-muted);
+}
+
+.pkg-manager-status-value {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--text-primary);
+}
+
+.pkg-manager-status-value.is-mono {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+}
+
+.pkg-manager-status-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1-5);
+}
+
+.settings-section-title-small {
+  margin-top: var(--space-5);
+  margin-bottom: var(--space-1-5);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.pkg-manager-resource-list {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.pkg-manager-resource-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-1-5) var(--space-3);
+  font-size: var(--font-size-sm);
+}
+
+.pkg-manager-resource-row + .pkg-manager-resource-row {
+  border-top: 1px solid var(--border);
+}
+
+.pkg-manager-resource-name {
+  color: var(--text-primary);
+}
+
+.pkg-manager-resource-path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+/* ── Enable switch and danger button ──────────────────────────────── */
+
+.pkg-manager-toggle {
+  appearance: none;
+  position: relative;
+  width: 30px;
+  height: 17px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--border-hover);
+  cursor: pointer;
+  transition: background var(--duration) var(--ease);
+}
+
+.pkg-manager-toggle.is-on {
+  background: var(--accent);
+}
+
+.pkg-manager-toggle.is-loading {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.pkg-manager-toggle-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--text-primary);
+  transition: transform var(--duration) var(--ease);
+}
+
+.pkg-manager-toggle.is-on .pkg-manager-toggle-knob {
+  transform: translateX(13px);
+}
+
+.pkg-manager-btn.is-danger {
+  color: var(--danger);
+}
+
+.pkg-manager-btn.is-danger:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--danger) 60%, var(--border));
+}

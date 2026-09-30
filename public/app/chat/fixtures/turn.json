@@ -1,0 +1,40 @@
+[
+  { "type": "agent_start" },
+  {
+    "type": "message_start",
+    "message": { "id": "user-1", "role": "user", "content": "read the file" }
+  },
+  {
+    "type": "message_end",
+    "message": { "id": "user-1", "role": "user", "content": "read the file" }
+  },
+  {
+    "type": "message_start",
+    "message": { "id": "asst-1", "role": "assistant", "content": [] }
+  },
+  {
+    "type": "message_update",
+    "assistantMessageEvent": { "type": "text_delta", "contentIndex": 0, "delta": "Looking." }
+  },
+  {
+    "type": "message_end",
+    "message": {
+      "id": "asst-1",
+      "role": "assistant",
+      "content": [{ "type": "text", "text": "Looking." }]
+    }
+  },
+  {
+    "type": "tool_execution_start",
+    "toolCallId": "tool-1",
+    "toolName": "read"
+  },
+  {
+    "type": "tool_execution_end",
+    "toolCallId": "tool-1",
+    "toolName": "read",
+    "isError": false,
+    "result": "ok"
+  },
+  { "type": "agent_end" }
+]

@@ -1,0 +1,56 @@
+/* ABOUTME: Holds base layout and widget classes used by more than one surface. */
+/* ABOUTME: Feature styles stay next to their modules. */
+/* ═══════════════════════════════════════════════════════
+   Shared base layout and widget classes used across all modules.
+   Must be loaded before module-specific CSS.
+   ═══════════════════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════════════════
+   Layout — the glass sits on top of the gradient field
+   ═══════════════════════════════════════════════════════ */
+
+.app-layout {
+  display: flex;
+  height: 100vh;
+  /* biome-ignore lint/suspicious/noDuplicateProperties: 100vh is a fallback for browsers without dvh support */
+  height: 100dvh;
+  position: relative;
+}
+
+.icon-btn {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  font-size: var(--font-size-md);
+  line-height: 1;
+  border-radius: var(--radius-md);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background var(--duration) var(--ease),
+    color var(--duration) var(--ease);
+}
+
+.icon-btn:hover {
+  background: var(--bg-glass-hover);
+}
+
+.icon-btn:active {
+  opacity: 0.7;
+}
+
+.icon-btn.spinning svg {
+  animation: spin 0.5s linear;
+}
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

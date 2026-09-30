@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "strict": true,
+    "checkJs": true,
+    "allowJs": true,
+    "types": [],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "skipLibCheck": true
+  },
+  "include": ["public/app/**/*.js", "extensions/**/*.ts", "extensions/**/*.d.ts"],
+  "exclude": ["public/app/**/*.test.js", "public/app/test-utils/**/*.js", "public/vendor/**"]
+}

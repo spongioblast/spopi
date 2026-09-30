@@ -1,0 +1,5 @@
+{
+  "version": "0.38.1",
+  "sha256": {},
+  "_comment": "Pinned agent-browser release bundled with SPOPI. Bump, run bun run fetch:agent-browser, smoke-test the browser-check skill."
+}

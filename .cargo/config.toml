@@ -1,0 +1,4 @@
+# Windows schannel fails cargo downloads when the CRL/OCSP server is offline
+# (CRYPT_E_REVOCATION_OFFLINE). TLS still verifies the certificate chain.
+[http]
+check-revoke = false

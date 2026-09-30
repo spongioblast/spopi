@@ -1,0 +1,186 @@
+/* ABOUTME: Docked approval card that replaces the composer input while Pi waits. */
+/* ABOUTME: Warning-tinted: headline and tool tag, the command in a block, then the choices. */
+
+.approval-bar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid color-mix(in srgb, var(--warning) 45%, transparent);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--warning) 7%, var(--bg-solid));
+}
+
+.approval-bar-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.approval-bar-head::before {
+  content: "";
+  flex: none;
+  width: var(--space-2);
+  height: var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--warning);
+}
+
+.approval-bar-title {
+  min-width: 0;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.approval-bar-tool {
+  flex: none;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+}
+
+.approval-bar-message {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  white-space: pre-wrap;
+}
+
+.approval-bar-subject {
+  max-height: calc(var(--font-size-sm) * 9);
+  margin: 0;
+  padding: var(--space-1) var(--space-2);
+  overflow: auto;
+  border-radius: var(--radius-xs);
+  background: var(--bg-glass-active);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.approval-bar-facts {
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+}
+
+.approval-bar-facts summary {
+  cursor: pointer;
+}
+
+.approval-bar-facts dl {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: var(--space-1) var(--space-2);
+  margin: var(--space-1) 0 0;
+}
+
+.approval-bar-facts dd {
+  margin: 0;
+  font-family: var(--font-mono);
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.approval-bar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.approval-bar-timeout {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.approval-choice {
+  min-width: 0;
+  font-size: var(--font-size-sm);
+}
+
+.approval-choice-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.approval-choice kbd {
+  flex: none;
+  padding: 0 var(--space-1);
+  border: 1px solid currentColor;
+  border-radius: var(--radius-xs);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  opacity: 0.6;
+}
+
+.composer-card.composer-approval-open > textarea,
+.composer-card.composer-approval-open > .composer-toolbar {
+  display: none;
+}
+
+.composer-chip {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  height: var(--control-height-sm);
+  padding: 0 var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.composer-chip:hover {
+  background: var(--bg-glass-hover);
+  color: var(--text-primary);
+}
+
+.composer-chip[data-mode="auto-edit"] {
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  color: var(--accent);
+}
+
+.composer-chip[data-mode="full"] {
+  border-color: color-mix(in srgb, var(--warning) 50%, transparent);
+  color: var(--warning);
+}
+
+.context-ring {
+  --ring-fill: var(--accent);
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: var(--control-height-xs);
+  height: var(--control-height-xs);
+  border-radius: var(--radius-pill);
+  background: conic-gradient(
+    var(--ring-fill) calc(var(--context-pct, 0) * 1%),
+    var(--bg-glass-active) 0
+  );
+  cursor: default;
+  /* The hole is a mask, so the center is the composer behind the ring. */
+  -webkit-mask: radial-gradient(
+    farthest-side,
+    transparent calc(100% - 3px),
+    #000 calc(100% - 2.5px)
+  );
+  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px));
+}
+
+.context-ring[data-level="warning"] {
+  --ring-fill: var(--warning);
+}
+
+.context-ring[data-level="critical"] {
+  --ring-fill: var(--error);
+}

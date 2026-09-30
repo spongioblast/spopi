@@ -1,0 +1,58 @@
+/* ABOUTME: Styles one quiet turn: header, work row, answer, the review card, and the undone marker. */
+/* ABOUTME: Streaming code blocks keep a reserved height so the column does not jump. */
+
+.undo-marker {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-3) 0;
+  padding: var(--space-1-5) var(--space-3);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.undo-marker-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.turn-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1-5);
+  margin: var(--space-2) 0;
+}
+
+.turn-block-header,
+.turn-block-work-row,
+.turn-block-notice {
+  font-size: var(--font-size-sm);
+}
+
+.turn-block-notice {
+  color: var(--text-muted);
+  font-weight: var(--font-weight-normal, 400);
+}
+
+.turn-block-notice[data-severity="warning"],
+.turn-block-notice[data-severity="error"] {
+  color: var(--warning);
+  font-weight: var(--font-weight-medium, 500);
+}
+
+.turn-block-thinking pre,
+.turn-block-steps {
+  margin: var(--space-1) 0 0;
+  white-space: pre-wrap;
+}
+
+.turn-block-answer pre,
+.turn-block-answer code {
+  min-height: 1.4em;
+}
+
+.turn-block-review {
+  cursor: pointer;
+}

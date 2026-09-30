@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n="bootstrap.startup">SPOPI Startup</title>
+  <style>
+    :root { color-scheme: dark; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #101113;
+      color: #e7e8ea;
+      display: grid;
+      place-items: center;
+      min-height: 100vh;
+    }
+    .card {
+      width: min(680px, calc(100vw - 48px));
+      border: 1px solid #2b2e33;
+      border-radius: 14px;
+      background: #16181c;
+      padding: 24px;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.32);
+    }
+    h1 { margin: 0 0 10px; font-size: 24px; }
+    p { margin: 0 0 12px; color: #b7bdc8; line-height: 1.45; }
+    .error {
+      margin: 10px 0 16px;
+      border-radius: 10px;
+      border: 1px solid #3b2225;
+      background: #231417;
+      color: #ffb4bd;
+      padding: 10px 12px;
+      font-size: 12px;
+      white-space: pre-wrap;
+      display: none;
+    }
+    .actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    button {
+      border: 1px solid #2f3744;
+      background: #1e2633;
+      color: #dce6f8;
+      border-radius: 9px;
+      padding: 9px 14px;
+      cursor: pointer;
+    }
+    button:disabled {
+      opacity: 0.7;
+      cursor: wait;
+    }
+    .hint {
+      margin-top: 10px;
+      min-height: 18px;
+      font-size: 12px;
+      color: #8f98a8;
+    }
+  </style>
+  <script>
+    // Inline i18n for bootstrap error page — no external dependencies.
+    // The main app's i18n.js can't be loaded here because pi isn't running.
+    (() => {
+      function readLanguagePreference() {
+        try {
+          const cookies = document.cookie ? document.cookie.split("; ") : [];
+          for (const entry of cookies) {
+            const eq = entry.indexOf("=");
+            if (eq === -1) continue;
+            if (entry.slice(0, eq) !== "spopi-language") continue;
+              const raw = entry.slice(eq + 1);
+              try {
+                return decodeURIComponent(raw);
+              } catch {
+                return raw;
+              }
+          }
+        } catch {}
+        return null;
+      }
+
+      function resolveBootstrapLocale(preference) {
+        if (preference === "en") return "en";
+        if (preference === "zh") return "zh";
+        // system or anything else: resolve from navigator
+        return navigator.language?.toLowerCase().startsWith("zh") ? "zh" : "en";
+      }
+
+      const enMessages = {
+        title: "SPOPI could not start",
+        descriptionPre: "The embedded",
+        descriptionPost: "runtime that ships with SPOPI failed to launch.",
+        help: "This can happen if the last project folder was deleted, or if the SPOPI installation is incomplete. Click Retry startup to try again. Reinstall SPOPI if it keeps failing.",
+        retry: "Retry startup",
+        tauriUnavailable: "Tauri runtime is unavailable in this window.",
+        starting: "Starting Pi runtime...",
+        startupFailed: "Startup failed"
+      };
+
+      const zhMessages = {
+        title: "SPOPI 无法启动",
+        descriptionPre: "SPOPI 内置的",
+        descriptionPost: "运行时启动失败。",
+        help: "这通常是因为上次打开的项目文件夹已被删除，或 SPOPI 安装不完整。点击「重试启动」再试一次；如果仍然失败，请重新安装 SPOPI。",
+        retry: "重试启动",
+        tauriUnavailable: "此窗口中 Tauri 运行时不可用。",
+        starting: "正在启动 Pi 运行时...",
+        startupFailed: "启动失败"
+      };
+
+      const pref = readLanguagePreference();
+      const locale = resolveBootstrapLocale(pref);
+      const messages = locale === "zh" ? zhMessages : enMessages;
+
+      document.documentElement.lang = locale === "zh" ? "zh-CN" : "en";
+
+      document.addEventListener("DOMContentLoaded", () => {
+        document.getElementById("bootstrap-title").textContent = messages.title;
+        document.getElementById("bootstrap-desc-pre").textContent = messages.descriptionPre;
+        document.getElementById("bootstrap-desc-post").textContent = messages.descriptionPost;
+        document.getElementById("bootstrap-help").textContent = messages.help;
+        document.getElementById("retry-btn").textContent = messages.retry;
+      });
+
+      window.__bootstrapMessages = messages;
+    })();
+  </script>
+</head>
+<body>
+  <main class="card">
+    <h1 id="bootstrap-title" data-i18n="bootstrap.title">SPOPI could not start</h1>
+    <p><span id="bootstrap-desc-pre" data-i18n="bootstrap.descriptionPre">The embedded</span> <code data-i18n="bootstrap.pi">pi</code> <span id="bootstrap-desc-post" data-i18n="bootstrap.descriptionPost">runtime that ships with SPOPI failed to launch.</span></p>
+    <p id="bootstrap-help">This can happen if the last project folder was deleted, or if the SPOPI installation is incomplete. Click Retry startup to try again. Reinstall SPOPI if it keeps failing.</p>
+    <div id="startup-error" class="error"></div>
+    <div class="actions">
+      <button id="retry-btn" type="button" data-i18n="bootstrap.retry">Retry startup</button>
+    </div>
+    <div id="hint" class="hint"></div>
+  </main>
+  <script>
+    const retryBtn = document.getElementById('retry-btn');
+    const hint = document.getElementById('hint');
+    const errorBox = document.getElementById('startup-error');
+    const messages = window.__bootstrapMessages;
+    const rawError = new URLSearchParams(window.location.search).get('startupError');
+    if (rawError) {
+      errorBox.style.display = 'block';
+      errorBox.textContent = decodeURIComponent(rawError);
+    }
+
+    retryBtn.addEventListener('click', async () => {
+      const invoke = window.__TAURI__?.core?.invoke;
+      if (typeof invoke !== 'function') {
+        hint.textContent = messages.tauriUnavailable;
+        return;
+      }
+      retryBtn.disabled = true;
+      hint.textContent = messages.starting;
+      try {
+        await invoke('retry_startup');
+      } catch (error) {
+        hint.textContent = String(error?.message || error || messages.startupFailed);
+        retryBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

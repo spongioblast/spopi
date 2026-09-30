@@ -1,0 +1,17 @@
+/* ABOUTME: Shortcut help rows inside the existing dialog. */
+/* ABOUTME: One muted line per registered binding. */
+
+.keybinding-help {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.keybinding-help-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-3);
+  align-items: center;
+  margin: 0;
+  font-size: var(--font-size-sm);
+}

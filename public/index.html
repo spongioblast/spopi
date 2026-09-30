@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content"
+    />
+    <base href="/" />
+    <title>SPOPI</title>
+    <link rel="icon" type="image/svg+xml" href="icons/favicon.svg" />
+    <meta name="theme-color" content="#1a1d26" />
+    <script id="theme-bootstrap">
+      // Resolve the theme before loading CSS so the browser's first paint
+      // uses the saved palette instead of the default dark tokens. An id this
+      // script does not know takes its scheme from the cookie applyTheme wrote.
+      (() => {
+        const lightThemes = new Set(["clean", "terracotta", "sage"]);
+        const darkThemes = new Set(["night", "dawn", "midnight"]);
+        const read = (name) => {
+          try {
+            const prefix = `${name}=`;
+            const entry = document.cookie
+              .split("; ")
+              .find((cookie) => cookie.startsWith(prefix));
+            return entry ? decodeURIComponent(entry.slice(prefix.length)) : null;
+          } catch (_e) {
+            return null;
+          }
+        };
+
+        let savedTheme = read("spopi-theme");
+        if (savedTheme === "dark") savedTheme = "night";
+        if (savedTheme === "light") savedTheme = "terracotta";
+        if (!/^[a-z][a-z0-9-]{0,31}$/.test(savedTheme || "")) {
+          savedTheme = "dawn";
+        }
+        let scheme = read("spopi-scheme") === "light" ? "light" : "dark";
+        if (lightThemes.has(savedTheme)) scheme = "light";
+        if (darkThemes.has(savedTheme)) scheme = "dark";
+        document.documentElement.dataset.theme = savedTheme;
+        document.documentElement.dataset.scheme = scheme;
+      })();
+    </script>
+    <script id="appearance-bootstrap">
+      // Resolve appearance font sizes and the forced preview theme before the
+      // first paint, from the spopi-appearance cookie. Must run before
+      // the stylesheet links below so the first paint already carries the
+      // saved sizes. Deliberately dependency-free: inline scripts cannot
+      // import appearance-preferences.js.
+      (() => {
+        const LEVELS = ["small", "normal", "medium", "large", "xlarge"];
+        const CHAT_PX = { small: 14, normal: 16, medium: 18, large: 20, xlarge: 22 };
+        const PREVIEW_PX = { small: 11, normal: 13, medium: 15, large: 17, xlarge: 19 };
+        let saved = null;
+        try {
+          const prefix = "spopi-appearance=";
+          const entry = document.cookie
+            .split("; ")
+            .find((cookie) => cookie.startsWith(prefix));
+          if (entry) saved = JSON.parse(decodeURIComponent(entry.slice(prefix.length)));
+        } catch (_e) {
+          saved = null;
+        }
+        const level = (value) => (LEVELS.includes(value) ? value : "normal");
+        const chat = saved ? level(saved.chatFontSize) : "normal";
+        const preview = saved ? level(saved.previewFontSize) : "normal";
+        document.documentElement.style.setProperty("--chat-font-size", `${CHAT_PX[chat]}px`);
+        document.documentElement.style.setProperty(
+          "--preview-font-size",
+          `${PREVIEW_PX[preview]}px`,
+        );
+        const mode = saved && ["light", "dark"].includes(saved.previewTheme)
+          ? saved.previewTheme
+          : null;
+        if (mode) document.documentElement.dataset.previewTheme = mode;
+      })();
+    </script>
+    <link rel="stylesheet" href="style-theme.css" />
+    <link rel="stylesheet" href="design-system.css" />
+    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="/user.css" data-user-css="1" />
+    <script>
+      // Boot-time instance-swap overlay gate kept for session route swaps.
+      // Read synchronously before <body> renders so the first paint is the
+      // overlay, not a half-loaded chat UI.
+      try {
+        if (sessionStorage.getItem("spopi:swapping-instance") === "1") {
+          document.documentElement.classList.add("swapping-instance-pending");
+        }
+      } catch (_e) {}
+    </script>
+  </head>
+  <body class="">
+    <div
+      class="instance-swap-overlay"
+      id="instance-swap-overlay"
+      aria-hidden="true"
+    >
+      <div class="instance-swap-overlay__spinner"></div>
+      <div
+        class="instance-swap-overlay__label"
+        id="instance-swap-overlay-label"
+        data-i18n="sidebar.startingSession"
+      >
+        Starting session…
+      </div>
+    </div>
+    <script>
+      // Flip the body class as early as the body element exists. Done inline
+      // (rather than waiting for the native entry) so we don't get a chat-UI flash
+      // between body parse and app.js executing.
+      if (
+        document.documentElement.classList.contains("swapping-instance-pending")
+      ) {
+        document.body.classList.add("swapping-instance");
+        document.documentElement.classList.remove("swapping-instance-pending");
+        const overlay = document.getElementById("instance-swap-overlay");
+        if (overlay) overlay.setAttribute("data-visible", "true");
+      }
+    </script>
+    <div class="app-layout" id="app-layout">
+    </div>
+
+    <div class="settings-overlay hidden" id="settings-overlay"></div>
+
+    <div class="settings-panel hidden" id="settings-panel">
+      <aside class="settings-nav">
+        <div
+          class="settings-nav-title"
+          data-i18n="shell.settingsTitle"
+        >
+          Settings
+        </div>
+        <button class="settings-nav-back" id="settings-close">
+          <svg
+            class="settings-nav-back-icon"
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <polyline points="15 6 9 12 15 18" />
+          </svg>
+          <span data-i18n="settings.backToChat">Back to chat</span>
+        </button>
+      </aside>
+      <section class="settings-content">
+        <div class="settings-tab active" data-settings-panel="general">
+        </div>
+
+        <div class="settings-tab" data-settings-panel="appearance">
+        </div>
+
+        <div class="settings-tab" data-settings-panel="terminal">
+        </div>
+
+        <div class="settings-tab" data-settings-panel="extensions">
+        </div>
+
+        <div class="settings-tab" data-settings-panel="dependencies">
+        </div>
+
+        <div class="settings-tab" data-settings-panel="usage">
+        </div>
+
+        <div class="settings-tab" data-settings-panel="models">
+        </div>
+        <div class="settings-tab" data-settings-panel="configuration">
+        </div>
+        <div class="settings-tab" data-settings-panel="customizations">
+        </div>
+        <div class="settings-tab" data-settings-panel="phone">
+        </div>
+
+      </section>
+    </div>
+
+    <!-- Dialog Container -->
+    <div id="dialog-container" class="hidden"></div>
+
+    <!-- Scripts -->
+    <!-- Import map: redirects browser-only package specifiers to the
+             same-origin ESM vendor bundles produced by scripts/build-frontend.js.
+             Vitest resolves these imports from node_modules directly. -->
+    <script type="importmap">
+      {
+        "imports": {
+          "@codemirror/state": "./vendor/codemirror.js",
+          "@codemirror/view": "./vendor/codemirror.js",
+          "@codemirror/commands": "./vendor/codemirror.js",
+          "@codemirror/language": "./vendor/codemirror.js",
+          "@codemirror/search": "./vendor/codemirror.js",
+          "@codemirror/theme-one-dark": "./vendor/codemirror.js",
+          "@codemirror/lang-javascript": "./vendor/codemirror.js",
+          "@codemirror/lang-json": "./vendor/codemirror.js",
+          "@codemirror/lang-markdown": "./vendor/codemirror.js",
+          "@codemirror/lang-python": "./vendor/codemirror.js",
+          "@codemirror/lang-rust": "./vendor/codemirror.js",
+          "@codemirror/lang-yaml": "./vendor/codemirror.js",
+          "@codemirror/lang-css": "./vendor/codemirror.js",
+          "@codemirror/lang-html": "./vendor/codemirror.js",
+          "@codemirror/legacy-modes/mode/r": "./vendor/codemirror.js",
+          "@codemirror/legacy-modes/mode/shell": "./vendor/codemirror.js",
+          "@tauri-apps/plugin-notification": "./vendor/tauri-notification.js",
+          "pdfjs-dist/legacy/build/pdf.mjs": "./vendor/pdf.js"
+        }
+      }
+    </script>
+    <script type="module" src="bootstrap-entry.js"></script>
+    <!-- The UI overlay's entry point. Empty unless the user has one, and empty
+         in safe mode. Root-absolute like user.css so it skips the versioned
+         base href. It should wait for the `spopi:ready` event. -->
+    <script type="module" src="/user.js"></script>
+  </body>
+</html>

@@ -1,0 +1,45 @@
+/* ABOUTME: Styles the scrolling message list and its empty state. */
+/* ABOUTME: Individual message chrome lives in the message renderer stylesheet. */
+/* Messages list — scroller, webkit scrollbar styling, typing indicator (dead block-less)
+   (public/app/app.js + public/app/composer-submit.js scaffold)
+   ═══════════════════════════════════════════════════════ */
+
+.messages {
+  flex: 1;
+  min-height: 0;
+  /* The column itself never scrolls sideways: tables, code blocks and tool output
+     scroll inside their own wrappers, so a few stray pixels must not add a bar. */
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-top: var(--messages-top-inset);
+  padding-bottom: 0;
+  padding-left: max(var(--space-6), calc((100% - 960px) / 2));
+  padding-right: max(var(--space-6), calc((100% - 960px) / 2));
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  scroll-behavior: smooth;
+}
+
+/* WebKit does not reliably include end padding in a scrolling flex container's
+   overflow area. A real flex item keeps the floating composer inset scrollable. */
+.messages::after {
+  content: "";
+  flex-basis: calc(var(--messages-bottom-inset) - var(--space-1-5));
+  flex-shrink: 0;
+}
+
+.messages::-webkit-scrollbar {
+  width: 6px;
+}
+.messages::-webkit-scrollbar-track {
+  background: transparent;
+}
+.messages::-webkit-scrollbar-thumb {
+  background: var(--border-hover);
+  border-radius: var(--radius-xs);
+}
+.messages::-webkit-scrollbar-thumb:hover {
+  background: var(--border-bright);
+}

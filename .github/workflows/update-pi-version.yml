@@ -1,0 +1,191 @@
+name: Check pi updates
+
+on:
+  schedule:
+    - cron: "0 9 * * *" # daily at 09:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  check-update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get latest pi release
+        id: latest
+        run: |
+          RESPONSE=$(curl -sSL \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            https://api.github.com/repos/earendil-works/pi/releases/latest)
+
+          LATEST=$(echo "$RESPONSE" | jq -r '.tag_name // empty' | sed 's/^v//')
+
+          if [ -z "$LATEST" ]; then
+            echo "::error::Failed to fetch latest pi release. Response: $RESPONSE"
+            exit 1
+          fi
+
+          echo "version=$LATEST" >> $GITHUB_OUTPUT
+          echo "Fetched latest pi version: $LATEST"
+
+      - name: Get current pinned version
+        id: current
+        run: |
+          CURRENT=$(jq -r '.version' scripts/pi-version.json)
+          echo "version=$CURRENT" >> $GITHUB_OUTPUT
+          echo "Current pinned pi version: $CURRENT"
+
+      - name: Check if already up to date
+        id: compare
+        run: |
+          LATEST="${{ steps.latest.outputs.version }}"
+          CURRENT="${{ steps.current.outputs.version }}"
+
+          if [ "$LATEST" = "$CURRENT" ]; then
+            echo "Already up to date at v$CURRENT, nothing to do."
+            echo "needs_update=false" >> $GITHUB_OUTPUT
+          else
+            echo "Update available: v$CURRENT -> v$LATEST"
+            echo "needs_update=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check if PR already exists
+        id: existing_pr
+        if: steps.compare.outputs.needs_update == 'true'
+        run: |
+          NEW="${{ steps.latest.outputs.version }}"
+          BRANCH="chore/bump-pi-${NEW}"
+
+          EXISTING=$(gh pr list \
+            --head "$BRANCH" \
+            --state open \
+            --json number \
+            --jq '.[0].number // empty')
+
+          if [ -n "$EXISTING" ]; then
+            echo "PR #$EXISTING already exists for v$NEW, skipping."
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Bump pi-version.json
+        if: |
+          steps.compare.outputs.needs_update == 'true' &&
+          steps.existing_pr.outputs.exists == 'false'
+        run: |
+          NEW="${{ steps.latest.outputs.version }}"
+
+          # Update only the version field; keep the others (sha256, _comment).
+          jq --arg v "$NEW" '.version = $v' scripts/pi-version.json > tmp.json
+          mv tmp.json scripts/pi-version.json
+
+          echo "Updated scripts/pi-version.json to v$NEW"
+          cat scripts/pi-version.json
+
+      - name: Setup Bun
+        if: |
+          steps.compare.outputs.needs_update == 'true' &&
+          steps.existing_pr.outputs.exists == 'false'
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      - name: Regenerate Pi fixtures
+        if: |
+          steps.compare.outputs.needs_update == 'true' &&
+          steps.existing_pr.outputs.exists == 'false'
+        run: |
+          bun install --frozen-lockfile
+          bun run fetch:pi
+          bun run smoke:pi-rpc -- --update
+          if [ -f scripts/testing/make-session-fixtures.mjs ]; then
+            bun run scripts/testing/make-session-fixtures.mjs
+          fi
+
+      - name: Get pi release notes
+        id: release_notes
+        if: |
+          steps.compare.outputs.needs_update == 'true' &&
+          steps.existing_pr.outputs.exists == 'false'
+        run: |
+          NEW="${{ steps.latest.outputs.version }}"
+
+          NOTES=$(curl -sSL \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/earendil-works/pi/releases/tags/v${NEW}" \
+            | jq -r '.body // "No release notes available."')
+
+          # Multi-line step outputs need a delimiter.
+          {
+            echo "notes<<EOF"
+            echo "$NOTES"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+
+      - name: Create PR
+        if: |
+          steps.compare.outputs.needs_update == 'true' &&
+          steps.existing_pr.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_NOTES: ${{ steps.release_notes.outputs.notes }}
+          SERVER_URL: ${{ github.server_url }}
+          REPOSITORY: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          NEW="${{ steps.latest.outputs.version }}"
+          CURRENT="${{ steps.current.outputs.version }}"
+          BRANCH="chore/bump-pi-${NEW}"
+          PI_BUMP=$(cat docs/PI_BUMP.md)
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git checkout -b "$BRANCH"
+          git add scripts/pi-version.json tests/fixtures
+          git commit -m "chore: bump embedded pi to v${NEW}"
+          # Force-push so re-runs overwrite any orphaned branch from a
+          # previous failed run (branch pushed but PR creation failed).
+          git push --force origin "$BRANCH"
+
+          cat > /tmp/pr-body.md <<PREOF
+          ## Embedded pi update
+
+          pi released [v${NEW}](https://github.com/earendil-works/pi/releases/tag/v${NEW}).
+
+          | | Version |
+          |---|---|
+          | Current | \`${CURRENT}\` |
+          | New | \`${NEW}\` |
+
+          ## Release notes
+          ${RELEASE_NOTES}
+
+          ## Checklist before merging
+          - [ ] Run \`bun run fetch:pi\` locally and confirm it downloads successfully
+          - [ ] Run \`./src-tauri/resources/pi/pi --version\` shows \`${NEW}\`
+          - [ ] Smoke test: \`bun run dev\` opens SPOPI, sessions work
+          - [ ] If breaking changes appear in release notes, update the Rust host, SPOPI bridge, or frontend accordingly
+
+          ## Checklist from docs/PI_BUMP.md
+          ${PI_BUMP}
+
+          ---
+          *This PR was opened automatically by the [check pi updates](${SERVER_URL}/${REPOSITORY}/actions/runs/${RUN_ID}) workflow.*
+          PREOF
+
+          gh pr create \
+            --title "chore: bump embedded pi v${CURRENT} → v${NEW}" \
+            --body-file /tmp/pr-body.md \
+            --label "dependencies"

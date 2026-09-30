@@ -1,0 +1,280 @@
+// ABOUTME: Tests locale key parity.
+// ABOUTME: Includes "${code} contains every en key".
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { relative, resolve } from "node:path";
+
+import { describe, expect, it } from "vitest";
+
+const publicDir = resolve(import.meta.dirname, "../..");
+
+function loadLocale(code) {
+  try {
+    return JSON.parse(readFileSync(resolve(publicDir, `locales/${code}.json`), "utf-8"));
+  } catch (error) {
+    throw new Error(`Cannot load locale ${code}.json: ${error.message}`);
+  }
+}
+
+const en = loadLocale("en");
+const zh = loadLocale("zh");
+const ja = loadLocale("ja");
+const es = loadLocale("es");
+
+const NON_EN_LOCALES = [
+  { code: "zh", messages: zh },
+  { code: "ja", messages: ja },
+  { code: "es", messages: es },
+];
+
+// ── Flatten helpers ───────────────────────────────────────────────────
+
+function flattenKeys(obj, prefix = "") {
+  const keys = [];
+  for (const [k, v] of Object.entries(obj)) {
+    const path = prefix ? `${prefix}.${k}` : k;
+    if (v !== null && typeof v === "object" && !Array.isArray(v)) {
+      keys.push(...flattenKeys(v, path));
+    } else {
+      keys.push(path);
+    }
+  }
+  return keys;
+}
+
+function lookupValue(obj, dottedKey) {
+  const parts = dottedKey.split(".");
+  let current = obj;
+  for (const part of parts) {
+    if (current == null || typeof current !== "object") return undefined;
+    current = current[part];
+  }
+  return typeof current === "string" ? current : undefined;
+}
+
+function extractPlaceholders(str) {
+  const set = new Set();
+  const re = /\{(\w+)\}/g;
+  let m;
+  while ((m = re.exec(str)) !== null) set.add(m[1]);
+  return set;
+}
+
+const enKeys = new Set(flattenKeys(en));
+
+// ── Key parity ────────────────────────────────────────────────────────
+
+describe("locale key parity", () => {
+  for (const { code, messages } of NON_EN_LOCALES) {
+    const localeKeys = new Set(flattenKeys(messages));
+
+    it(`${code} contains every en key`, () => {
+      const missing = [...enKeys].filter((k) => !localeKeys.has(k));
+      expect(missing, `${code}.json missing keys: ${missing.join(", ")}`).toEqual([]);
+    });
+
+    it(`en contains every ${code} key (no extra ${code} keys)`, () => {
+      const extra = [...localeKeys].filter((k) => !enKeys.has(k));
+      expect(extra, `${code}.json has extra keys not in en.json: ${extra.join(", ")}`).toEqual([]);
+    });
+
+    it(`${code}: every locale value is a non-empty string or nested plain object`, () => {
+      const checkValues = (obj, path = "") => {
+        for (const [k, v] of Object.entries(obj)) {
+          const p = path ? `${path}.${k}` : k;
+          if (v !== null && typeof v === "object" && !Array.isArray(v)) {
+            checkValues(v, p);
+          } else if (typeof v === "string") {
+            expect(v.length, `empty string at ${p}`).toBeGreaterThan(0);
+          } else {
+            throw new Error(`non-string, non-object value at ${p}: ${typeof v}`);
+          }
+        }
+      };
+      checkValues(messages);
+    });
+
+    it(`en and ${code} have identical {placeholder} sets for every shared key`, () => {
+      const enFlat = flattenKeys(en).reduce((acc, key) => {
+        const val = lookupValue(en, key);
+        if (typeof val === "string") acc.set(key, extractPlaceholders(val));
+        return acc;
+      }, new Map());
+      const mismatches = [];
+      for (const [key, enPlaceholders] of enFlat) {
+        const localeVal = lookupValue(messages, key);
+        if (typeof localeVal !== "string") continue;
+        const localePlaceholders = extractPlaceholders(localeVal);
+        if (
+          enPlaceholders.size !== localePlaceholders.size ||
+          [...enPlaceholders].some((p) => !localePlaceholders.has(p))
+        ) {
+          mismatches.push(
+            `${key}: en={${[...enPlaceholders].join(",")}} ${code}={${[...localePlaceholders].join(",")}}`,
+          );
+        }
+      }
+      expect(mismatches, `Placeholder mismatches:\n${mismatches.join("\n")}`).toEqual([]);
+    });
+  }
+
+  it("every en value is a non-empty string or nested plain object", () => {
+    const checkValues = (obj, path = "") => {
+      for (const [k, v] of Object.entries(obj)) {
+        const p = path ? `${path}.${k}` : k;
+        if (v !== null && typeof v === "object" && !Array.isArray(v)) {
+          checkValues(v, p);
+        } else if (typeof v === "string") {
+          expect(v.length, `empty string at ${p}`).toBeGreaterThan(0);
+        } else {
+          throw new Error(`non-string, non-object value at ${p}: ${typeof v}`);
+        }
+      }
+    };
+    checkValues(en);
+  });
+
+  it("uses the required RECENT section titles", () => {
+    expect(en.sidebar.recent).toBe("RECENT");
+    expect(zh.sidebar.recent).toBe("最近访问");
+  });
+});
+
+// ── HTML key references ───────────────────────────────────────────────
+
+describe("HTML data-i18n key references", () => {
+  const htmlFiles = ["index.html", "bootstrap.html"];
+
+  for (const file of htmlFiles) {
+    it(`${file} references only keys that exist in en.json`, () => {
+      const content = readFileSync(resolve(publicDir, file), "utf-8");
+      const attrs = [
+        "data-i18n",
+        "data-i18n-ph",
+        "data-i18n-title",
+        "data-i18n-aria-label",
+        "data-i18n-alt",
+      ];
+      const referenced = new Set();
+
+      for (const attr of attrs) {
+        const regex = new RegExp(`${attr}="([^"]+)"`, "g");
+        let match;
+
+        for (;;) {
+          match = regex.exec(content);
+          if (!match) break;
+          referenced.add(match[1]);
+        }
+      }
+
+      const missing = [...referenced].filter((k) => !enKeys.has(k));
+      expect(missing, `${file} references missing keys: ${missing.join(", ")}`).toEqual([]);
+    });
+  }
+});
+
+function collectSourceJsFiles(dir = publicDir) {
+  const files = [];
+  for (const entry of readdirSync(dir)) {
+    if (["vendor", "locales"].includes(entry)) continue;
+    const absolute = resolve(dir, entry);
+    const stat = statSync(absolute);
+    if (stat.isDirectory()) {
+      files.push(...collectSourceJsFiles(absolute));
+      continue;
+    }
+    if (!entry.endsWith(".js") || entry.endsWith(".test.js")) continue;
+    files.push(relative(publicDir, absolute));
+  }
+  return files.sort();
+}
+
+// ── JS literal t() key references ─────────────────────────────────────
+
+describe("JS t() literal key references", () => {
+  const jsFiles = collectSourceJsFiles();
+
+  it("every literal t(\"...\") / t('...') key exists in en.json", () => {
+    const referenced = new Set();
+
+    for (const file of jsFiles) {
+      let content;
+      try {
+        content = readFileSync(resolve(publicDir, file), "utf-8");
+      } catch (error) {
+        throw new Error(`Missing i18n audit file ${file}: ${error.message}`);
+      }
+      // Match t("key.path") and t('key.path')
+      const regex = /\bt\(\s*["']([^"']+)["']/g;
+      let match;
+
+      for (;;) {
+        match = regex.exec(content);
+        if (!match) break;
+        referenced.add(match[1]);
+      }
+    }
+
+    const missing = [...referenced].filter((k) => !enKeys.has(k));
+    expect(missing, `t() references missing keys: ${missing.join(", ")}`).toEqual([]);
+  });
+
+  it("no raw t() output in innerHTML/insertAdjacentHTML/template without escapeHtml", () => {
+    const violations = [];
+
+    for (const file of jsFiles) {
+      let content;
+      try {
+        content = readFileSync(resolve(publicDir, file), "utf-8");
+      } catch (error) {
+        throw new Error(`Missing i18n audit file ${file}: ${error.message}`);
+      }
+
+      // Check for `${t(` in template literals assigned to innerHTML or insertAdjacentHTML
+      // We only flag t() in template literals that are directly assigned to innerHTML
+      // or passed to insertAdjacentHTML. Using t() in a template literal passed to a
+      // function that uses textContent (like renderError) is safe.
+      const innerHtmlTemplateRegex = /\.innerHTML\s*=\s*`[^`]*\$\{t\(/g;
+      let match;
+
+      for (;;) {
+        match = innerHtmlTemplateRegex.exec(content);
+        if (!match) break;
+        violations.push(`${file}: raw \${t()} in innerHTML template without escapeHtml`);
+      }
+
+      // Check for .innerHTML = ...t(...
+      const innerHtmlRegex = /\.innerHTML\s*=\s*[^;]*\bt\(/g;
+
+      for (;;) {
+        match = innerHtmlRegex.exec(content);
+        if (!match) break;
+        const segment = content.slice(match.index, match.index + 500);
+        if (
+          !segment.includes("escapeHtml(t(") &&
+          !segment.includes("this.escapeHtml(t(") &&
+          !segment.includes("this._escape(t(") &&
+          !segment.includes("esc(t(") &&
+          !segment.includes("escAttr(t(") &&
+          !segment.includes("textContent")
+        ) {
+          violations.push(`${file}: .innerHTML assignment with raw t() without escapeHtml`);
+        }
+      }
+
+      // Check for insertAdjacentHTML with t()
+      const insertAdjRegex = /insertAdjacentHTML\([^;]*\bt\(/g;
+
+      for (;;) {
+        match = insertAdjRegex.exec(content);
+        if (!match) break;
+        const segment = content.slice(match.index, match.index + 200);
+        if (!segment.includes("escapeHtml(t(")) {
+          violations.push(`${file}: insertAdjacentHTML with raw t() without escapeHtml`);
+        }
+      }
+    }
+
+    expect(violations, `Raw t() in HTML:\n${violations.join("\n")}`).toEqual([]);
+  });
+});

@@ -1,0 +1,86 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.5.6/schema.json",
+  "files": {
+    "includes": [
+      "**",
+      "!target",
+      "!src-tauri/resources",
+      "!src-tauri/target",
+      "!src-tauri/gen",
+      "!dist",
+      "!extensions/dist",
+      "!.cache",
+      "!.pi",
+      "!.pi-subagents",
+      "!.worktrees",
+      "!node_modules",
+      "!public/vendor",
+      "!public/preload-graph.json",
+      "!coverage"
+    ]
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended",
+      "a11y": {
+        "preset": "recommended",
+        "noSvgWithoutTitle": "off",
+        "useButtonType": "off"
+      },
+      "complexity": {
+        "preset": "recommended",
+        "noImportantStyles": "off"
+      },
+      "correctness": {
+        "preset": "recommended"
+      },
+      "nursery": {
+        "preset": "recommended"
+      },
+      "performance": {
+        "preset": "recommended"
+      },
+      "security": {
+        "preset": "recommended"
+      },
+      "style": {
+        "preset": "recommended"
+      },
+      "suspicious": {
+        "preset": "recommended"
+      }
+    }
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "double",
+      "semicolons": "always",
+      "trailingCommas": "all"
+    }
+  },
+  "json": {
+    "formatter": {
+      "enabled": true
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["**/*.test.js"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noDocumentCookie": "off",
+            "noAssignInExpressions": "off"
+          }
+        }
+      }
+    }
+  ]
+}

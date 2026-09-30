@@ -1,0 +1,28 @@
+/* ═══════════════════════════════════════════════════════
+   Extension widgets (public/app/extension-ui/extension-widgets.js)
+
+   Generic rendering for `ctx.ui.setWidget()` content published by
+   extensions SPOPI has no purpose-built native mirror for.
+   ═══════════════════════════════════════════════════════ */
+
+.extension-widgets {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1-5);
+  margin-bottom: var(--space-2);
+}
+
+.extension-widget {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-glass);
+  color: var(--text-secondary);
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+  /* Widget lines are pre-formatted terminal output: keep the author's
+     alignment, but wrap rather than overflow a narrow window. */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

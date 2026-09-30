@@ -1,0 +1,425 @@
+/* ABOUTME: Defines the shared UI primitives: buttons, dialogs, and overlays. */
+/* ABOUTME: Color and size tokens live in style-theme.css. */
+/* SPOPI UI primitives. Tokens live in style-theme.css. */
+
+/* Class display rules (.ui-icon-button is inline-flex) outrank the UA
+   [hidden] style; without this, `el.hidden = true` leaves buttons visible. */
+[hidden] {
+  display: none !important;
+}
+
+.ui-button,
+.ui-icon-button,
+.ui-input,
+.ui-textarea,
+.ui-select {
+  font: inherit;
+  color: inherit;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  transition:
+    background var(--duration) var(--ease),
+    border-color var(--duration) var(--ease),
+    color var(--duration) var(--ease),
+    opacity var(--duration) var(--ease);
+}
+
+.ui-button,
+.ui-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--control-height-md);
+  font-size: var(--font-size-md);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.ui-button {
+  appearance: none;
+  gap: var(--space-2);
+  padding: 0 var(--space-3);
+  background: var(--bg-glass);
+  color: var(--text-primary);
+}
+
+.ui-icon-button {
+  width: var(--control-height-md);
+  height: var(--control-height-md);
+  padding: 0;
+}
+
+.ui-button--xs,
+.ui-icon-button--xs {
+  min-height: var(--control-height-xs);
+  height: var(--control-height-xs);
+}
+
+.ui-icon-button--xs {
+  width: var(--control-height-xs);
+}
+
+.ui-button--sm,
+.ui-icon-button--sm {
+  min-height: var(--control-height-sm);
+}
+
+.ui-icon-button--sm {
+  min-height: var(--control-height-sm);
+  height: var(--control-height-sm);
+  width: var(--control-height-sm);
+}
+
+.ui-button--primary,
+.ui-icon-button--primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+
+.ui-button--secondary {
+  background: var(--bg-glass);
+  color: var(--text-primary);
+}
+
+.ui-button--ghost,
+.ui-icon-button--ghost {
+  background: transparent;
+  border: none;
+}
+
+.ui-button--danger {
+  background: color-mix(in srgb, var(--error) 14%, transparent);
+  border-color: color-mix(in srgb, var(--error) 40%, transparent);
+  color: var(--error);
+}
+
+.ui-button:hover:not(:disabled),
+.ui-icon-button:hover:not(:disabled),
+.ui-input:hover:not(:disabled),
+.ui-textarea:hover:not(:disabled),
+.ui-select:hover:not(:disabled) {
+  border-color: var(--border-hover);
+  background-color: var(--bg-glass-hover);
+}
+
+/* Primary variant keeps accent background on hover; use brightness to indicate interaction. */
+.ui-button--primary:hover:not(:disabled),
+.ui-icon-button--primary:hover:not(:disabled) {
+  background-color: var(--accent);
+  border-color: var(--accent);
+  filter: brightness(1.15);
+}
+
+.ui-button:active:not(:disabled),
+.ui-icon-button:active:not(:disabled) {
+  opacity: 0.72;
+}
+
+.ui-button:focus-visible,
+.ui-icon-button:focus-visible,
+.ui-input:focus-visible,
+.ui-textarea:focus-visible,
+.ui-select:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 var(--focus-ring-width) var(--accent-glow);
+}
+
+.ui-button:disabled,
+.ui-icon-button:disabled,
+.ui-input:disabled,
+.ui-textarea:disabled,
+.ui-select:disabled,
+.ui-button[aria-disabled="true"],
+.ui-icon-button[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: var(--disabled-opacity);
+}
+
+.ui-button[aria-busy="true"],
+.ui-icon-button[aria-busy="true"] {
+  cursor: progress;
+}
+
+.ui-input[aria-invalid="true"],
+.ui-textarea[aria-invalid="true"],
+.ui-select[aria-invalid="true"] {
+  border-color: var(--error);
+}
+
+.ui-input,
+.ui-select {
+  width: 100%;
+  min-height: var(--control-height-md);
+  padding: 0 var(--space-3);
+  background-color: var(--bg-glass);
+  font-size: var(--font-size-md);
+}
+
+/* Custom select trigger. Native <select> popups are OS-drawn on Windows,
+   so enhanceSelect() hides the native control and presents this button +
+   listbox instead. */
+.ui-select {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  cursor: pointer;
+  text-align: start;
+}
+
+.ui-select--sm {
+  min-height: var(--control-height-sm);
+  padding: 0 var(--space-2);
+  font-size: var(--font-size-sm);
+}
+
+.ui-select-menu {
+  position: relative;
+  display: inline-flex;
+  vertical-align: middle;
+  min-width: 0;
+}
+
+.ui-select-menu .ui-select {
+  width: 100%;
+}
+
+.ui-select-native {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ui-select-value {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ui-select-chevron {
+  display: flex;
+  flex-shrink: 0;
+  transition: transform var(--duration) var(--ease);
+}
+
+.ui-select-menu.is-open .ui-select-chevron {
+  transform: rotate(180deg);
+}
+
+.ui-select-popover {
+  position: fixed;
+  z-index: var(--z-popover);
+  max-height: 50vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--space-1);
+  border: 1px solid var(--border-hover);
+  border-radius: var(--radius-md);
+  background: var(--bg-solid);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-lg);
+}
+
+.ui-select-popover[hidden] {
+  display: none;
+}
+
+.ui-select-option {
+  appearance: none;
+  display: block;
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  text-align: start;
+  cursor: pointer;
+}
+
+.ui-select-option:hover,
+.ui-select-option.is-active {
+  background: var(--bg-glass-hover);
+}
+
+.ui-select-option[aria-selected="true"] {
+  background: var(--accent-quiet);
+  color: var(--accent-text);
+}
+
+.ui-select-option:focus,
+.ui-select-option:focus-visible {
+  outline: none;
+}
+
+.ui-select-option:disabled {
+  cursor: not-allowed;
+  opacity: var(--disabled-opacity);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-select-chevron {
+    transition: none;
+  }
+}
+
+.ui-textarea {
+  width: 100%;
+  min-height: var(--textarea-min-height);
+  padding: var(--space-2) var(--space-3);
+  resize: vertical;
+  background: var(--bg-glass);
+  font-size: var(--font-size-md);
+}
+
+::placeholder {
+  color: var(--text-placeholder);
+  opacity: 1;
+}
+
+/* Loading placeholder: spinner icon plus the localized loading label.
+   Keep the label as visible text; the spinner is decorative. */
+.ui-loading {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--text-placeholder);
+}
+
+.ui-loading::before {
+  content: "";
+  width: 0.85em;
+  height: 0.85em;
+  border: var(--space-0-5) solid color-mix(in srgb, currentColor 25%, transparent);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: ui-loading-spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes ui-loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-loading::before {
+    animation: none;
+    border-top-color: currentColor;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Dialog overlay + panel primitives
+
+   Single source of truth for every centered modal floating layer in the
+   app (`.dialog`, `.settings-panel.resource-dialog`,
+   `.session-search-dialog`, `.provider-picker-dialog`,
+   `.provider-setup-dialog`). Each feature keeps only its own positioning,
+   sizing, layout and motion; the shared frosted-glass look — background,
+   border, radius, elevation and the focused dimmed backdrop — lives here.
+
+   Dark themes ship no shadow tokens and a frosted background that matches
+   the page tone, so an undifferentiated modal disappears. These primitives
+   apply an explicit elevation shadow and a #3a3a3a border in dark themes
+   so every dialog reads clearly above the dimmed backdrop. Light themes
+   keep the standard shadow tokens and border.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Dimmed, blurred backdrop behind a centered modal. */
+.ui-overlay,
+#dialog-container,
+.settings-overlay.resource-dialog-overlay,
+.session-search-overlay,
+.provider-picker-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/*
+ * Entry motion for a modal centred by its flex parent (`#dialog-container`,
+ * `.ui-overlay`) rather than by `position: fixed; top/left: 50%`.
+ *
+ * The shared `sheetIn` keyframe (public/app/shell/header.css) ends on
+ * `translate(-50%, -50%)` because that is the *static* transform of a fixed,
+ * self-offsetting modal — the animation hands off to the static style with no
+ * visible change. A flex-centred panel has no static transform, so reusing
+ * `sheetIn` runs the whole animation half the panel's size up and to the left
+ * and then snaps it back to centre the instant the animation ends. Keep this
+ * keyframe's end state equal to the panel's static transform (none).
+ */
+@keyframes sheetInCentered {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Frosted, elevated panel shared by every centered modal. */
+.ui-dialog,
+.dialog,
+.settings-panel.resource-dialog,
+.session-search-dialog,
+.provider-picker-dialog,
+.provider-setup-dialog {
+  background: var(--bg-frosted);
+  backdrop-filter: blur(var(--blur-heavy)) saturate(1.5);
+  -webkit-backdrop-filter: blur(var(--blur-heavy)) saturate(1.5);
+  border: 1px solid var(--border-hover);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg), var(--shadow-inset);
+}
+
+/* Dark themes: lift the panel off the equally-dark backdrop with a real
+   shadow and a #3a3a3a border (see comment above). */
+:root:not([data-scheme="light"]) .ui-dialog,
+:root:not([data-scheme="light"]) .dialog,
+:root:not([data-scheme="light"]) .settings-panel.resource-dialog,
+:root:not([data-scheme="light"]) .session-search-dialog,
+:root:not([data-scheme="light"]) .provider-picker-dialog,
+:root:not([data-scheme="light"]) .provider-setup-dialog {
+  border-color: #3a3a3a;
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.55),
+    0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.ui-reload-banner {
+  position: fixed;
+  z-index: 40;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--bg-solid);
+  border: 1px solid var(--border-bright);
+}
+.ui-reload-banner.hidden {
+  display: none;
+}

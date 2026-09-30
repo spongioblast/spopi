@@ -1,0 +1,19 @@
+/* ABOUTME: Styles the Edit and Ask Pi buttons that float beside an editor selection. */
+/* ABOUTME: The bar is CodeMirror's tooltip element; this outranks its default look. */
+.file-code-editor .cm-tooltip.spopi-selection-actions {
+  display: flex;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  /* The editor's monospace would otherwise reach the buttons; this is body's stack. */
+  font-family:
+    -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif;
+  background: var(--sidebar-bg);
+  border: 1px solid var(--border-hover);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+}
+
+/* The prompt is open for this selection already. */
+.file-preview-panel:has(.inline-edit-prompt) .spopi-selection-actions {
+  display: none;
+}

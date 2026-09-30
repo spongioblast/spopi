@@ -1,0 +1,90 @@
+/* ABOUTME: Styles the stack of in-app notices. */
+/* ABOUTME: Each notice has a title, a message, and a close control. */
+.notification-stack {
+  position: fixed;
+  top: var(--space-4);
+  right: var(--space-4);
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: min(420px, calc(100vw - var(--space-8)));
+  pointer-events: none;
+}
+
+.notification {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  color: var(--text-primary);
+  background: var(--bg-frosted);
+  border: 1px solid var(--border-bright);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(var(--blur));
+  pointer-events: auto;
+}
+
+.notification--error {
+  border-color: var(--error);
+  background: color-mix(in srgb, var(--error) 12%, var(--bg-frosted));
+}
+
+.notification--warning {
+  border-color: var(--warning);
+  background: color-mix(in srgb, var(--warning) 10%, var(--bg-frosted));
+}
+
+.notification--success {
+  border-color: var(--success);
+  background: color-mix(in srgb, var(--success) 10%, var(--bg-frosted));
+}
+
+.notification-content {
+  min-width: 0;
+  flex: 1;
+}
+
+.notification-title {
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  line-height: 20px;
+}
+
+.notification-message,
+.notification-detail {
+  margin-top: var(--space-1);
+  font-size: var(--font-size-sm);
+  line-height: 16px;
+  color: var(--text-secondary);
+}
+
+.notification-detail {
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.notification-action {
+  margin-top: var(--space-1-5);
+  margin-left: calc(var(--space-2) * -1);
+}
+
+.notification-close {
+  flex: 0 0 auto;
+  width: var(--control-height-xs);
+  height: var(--control-height-xs);
+  color: var(--text-secondary);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xl);
+  line-height: var(--control-height-xs);
+  cursor: pointer;
+}
+
+.notification-close:hover {
+  color: var(--text-primary);
+  background: var(--bg-glass-hover);
+}

@@ -1,0 +1,61 @@
+/* ABOUTME: Styles the Ctrl+K prompt over the editor and the read-only hunk list. */
+/* ABOUTME: The hunk list is also the diff in Pi's edit cards (tool-card.js). */
+.inline-edit-prompt {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--toolbar-gap);
+  align-items: flex-end;
+  padding: var(--space-2);
+  background: var(--bg-frosted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.inline-edit-prompt .inline-edit-input {
+  flex: 1;
+  width: auto;
+  min-height: var(--control-height-md);
+  padding-block: var(--space-1-5);
+  resize: none;
+}
+
+.inline-edit-message {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.merge-hunk-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+}
+
+.merge-hunk {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  overflow: hidden;
+}
+
+.merge-line {
+  padding: 0 var(--space-2);
+  white-space: pre;
+}
+
+.merge-line::before {
+  content: attr(data-sign);
+  display: inline-block;
+  width: var(--space-4);
+  color: var(--text-secondary);
+}
+
+.merge-line-del {
+  background: var(--git-removed-bg);
+}
+
+.merge-line-add {
+  background: var(--git-added-bg);
+}

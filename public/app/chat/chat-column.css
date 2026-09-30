@@ -1,0 +1,424 @@
+/* ABOUTME: Chat column at 380–600px: compact composer, turn meta, live strip, turn rail. */
+/* ABOUTME: Message and composer rules live in their own stylesheets. */
+
+.app-layout.spopi-shell .workspace-content > .main {
+  min-width: min(380px, 100%);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
+  border-left: 1px solid var(--border);
+}
+
+/* Turn rail = short ticks stacked on the lane, compact at the top — not a
+   minimap. The rail shares the messages cell and has no chrome of its own. */
+.app-layout.spopi-shell .main .conv-nav {
+  grid-column: 1;
+  grid-row: 1;
+  justify-self: start;
+  align-self: start;
+  position: relative;
+  z-index: 2;
+  top: auto;
+  transform: none;
+  display: flex;
+  flex-direction: column;
+  width: 8px;
+  height: auto;
+  max-height: none;
+  margin: 0;
+  /* design-token-ignore: header offset so the first tick starts below the session header */
+  padding: calc(var(--workspace-header-offset, 36px) + var(--space-3)) 0 var(--space-3);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  animation: none;
+  pointer-events: none;
+}
+
+.app-layout.spopi-shell .main .conv-nav:hover {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.app-layout.spopi-shell .main .conv-nav-track {
+  position: static;
+  flex: none;
+  align-self: start;
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  margin: 0;
+  gap: var(--space-1);
+  transform: none !important;
+  pointer-events: auto;
+}
+
+.app-layout.spopi-shell .main .conv-nav-dot {
+  position: static;
+  top: auto;
+  width: auto;
+  transform: none;
+}
+
+/* Half the previous 10/12/14: 5px rest, 6px active, 7px hover. */
+.app-layout.spopi-shell .main .conv-nav-dot::after {
+  width: min(var(--nav-w, 5px), 7px);
+  height: 2px;
+  border-radius: 0 var(--radius-pill) var(--radius-pill) 0;
+  opacity: 0.8;
+}
+
+.app-layout.spopi-shell .main .conv-nav-dot:hover::after {
+  width: 7px;
+  opacity: 1;
+}
+
+.app-layout.spopi-shell .main .conv-nav-dot.active::after {
+  width: 6px;
+  opacity: 1;
+  box-shadow: none;
+}
+
+.app-layout.spopi-shell .main .messages {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.app-layout.spopi-shell .main .input-area {
+  grid-column: 1;
+  grid-row: 2;
+  position: relative;
+  left: auto;
+  right: auto;
+  bottom: auto;
+  padding: var(--space-1) var(--space-3) var(--space-2);
+  container-type: inline-size;
+}
+
+.app-layout.spopi-shell .main .composer-toolbar {
+  flex-wrap: nowrap;
+  overflow: visible;
+  padding: 0 var(--space-1-5) var(--space-1);
+}
+
+.app-layout.spopi-shell .main .model-dropdown,
+.app-layout.spopi-shell .main .model-dropdown-btn {
+  min-width: 0;
+  flex-shrink: 1;
+}
+
+.app-layout.spopi-shell .main .composer-toolbar-actions > *,
+.app-layout.spopi-shell .main .composer-toolbar-meta > .thinking-tag {
+  flex-shrink: 0;
+}
+
+/* The model sizes to its name and stays on the left of the second row. */
+.app-layout.spopi-shell .main .model-dropdown-btn {
+  width: auto;
+  max-width: 100%;
+  justify-content: flex-start;
+  height: 22px;
+  font-size: var(--font-size-xs);
+}
+
+.app-layout.spopi-shell .main .composer-toolbar-meta > .thinking-tag {
+  height: 22px;
+  width: auto;
+  min-width: max-content;
+  max-width: none;
+  flex: 0 0 auto;
+  overflow: visible;
+  white-space: nowrap;
+  font-size: var(--font-size-xs);
+}
+
+.app-layout.spopi-shell .main .composer-toolbar-right {
+  flex-shrink: 0;
+}
+
+.app-layout.spopi-shell .main .composer-toolbar-meta {
+  width: 100%;
+}
+
+.app-layout.spopi-shell .main .composer-toolbar-meta .model-dropdown {
+  flex: 0 1 auto;
+}
+
+.app-layout.spopi-shell .main .model-dropdown-label {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-layout.spopi-shell .main .model-dropdown-label.is-unset {
+  color: var(--text-secondary);
+}
+
+/* Ring and send are one pair: the same 26px box, the ring a quiet gauge inside it,
+   the send a flat accent disc with a centered arrow. No glow, no jump on hover. */
+.app-layout.spopi-shell .main .composer-toolbar-right {
+  gap: var(--space-2);
+}
+
+.app-layout.spopi-shell .main .context-ring {
+  width: 18px;
+  height: 18px;
+  margin: 0 var(--space-0-5);
+  background: conic-gradient(
+    var(--ring-fill) calc(var(--context-pct, 0) * 1%),
+    color-mix(in srgb, var(--text-primary) 14%, transparent) 0
+  );
+  -webkit-mask: radial-gradient(
+    farthest-side,
+    transparent calc(100% - 2.5px),
+    #000 calc(100% - 2px)
+  );
+  mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2px));
+}
+
+.app-layout.spopi-shell .main #send-btn,
+.app-layout.spopi-shell .main #abort-btn {
+  width: 26px;
+  height: 26px;
+  box-shadow: none;
+  transition:
+    background var(--duration) var(--ease),
+    filter var(--duration) var(--ease),
+    opacity var(--duration) var(--ease);
+}
+
+.app-layout.spopi-shell .main #abort-btn svg {
+  width: 10px;
+  height: 10px;
+}
+
+.app-layout.spopi-shell .main #send-btn .send-icon svg {
+  width: 14px;
+  height: 14px;
+  stroke-width: 2.5;
+}
+
+.app-layout.spopi-shell .main #send-btn:hover:not(:disabled),
+.app-layout.spopi-shell .main #abort-btn:hover:not(:disabled) {
+  transform: none;
+  box-shadow: none;
+  filter: brightness(1.12);
+}
+
+.app-layout.spopi-shell .main #send-btn:active:not(:disabled),
+.app-layout.spopi-shell .main #abort-btn:active:not(:disabled) {
+  transform: scale(0.94);
+}
+
+/* No usable model: Send stays quiet even with text, until a model is picked. */
+.app-layout.spopi-shell .main #send-btn.is-model-blocked {
+  background: var(--bg-glass-active);
+  cursor: not-allowed;
+}
+
+.app-layout.spopi-shell .main #send-btn.is-model-blocked:hover {
+  filter: none;
+}
+
+.app-layout.spopi-shell .main #send-btn.is-model-blocked .send-icon {
+  color: var(--text-muted);
+}
+
+/* Nothing typed yet: the disc is quiet and lights up once there is a message. */
+.app-layout.spopi-shell .main .composer-card:has(#message-input:placeholder-shown) #send-btn {
+  background: var(--bg-glass-active);
+}
+
+.app-layout.spopi-shell
+  .main
+  .composer-card:has(#message-input:placeholder-shown)
+  #send-btn
+  .send-icon {
+  color: var(--text-muted);
+}
+
+/* The prompt is the turn header: full width, a solid tint of the theme, an accent bar,
+   and a "You · turn N" label, so a new turn is the easiest thing to find. */
+.app-layout.spopi-shell .main .messages {
+  counter-reset: spopi-turn;
+}
+
+.app-layout.spopi-shell .main .message.user {
+  counter-increment: spopi-turn;
+  align-self: stretch;
+  align-items: stretch;
+  margin-top: var(--space-3);
+}
+
+.app-layout.spopi-shell .main .message.user:first-child {
+  margin-top: 0;
+}
+
+.app-layout.spopi-shell .main .message.user::before {
+  content: attr(data-turn-label) " " counter(spopi-turn);
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.02em;
+}
+
+.app-layout.spopi-shell .main .message.user .message-content {
+  max-width: 100%;
+  background: color-mix(in srgb, var(--accent) 9%, var(--bg-solid));
+  color: var(--text-primary);
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--border));
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.app-layout.spopi-shell .main .message.user .message-footer {
+  align-self: flex-end;
+  opacity: 0.7;
+}
+
+/* The turn's work row sits right under the prompt; the answer follows it. Opened, its
+   steps hang off one thin rule so they read as one unit, not loose cards. */
+.app-layout.spopi-shell .main .process-details-toggle {
+  min-height: var(--control-height-sm);
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+}
+
+.app-layout.spopi-shell .main .process-details-group.streaming .process-details-toggle .chevron {
+  display: inline-flex;
+}
+
+.app-layout.spopi-shell .main .process-details-body {
+  margin: var(--space-1) 0 var(--space-1) var(--space-2);
+  padding-left: var(--space-2);
+  border-left: 1px solid var(--border);
+}
+
+.app-layout.spopi-shell .main .process-details-body .message.assistant .message-content {
+  padding: var(--space-1) 0;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.app-layout.spopi-shell .main .process-details-group .thinking-block {
+  margin: 0;
+}
+
+/* An opened row on a running turn reads like a chat: thoughts grow in full instead of
+   scrolling inside a small box. Once the turn is done the compact height returns. */
+.app-layout.spopi-shell .main .process-details-group.streaming .thinking-content {
+  max-height: none;
+  overflow: visible;
+}
+
+.app-layout.spopi-shell .turn-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-top: var(--space-1);
+  color: var(--text-placeholder);
+  font-size: var(--font-size-sm);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.app-layout.spopi-shell .turn-meta button {
+  border: none;
+  background: none;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline dotted;
+}
+
+.app-layout.spopi-shell .live-strip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 22px;
+  margin: 0 var(--space-1) var(--space-1);
+  padding: 0 var(--space-1);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.app-layout.spopi-shell .live-strip::before {
+  content: "";
+  flex: none;
+  width: var(--space-1-5);
+  height: var(--space-1-5);
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  animation: liveStripPulse 1.4s var(--ease) infinite;
+}
+
+.app-layout.spopi-shell .live-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-layout.spopi-shell .live-strip .ui-button {
+  height: 20px;
+  min-height: 20px;
+  padding: 0 var(--space-1-5);
+  border: 1px solid var(--border);
+  font-size: var(--font-size-sm);
+}
+
+@keyframes liveStripPulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-layout.spopi-shell .live-strip::before {
+    animation: none;
+  }
+}
+
+.app-layout.spopi-shell .live-strip[hidden] {
+  display: none;
+}
+
+.app-layout.spopi-shell .context-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  padding: var(--space-1-5) var(--space-2) 0;
+}
+
+.app-layout.spopi-shell .context-chips:empty {
+  display: none;
+}
+
+.app-layout.spopi-shell .context-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0 var(--space-1-5);
+  height: 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}

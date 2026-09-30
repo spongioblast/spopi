@@ -1,0 +1,38 @@
+/* ABOUTME: Layout for the first-launch setup note. */
+/* ABOUTME: The dialog chrome stays in dialog.css; this file only stacks the two items. */
+
+.first-run-dialog {
+  width: min(32rem, 92vw);
+}
+
+.first-run {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.first-run-intro,
+.first-run-item p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: 1.45;
+}
+
+.first-run-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.first-run-item h3 {
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: 600;
+}
+
+.first-run-item.is-warn h3,
+.first-run-item.is-warn p {
+  color: var(--error);
+}

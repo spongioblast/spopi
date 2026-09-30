@@ -1,0 +1,413 @@
+/* ABOUTME: Search, extensions, tree, context, and home-pane rows. */
+/* ABOUTME: One panel is visible at a time. */
+
+.file-row,
+.change-row,
+.search-hit,
+.session-tree-node {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.file-row:hover,
+.search-hit:hover,
+.session-tree-node:hover {
+  background: var(--bg-glass-hover);
+}
+
+.sidebar-section-label {
+  padding: var(--space-2) var(--space-3) var(--space-1);
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+}
+
+.search-hit-list {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.search-hit-list > * {
+  flex: none;
+}
+
+.file-search-results {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+.search-hit-file {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  padding: var(--space-2) var(--space-2) var(--space-0-5);
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.search-hit {
+  width: 100%;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.search-hit-line {
+  flex: none;
+  color: var(--text-placeholder);
+}
+
+.search-hit-text {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.dock-empty {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.extensions-first-run,
+.extensions-recommended {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+}
+
+.extensions-recommended-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--space-3);
+}
+
+.extensions-recommended-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-solid);
+}
+
+.extensions-recommended-why {
+  color: var(--text-secondary);
+}
+
+.extensions-tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.1em;
+  margin-left: var(--space-1);
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-pill);
+  background: var(--accent-quiet);
+  color: var(--accent-text);
+  font-size: var(--font-size-sm);
+  line-height: 1.4;
+}
+
+.settings-tab[data-settings-panel="extensions"] .settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4) 0;
+}
+
+.extensions-recommended-enables {
+  color: var(--text-placeholder);
+  font-size: var(--font-size-sm);
+  text-transform: lowercase;
+}
+
+.extensions-recommended-card > .ui-button,
+.extensions-first-run > .ui-button {
+  width: 100%;
+}
+
+.pkg-install-track {
+  display: block;
+  width: 100%;
+  height: 4px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--text-primary) 16%, transparent);
+}
+
+.pkg-install-bar {
+  display: block;
+  width: 40%;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+  animation: pkg-install-slide 1.1s ease-in-out infinite;
+}
+
+.pkg-install-track[data-determinate="1"] .pkg-install-bar {
+  width: calc(var(--pkg-install-pct, 0) * 1%);
+  animation: none;
+}
+
+.pkg-install-label {
+  display: block;
+  margin-top: var(--space-1);
+}
+
+.pkg-install-error {
+  margin: 0;
+  color: var(--danger, #e54);
+  font-size: var(--font-size-sm);
+}
+
+@keyframes pkg-install-slide {
+  from {
+    transform: translateX(-120%);
+  }
+  to {
+    transform: translateX(280%);
+  }
+}
+
+.app-layout.spopi-shell .spopi-sidebar-stack > #file-sidebar,
+.app-layout.spopi-shell .spopi-sidebar-stack > #sidebar,
+.app-layout.spopi-shell .spopi-sidebar-stack > #review-sidebar,
+.app-layout.spopi-shell .spopi-sidebar-stack > #git-sidebar {
+  margin-top: 0;
+  border-left: none;
+}
+
+/* Every sidebar panel opens with the same head row: same height, same inset, left-aligned. */
+.app-layout.spopi-shell #sidebar .sidebar-header,
+.app-layout.spopi-shell #file-sidebar .file-sidebar-header,
+.app-layout.spopi-shell #review-sidebar .review-scope,
+.app-layout.spopi-shell #git-sidebar .git-subtab-bar {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--space-1);
+  box-sizing: border-box;
+  min-height: 40px;
+  margin: 0;
+  padding: var(--space-1-5) var(--space-3);
+  border-bottom: none;
+}
+
+.app-layout.spopi-shell #git-sidebar .git-panel {
+  padding: 0 var(--space-2) var(--space-1-5);
+}
+
+.app-layout.spopi-shell #git-sidebar .git-subtab-bar {
+  margin: 0 calc(var(--space-2) * -1);
+}
+
+/* File rows sit inset with rounded corners, like session rows. */
+.app-layout.spopi-shell #review-sidebar .review-files {
+  padding: var(--space-1-5) var(--space-3);
+}
+
+.app-layout.spopi-shell #review-sidebar .review-file-row {
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+}
+
+.app-layout.spopi-shell #review-sidebar .review-file-row:hover {
+  background: var(--bg-glass-hover);
+}
+
+/* Review scopes and Git sub-tabs use the editor tab look. */
+.app-layout.spopi-shell #review-sidebar .review-scope > button,
+.app-layout.spopi-shell #git-sidebar .git-subtab {
+  height: 28px;
+  padding: 0 var(--space-2);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 400;
+}
+
+.app-layout.spopi-shell #review-sidebar .review-scope > button:hover,
+.app-layout.spopi-shell #git-sidebar .git-subtab:hover {
+  background: var(--bg-glass-hover);
+}
+
+.app-layout.spopi-shell #review-sidebar .review-scope > button[aria-checked="true"],
+.app-layout.spopi-shell #git-sidebar .git-subtab[aria-selected="true"] {
+  background: var(--bg-glass-hover);
+  color: var(--text-primary);
+}
+
+.app-layout.spopi-shell .git-branch-toggle__label,
+.app-layout.spopi-shell #git-branch-indicator,
+.app-layout.spopi-shell .git-panel-summary {
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-layout.spopi-shell #file-sidebar-close,
+.app-layout.spopi-shell #file-sidebar-toggle,
+.app-layout.spopi-shell #diff-sidebar-toggle,
+.app-layout.spopi-shell #info-sidebar-toggle,
+.app-layout.spopi-shell .terminal-toggle,
+.app-layout.spopi-shell #package-update-indicator:not([data-count]),
+.app-layout.spopi-shell #sidebar-extensions-btn,
+.app-layout.spopi-shell #sidebar-skills-btn,
+.app-layout.spopi-shell #settings-btn {
+  display: none;
+}
+
+.app-layout.spopi-shell #package-update-indicator[data-count="0"] {
+  display: none;
+}
+
+.file-preview-tab.ext-tab .file-preview-tab-name::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: var(--space-1);
+  /* design-token-ignore: 1px accent square from the sketch ext-tab recipe */
+  border-radius: 1px;
+  background: var(--accent);
+  vertical-align: middle;
+}
+
+.spopi-home {
+  display: none;
+  flex: 1;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  align-content: flex-start;
+  min-height: 0;
+  padding: var(--space-6) var(--space-8);
+  gap: var(--space-6);
+  overflow: auto;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+body:not([data-center-mode="review"], [data-center-mode="subagent"])
+  .file-preview-panel.collapsed
+  + .spopi-home,
+body:not([data-center-mode="review"], [data-center-mode="subagent"]) .spopi-home.is-visible {
+  display: flex;
+}
+
+.workspace-missing {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-width: 28rem;
+}
+
+.workspace-missing-path {
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+
+.spopi-home-col {
+  flex: 1;
+  min-width: 0;
+}
+
+.spopi-home-actions {
+  display: flex;
+  flex: 1 1 100%;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.spopi-home-action {
+  font-size: var(--font-size-sm);
+}
+
+.header-breadcrumb {
+  margin: 0;
+  font-size: var(--font-size-sm);
+}
+
+.header-breadcrumb[data-status="working"]::before {
+  content: "";
+  display: inline-block;
+  width: var(--space-2);
+  height: var(--space-2);
+  margin-right: var(--space-1);
+  border-radius: var(--radius-pill);
+  background: var(--accent, currentColor);
+}
+
+body[data-layout-preset="focus"] .main {
+  max-width: 72ch;
+}
+
+body[data-layout-preset="focus"]:not([data-center-mode="review"], [data-center-mode="subagent"])
+  .pane-center {
+  display: none;
+}
+
+.spopi-review {
+  display: none;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  overflow: auto;
+}
+
+.spopi-review.is-visible {
+  display: flex;
+}
+
+.spopi-review-list.hidden {
+  display: none;
+}
+
+.spopi-review-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.spopi-home-col h3 {
+  margin: 0 0 var(--space-2);
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.spopi-home kbd {
+  font: inherit;
+  font-size: var(--font-size-sm);
+  padding: 0 var(--space-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  color: var(--text-primary);
+}

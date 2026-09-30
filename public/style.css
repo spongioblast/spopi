@@ -1,0 +1,810 @@
+/* ABOUTME: Rules that apply after the feature stylesheets listed in stylesheets.json. */
+/* ABOUTME: New feature CSS is added to that list, not as an import here. */
+/* ═══════════════════════════════════════════════════════
+   SPOPI — Dark Glassmorphism
+   ═══════════════════════════════════════════════════════ */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Chromium/WebView2 treats `scrollbar-width` as the native Win32
+   scrollbar (arrow buttons, gray thumb) and then ignores
+   ::-webkit-scrollbar. Style overlay-like bars here; hide with
+   `scrollbar-width: none` only on specific overflow-x toolbars. */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-hover);
+  border-radius: var(--radius-xs);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-bright);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+@supports not selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-hover) transparent;
+  }
+}
+
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+/* Global focus-visible — accessible keyboard focus ring */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none; /* handled by their own focus styles */
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* Theme variables moved to style-theme.css */
+
+@font-face {
+  font-family: "SPOPI Mono Nerd";
+  src: url("./fonts/terminal/FiraCodeNerdFontMono-Regular.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "SPOPI Mono Nerd";
+  src: url("./fonts/terminal/FiraCodeNerdFontMono-Bold.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "SPOPI CJK";
+  src: url("./fonts/cjk/LXGWWenKaiLite-Regular.gb2312.woff2") format("woff2");
+  unicode-range: U+3000-303F, U+4E00-9FFF, U+FF00-FFEF;
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+.message.assistant .message-content,
+.message.user .message-content,
+.file-markdown-preview {
+  font-family:
+    "SPOPI CJK", -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
+    "Helvetica Neue", sans-serif;
+}
+
+.file-code-editor .cm-editor,
+.file-code-editor .cm-scroller,
+.file-code-editor .cm-content,
+.file-code-editor .cm-gutters {
+  font-family:
+    "SPOPI Mono Nerd", ui-monospace, SFMono-Regular, Menlo, Monaco, "Cascadia Mono", Consolas,
+    "Liberation Mono", monospace;
+}
+
+/* touch-action: manipulation on all interactive elements prevents 300ms tap
+   delay on mobile and disables double-tap-to-zoom on buttons/links. */
+button,
+a,
+[role="button"],
+[role="tab"],
+[role="radio"],
+[role="option"],
+[role="menuitem"] {
+  touch-action: manipulation;
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--accent);
+}
+
+body {
+  font-family:
+    -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif;
+  background: var(--bg-solid);
+  color: var(--text-primary);
+  line-height: 1.5;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-size: var(--font-size-md);
+}
+
+/* ═══════════════════════════════════════════════════════
+   File Browser — right sidebar
+   ═══════════════════════════════════════════════════════ */
+
+.git-panel {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-0);
+  min-height: 0;
+  padding: var(--space-1-5) var(--space-2);
+  overflow: auto;
+}
+.git-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-2);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}
+.git-empty p {
+  margin: 0;
+}
+.git-empty-hint {
+  color: var(--text-placeholder);
+}
+.git-panel-toolbar {
+  display: flex;
+  flex: none;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-1);
+  padding: var(--space-1-5) var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--bg-glass-strong) 88%, transparent);
+}
+.git-panel-details {
+  min-width: 0;
+  flex: 1;
+}
+.git-panel-summary,
+.git-panel-stats {
+  margin: 0;
+}
+.git-panel-summary {
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  line-height: 1.35;
+}
+.git-panel-stats {
+  margin-top: var(--space-0-5);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: 1.35;
+}
+.git-panel-push-error {
+  margin: var(--space-0-5) 0 0;
+  color: var(--danger, #e54);
+  font-size: var(--font-size-sm);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.git-panel-toolbar-actions {
+  display: flex;
+  flex: none;
+  gap: var(--space-1);
+}
+.git-group-actions {
+  display: flex;
+  flex: none;
+  flex-wrap: nowrap;
+  gap: var(--space-1);
+}
+.git-group-actions button {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--font-size-sm);
+  line-height: 1;
+  min-height: var(--control-height-xs);
+  padding: 0 var(--space-1-5);
+  white-space: nowrap;
+}
+.git-group-actions button:hover {
+  background: var(--bg-glass-hover);
+}
+.git-subtab-bar {
+  display: flex;
+  gap: var(--space-1);
+  border-bottom: 1px solid var(--border);
+}
+.git-subtab {
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--font-size-sm);
+  padding: var(--space-1) var(--space-2);
+}
+.git-subtab[aria-selected="true"] {
+  border-bottom-color: var(--accent);
+  color: var(--text-primary);
+}
+.git-subtab-pane {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  overflow: auto;
+}
+.git-history-pane {
+  overflow: hidden;
+}
+.git-history-section {
+  min-height: 0;
+  overflow: auto;
+  padding: var(--space-1) 0;
+}
+.git-history-list-section,
+.git-history-detail-section {
+  flex: var(--history-flex, 1) 1 0;
+}
+.git-history-divider {
+  position: relative;
+  z-index: 1;
+  height: 8px;
+  flex: 0 0 8px;
+  cursor: row-resize;
+  border-top: 2px solid var(--border);
+  background: var(--bg-glass-strong);
+}
+.git-history-divider:hover,
+.git-history-divider:focus-visible {
+  border-color: var(--accent);
+  outline: none;
+}
+.git-history-list,
+.git-history-detail-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.git-history-row,
+.git-history-file {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  width: 100%;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+  font: inherit;
+  padding: var(--space-1) var(--space-1-5);
+  text-align: left;
+}
+.git-history-row:hover,
+.git-history-row.selected,
+.git-history-file:hover {
+  background: var(--bg-glass-hover);
+}
+.git-history-subject,
+.git-history-file > span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.git-history-meta {
+  flex: none;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+}
+.git-history-detail-body {
+  border-top: 0;
+  margin-top: 0;
+  padding-top: var(--space-2);
+}
+.git-history-detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.git-history-oid-short {
+  cursor: pointer;
+  margin-left: -2px;
+  border-radius: var(--radius-sm);
+}
+.git-history-oid-short:hover,
+.git-history-oid-short:focus-visible {
+  background: var(--bg-glass-hover);
+  outline: 1px solid var(--accent);
+}
+.git-history-message {
+  margin: 0;
+  color: var(--text-primary);
+  font: inherit;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.git-history-message-truncated,
+.git-history-files-truncated {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}
+.git-history-files {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.git-history-file-status {
+  flex: none;
+  color: var(--text-secondary);
+  font-family: var(--font-mono, monospace);
+  font-size: 0.75rem;
+}
+.git-panel section:not(.git-history-section) {
+  border-top: 1px solid var(--border);
+  padding-top: var(--space-1);
+}
+.git-group + .git-group {
+  border-top: 1px solid var(--border);
+}
+.git-panel section > button,
+.git-entry {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+/* Git group headings reuse the Session List section-header treatment so both
+   sidebars share one disclosure-arrow + muted-label vocabulary. Spacing is
+   heading padding only — session-list headers add margin-top, and a border on
+   every <section> used to make space above each label larger than below. */
+.git-group-heading.sidebar-section-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--control-height-xs);
+  padding: var(--space-1) var(--space-2);
+  margin: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  line-height: 1.25;
+  cursor: pointer;
+  user-select: none;
+}
+.git-group-heading .sidebar-section-count {
+  margin-left: auto;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.git-tree-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  gap: var(--space-2);
+  min-height: var(--control-height-sm);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: var(--font-size-md);
+  line-height: 1.25;
+  transition: background var(--duration) var(--ease);
+  user-select: none;
+}
+.git-tree-row:hover {
+  background: var(--bg-glass-hover);
+}
+.git-tree-row:active {
+  transform: scale(0.99);
+}
+.git-tree-folder-icon,
+.git-tree-file-icon {
+  flex: none;
+  width: 20px;
+  text-align: center;
+  opacity: 0.6;
+}
+.git-tree-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.git-tree-count {
+  margin-left: auto;
+  font-size: var(--font-size-sm);
+}
+.git-entry {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  overflow: hidden;
+}
+.git-row-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-0-5);
+  margin-left: auto;
+  opacity: 0;
+}
+.git-entry:hover .git-row-actions,
+.git-entry:focus-within .git-row-actions,
+.git-entry.git-entry-selected .git-row-actions {
+  opacity: 1;
+}
+.git-row-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-0-5);
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.git-row-action:hover {
+  color: var(--text-primary);
+  background: var(--bg-glass-hover);
+}
+.git-branch-name {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.git-publish-pill {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+.git-amend-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin: var(--space-2) 0 0;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}
+.git-entry-selected {
+  background: var(--accent-quiet);
+}
+.git-commit-dialog-overlay,
+.git-confirm-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+.git-confirm-dialog {
+  background: var(--bg-frosted, #1e1e2e);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 1.5rem;
+  width: min(90vw, 420px);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.git-confirm-message {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+.git-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+.git-confirm-discard {
+  border-color: var(--danger, #e54);
+  color: var(--danger, #e54);
+}
+.git-commit-dialog {
+  background: var(--bg-frosted, #1e1e2e);
+  border: 1px solid var(--border, #333);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  width: min(90vw, 560px);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.git-commit-dialog h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+.git-commit-textarea {
+  width: 100%;
+  min-height: 120px;
+  resize: vertical;
+  font-family: inherit;
+  font-size: 0.875rem;
+  padding: 0.5rem;
+  box-sizing: border-box;
+}
+.git-commit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+.git-commit-error,
+.git-commit-confirmation,
+.git-commit-warning {
+  font-size: 0.8125rem;
+  margin: 0;
+}
+.git-commit-error {
+  color: var(--danger, #e54);
+}
+.git-commit-confirmation {
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-sm);
+  background: rgba(245, 158, 11, 0.15);
+  border-left: 3px solid #d97706;
+  color: #b45309;
+  font-weight: 600;
+}
+.git-commit-warning {
+  color: var(--warning, #ed5);
+  padding: 0.5rem;
+}
+.git-group-actions {
+  padding: var(--space-1) var(--space-2);
+}
+.git-directory {
+  margin-left: 0;
+}
+.git-directory-heading {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 500;
+}
+.git-directory-heading:hover {
+  background: var(--bg-glass-hover);
+}
+.git-directory-body {
+  margin-left: var(--space-3);
+}
+.git-entry-selected {
+  background: var(--accent-quiet);
+}
+.git-truncation-notice {
+  font-size: var(--font-size-sm);
+  opacity: 0.7;
+  padding: var(--space-1) var(--space-1-5);
+}
+.file-sidebar {
+  width: var(--panel-width, var(--file-sidebar-width));
+  min-width: var(--panel-width, var(--file-sidebar-width));
+  background: var(--bg-frosted);
+  backdrop-filter: blur(var(--blur-heavy)) saturate(1.5);
+  -webkit-backdrop-filter: blur(var(--blur-heavy)) saturate(1.5);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition:
+    margin-right 0.3s var(--ease),
+    opacity 0.3s var(--ease);
+  z-index: 100;
+  position: relative;
+}
+
+.app-side-panel {
+  --panel-width: 320px;
+  width: var(--panel-width);
+  min-width: var(--panel-width);
+  max-width: var(--panel-width);
+  flex: 0 0 var(--panel-width);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition:
+    margin-right 0.3s var(--ease),
+    opacity 0.3s var(--ease);
+  z-index: 100;
+  position: relative;
+}
+
+.app-side-panel.is-resizable {
+  resize: none;
+}
+
+.app-side-panel-resize-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -4px;
+  width: 8px;
+  cursor: col-resize;
+  z-index: 3;
+  touch-action: none;
+}
+
+.app-side-panel-resize-handle::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 3px;
+  width: 1px;
+  background: transparent;
+  transition: background var(--duration) var(--ease);
+}
+
+.app-side-panel-resize-handle:hover::after,
+body.is-resizing-side-panel .app-side-panel-resize-handle::after {
+  background: var(--accent);
+}
+
+/* Variant for left-edge panels (drag handle sits on the right border) */
+.app-side-panel-resize-handle--right-edge {
+  left: auto;
+  right: -4px;
+}
+
+.app-side-panel-resize-handle--right-edge::after {
+  left: auto;
+  right: 3px;
+}
+
+body.is-resizing-side-panel {
+  cursor: col-resize;
+  user-select: none;
+}
+
+.app-side-panel-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  padding: var(--space-1-5) var(--space-3);
+  flex-shrink: 0;
+}
+
+.app-side-panel-close-btn {
+  margin-left: 2px;
+}
+
+.file-sidebar {
+  display: flex;
+  margin-top: 40px;
+}
+
+.file-sidebar.collapsed {
+  margin-right: calc(var(--panel-width) * -1);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.file-sidebar-header {
+  justify-content: flex-end;
+  border-bottom: 0;
+}
+
+.file-sidebar-title {
+  flex: 1;
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-primary);
+}
+
+.file-sidebar-path {
+  padding: var(--space-2) var(--space-1) var(--space-2);
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  direction: rtl;
+  text-align: left;
+}
+
+.file-list {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--space-1-5) var(--space-2);
+}
+
+.file-list::-webkit-scrollbar {
+  width: 10px;
+}
+
+.file-list::-webkit-scrollbar-thumb {
+  background: var(--text-secondary);
+  border: 3px solid transparent;
+  border-radius: var(--radius-pill);
+  background-clip: padding-box;
+}
+
+/* ═══════════════════════════════════════════════════════
+   Reduced motion / transparency
+   ═══════════════════════════════════════════════════════ */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .sidebar,
+  .header,
+  .settings-panel,
+  .dialog {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: var(--bg-solid);
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: more) {
+  :root,
+  :root[data-theme] {
+    --border: rgba(128, 128, 128, 0.5);
+    --border-hover: rgba(128, 128, 128, 0.7);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   Reduced Motion — disable/simplify all animations for
+   users who have requested reduced motion (WCAG 2.3.3)
+   ═══════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

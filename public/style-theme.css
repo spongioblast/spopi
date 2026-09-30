@@ -1,0 +1,438 @@
+/* ABOUTME: Defines the shared design tokens and one palette per theme. */
+/* ABOUTME: Components use the tokens instead of raw colors. */
+:root {
+  /* Typography */
+  --font-size-sm: 12px;
+  --font-size-md: 14px;
+  --font-size-lg: 16px;
+  --font-size-xl: 20px;
+  --font-size-2xl: 24px;
+
+  /* Spacing — 4px base scale with compact desktop increments */
+  --space-0: 0;
+  --space-0-5: 2px;
+  --space-1: 4px;
+  --space-1-5: 6px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  /* Controls */
+  --control-height-xs: 24px;
+  --control-height-sm: 28px;
+  --control-height-md: 32px;
+  --control-height-lg: 40px;
+  --textarea-min-height: 72px;
+
+  /* Stable component semantics */
+  --focus-ring-width: 3px;
+  --disabled-opacity: 0.5;
+  --panel-padding: var(--space-4);
+  --card-padding: var(--space-3);
+  --toolbar-gap: var(--space-2);
+
+  /* Layers: each overlay sits above the one before it. */
+  --z-settings: 1100;
+  --z-surface-modal: 1200;
+  --z-dialog: 1300;
+  --z-popover: 1400;
+
+  /* Shape */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius: 16px;
+  --radius-lg: 24px;
+  --radius-pill: 999px;
+
+  /* Sizing */
+  --sidebar-width: 272px;
+  --file-sidebar-width: 260px;
+  /* Motion */
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --duration: 0.2s;
+
+  /* Glass */
+  --blur: 24px;
+  --blur-heavy: 48px;
+
+  /* Semantic */
+  --success: #34d399;
+  --error: #f87171;
+  --warning: #fbbf24;
+  /* Selected text keeps its own color over a tint of the theme's accent. */
+  --selection-bg: color-mix(in srgb, var(--accent) 28%, transparent);
+
+  /* Aliases for names components already use. Values are canonical tokens. */
+  --bg-base: var(--bg-solid);
+  --bg-active: var(--bg-glass-active);
+  --bg-panel: var(--bg-solid);
+  --bg: var(--bg-solid);
+  --bg-elevated: var(--bg-solid);
+  --bg-hover: var(--bg-glass-hover);
+  --bg-selected: var(--bg-glass-active);
+  --text: var(--text-primary);
+  --text-muted: var(--text-secondary);
+  --text-tertiary: var(--text-secondary);
+  --text-xs: var(--font-size-sm);
+  --font-mono: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace;
+  --font-size-xs: 11px;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --line-height-relaxed: 1.5;
+  --danger: var(--error);
+  /* Text and icons on an accent fill. The page ground contrasts with every accent,
+     light or saturated, where white does not. */
+  --on-accent: var(--bg-solid);
+  --accent-danger: var(--error);
+  --accent-success: var(--success);
+  --accent-warning: var(--warning);
+  --shadow-overlay: var(--shadow-lg);
+  --git-added-bg: color-mix(in srgb, var(--success) 18%, transparent);
+  --git-added-border: var(--success);
+  --git-removed-bg: color-mix(in srgb, var(--error) 18%, transparent);
+  --git-removed-border: var(--error);
+  --activity-columns: 1;
+}
+
+/* ─── Dusk — neutral graphite ───
+   Pure greys with no tint; the sidebar sits a step darker than the work area, hairlines
+   stay faint, and a near-white primary is the only emphasis. Colour comes from status
+   and code alone. */
+:root[data-theme="night"] {
+  color-scheme: dark;
+
+  --bg-solid: #1a1a1a;
+  --header-bg: #1a1a1a;
+  --sidebar-bg: #141414;
+  --bg-glass: rgba(255, 255, 255, 0.04);
+  --bg-glass-hover: rgba(255, 255, 255, 0.065);
+  --bg-glass-active: rgba(255, 255, 255, 0.095);
+  --bg-glass-strong: rgba(255, 255, 255, 0.055);
+  --bg-frosted: rgba(26, 26, 26, 0.88);
+
+  --text-primary: #e6e6e6;
+  --text-secondary: #a0a0a0;
+  --text-placeholder: #6e6e6e;
+  --text-ghost: rgba(255, 255, 255, 0.1);
+
+  --accent: #e2e2e2;
+  --accent-glow: rgba(226, 226, 226, 0.12);
+  --accent-quiet: rgba(226, 226, 226, 0.05);
+  --accent-text: #f5f5f5;
+
+  --user-bubble: rgba(255, 255, 255, 0.055);
+  --user-bubble-text: var(--text-primary);
+  --user-bubble-border: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.1),
+    rgba(255, 255, 255, 0.03)
+  );
+
+  --tool-accent: #8a8a8a;
+  --tool-accent-text: #b0b0b0;
+  --tool-bg: rgba(255, 255, 255, 0.03);
+
+  --thinking-accent: #6e6e6e;
+  --thinking-accent-text: #9e9e9e;
+  --thinking-bg: rgba(255, 255, 255, 0.025);
+
+  --border: rgba(255, 255, 255, 0.075);
+  --border-hover: rgba(255, 255, 255, 0.12);
+  --border-bright: rgba(255, 255, 255, 0.17);
+
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: none;
+  --shadow-inset: none;
+
+  --success: #3ecf8e;
+  --warning: #f5b544;
+  --error: #f47174;
+}
+
+/* ─── Midnight — deep navy, moonlit ───
+   Night-sky ground; panels and hairlines carry a faint blue, and a cool moonlight
+   blue is the one accent. */
+:root[data-theme="midnight"] {
+  color-scheme: dark;
+
+  --bg-solid: #080c18;
+  --header-bg: #080c18;
+  --sidebar-bg: #0c1222;
+  --bg-glass: rgba(120, 150, 255, 0.04);
+  --bg-glass-hover: rgba(120, 150, 255, 0.075);
+  --bg-glass-active: rgba(120, 150, 255, 0.12);
+  --bg-glass-strong: rgba(120, 150, 255, 0.055);
+  --bg-frosted: rgba(8, 12, 24, 0.9);
+
+  --text-primary: #e6ebf5;
+  --text-secondary: #8b96ad;
+  --text-placeholder: #5a6478;
+  --text-ghost: rgba(160, 180, 230, 0.1);
+
+  --accent: #6ea8ff;
+  --accent-glow: rgba(110, 168, 255, 0.18);
+  --accent-quiet: rgba(110, 168, 255, 0.07);
+  --accent-text: #9cc4ff;
+
+  --user-bubble: rgba(110, 168, 255, 0.1);
+  --user-bubble-text: var(--text-primary);
+  --user-bubble-border: linear-gradient(
+    135deg,
+    rgba(140, 180, 255, 0.22),
+    rgba(140, 180, 255, 0.04)
+  );
+
+  --tool-accent: #5a6b85;
+  --tool-accent-text: #93a3bd;
+  --tool-bg: rgba(120, 150, 255, 0.04);
+
+  --thinking-accent: #6a78a8;
+  --thinking-accent-text: #a3b0d6;
+  --thinking-bg: rgba(110, 140, 255, 0.05);
+
+  --border: rgba(140, 170, 255, 0.08);
+  --border-hover: rgba(140, 170, 255, 0.14);
+  --border-bright: rgba(140, 170, 255, 0.22);
+
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: none;
+  --shadow-inset: none;
+
+  --success: #3dd6a3;
+  --warning: #f3c255;
+  --error: #ff7a85;
+
+  --ansi-blue: #6ea8ff;
+  --ansi-cyan: #5fd3f3;
+}
+
+/* ─── Dawn — warm blue dark (default) ─── */
+:root,
+:root[data-theme="dawn"] {
+  color-scheme: dark;
+
+  --bg-solid: #1a1d26;
+  --header-bg: rgba(26, 29, 38, 1);
+  --sidebar-bg: rgba(30, 34, 44, 0.95);
+  --bg-glass: rgba(255, 255, 255, 0.04);
+  --bg-glass-hover: rgba(255, 255, 255, 0.07);
+  --bg-glass-active: rgba(255, 255, 255, 0.09);
+  --bg-glass-strong: rgba(255, 255, 255, 0.06);
+  --bg-frosted: rgba(26, 29, 38, 0.78);
+
+  --text-primary: rgba(255, 255, 255, 0.9);
+  --text-secondary: rgba(255, 255, 255, 0.55);
+  --text-placeholder: rgba(255, 255, 255, 0.35);
+  --text-ghost: rgba(255, 255, 255, 0.12);
+
+  --accent: #7a8ab0;
+  --accent-glow: rgba(122, 138, 176, 0.2);
+  --accent-quiet: rgba(122, 138, 176, 0.1);
+  --accent-text: #a0b4d8;
+
+  --user-bubble: rgba(122, 138, 176, 0.1);
+  --user-bubble-text: var(--text-primary);
+  --user-bubble-border: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.12),
+    rgba(255, 255, 255, 0.02)
+  );
+
+  --tool-accent: #6a5a80;
+  --tool-accent-text: #a090b8;
+  --tool-bg: rgba(106, 90, 128, 0.07);
+
+  --thinking-accent: #5a7a9a;
+  --thinking-accent-text: #8ab4d8;
+  --thinking-bg: rgba(90, 122, 154, 0.07);
+
+  --border: rgba(255, 255, 255, 0.08);
+  --border-hover: rgba(255, 255, 255, 0.13);
+  --border-bright: rgba(255, 255, 255, 0.19);
+
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: none;
+  --shadow-inset: none;
+}
+
+/* ─── Clean — Apple-style light ─── */
+:root[data-theme="clean"] {
+  color-scheme: light;
+
+  --bg-solid: #ffffff;
+  --header-bg: rgba(255, 255, 255, 1);
+  --sidebar-bg: rgba(242, 242, 247, 0.95);
+  --bg-glass: rgba(0, 0, 0, 0.03);
+  --bg-glass-hover: rgba(0, 0, 0, 0.06);
+  --bg-glass-active: rgba(0, 0, 0, 0.09);
+  --bg-glass-strong: rgba(0, 0, 0, 0.04);
+  --bg-frosted: rgba(255, 255, 255, 0.82);
+
+  --text-primary: rgba(0, 0, 0, 0.88);
+  --text-secondary: rgba(0, 0, 0, 0.55);
+  --text-placeholder: rgba(0, 0, 0, 0.35);
+  --text-ghost: rgba(0, 0, 0, 0.12);
+
+  --accent: #0580c4;
+  --accent-glow: rgba(5, 128, 196, 0.15);
+  --accent-quiet: rgba(5, 128, 196, 0.06);
+  --accent-text: #0470b0;
+  --header-pill-text: rgba(0, 0, 0, 0.55);
+
+  --user-bubble: #2a96d6;
+  --user-bubble-text: white;
+
+  --tool-accent: #007aff;
+  --tool-accent-text: #007aff;
+  --tool-bg: rgba(0, 122, 255, 0.05);
+
+  --thinking-accent: #5ac8fa;
+  --thinking-accent-text: #2a8abf;
+  --thinking-bg: rgba(90, 200, 250, 0.06);
+
+  --border: rgba(0, 0, 0, 0.08);
+  --border-hover: rgba(0, 0, 0, 0.14);
+  --border-bright: rgba(0, 0, 0, 0.2);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.08);
+  --shadow-inset: none;
+
+  --success: #1f9d55;
+  --warning: #b86e00;
+  --error: #d93036;
+}
+
+/* ─── Terracotta — warm paper, clay accent ───
+   One earth family: clay for the accent, walnut and stone for tools and thinking,
+   moss instead of a bright green, amber and brick that read on a light ground. */
+:root[data-theme="terracotta"] {
+  color-scheme: light;
+
+  --bg-solid: #f8f5f0;
+  --header-bg: #f8f5f0;
+  --sidebar-bg: #f0ebe3;
+  --bg-glass: rgba(92, 58, 30, 0.035);
+  --bg-glass-hover: rgba(92, 58, 30, 0.06);
+  --bg-glass-active: rgba(92, 58, 30, 0.1);
+  --bg-glass-strong: rgba(255, 255, 255, 0.6);
+  --bg-frosted: rgba(248, 245, 240, 0.86);
+
+  --text-primary: #2a211b;
+  --text-secondary: #6e6258;
+  --text-placeholder: #a3978c;
+  --text-ghost: rgba(42, 33, 27, 0.12);
+
+  --accent: #c2603c;
+  --accent-glow: rgba(194, 96, 60, 0.16);
+  --accent-quiet: rgba(194, 96, 60, 0.07);
+  --accent-text: #a44d2d;
+  --header-pill-text: #6e6258;
+
+  --user-bubble: #c2603c;
+  --user-bubble-text: #fff;
+
+  --tool-accent: #8a6a50;
+  --tool-accent-text: #6f5440;
+  --tool-bg: rgba(138, 106, 80, 0.06);
+
+  --thinking-accent: #9a8e82;
+  --thinking-accent-text: #75695e;
+  --thinking-bg: rgba(120, 104, 88, 0.05);
+
+  --border: rgba(92, 58, 30, 0.09);
+  --border-hover: rgba(92, 58, 30, 0.15);
+  --border-bright: rgba(92, 58, 30, 0.22);
+
+  --shadow-sm: 0 1px 2px rgba(74, 44, 20, 0.06);
+  --shadow-md: 0 2px 10px rgba(74, 44, 20, 0.07);
+  --shadow-lg: 0 8px 24px rgba(74, 44, 20, 0.1);
+  --shadow-inset: none;
+
+  --success: #5d7a3a;
+  --warning: #b0650b;
+  --error: #b83227;
+
+  --ansi-red: #b83227;
+  --ansi-green: #5d7a3a;
+  --ansi-yellow: #a86a10;
+  --ansi-blue: #3f6784;
+  --ansi-magenta: #9a4b6b;
+  --ansi-cyan: #3d7a72;
+  --ansi-bright-black: #8f8378;
+}
+
+/* ─── Sage — eucalyptus light ───
+   Cool green-grey ground with a clear sage accent; slate for tools and thinking so
+   nothing competes with the green, and a success green that sits apart from it. */
+:root[data-theme="sage"] {
+  color-scheme: light;
+
+  --bg-solid: #f5f7f4;
+  --header-bg: #f5f7f4;
+  --sidebar-bg: #ebf0ea;
+  --bg-glass: rgba(34, 64, 48, 0.035);
+  --bg-glass-hover: rgba(34, 64, 48, 0.06);
+  --bg-glass-active: rgba(34, 64, 48, 0.1);
+  --bg-glass-strong: rgba(255, 255, 255, 0.6);
+  --bg-frosted: rgba(245, 247, 244, 0.86);
+
+  --text-primary: #1c2721;
+  --text-secondary: #5a6860;
+  --text-placeholder: #95a29a;
+  --text-ghost: rgba(28, 39, 33, 0.12);
+
+  --accent: #4f8a6c;
+  --accent-glow: rgba(79, 138, 108, 0.16);
+  --accent-quiet: rgba(79, 138, 108, 0.07);
+  --accent-text: #3a6e54;
+  --header-pill-text: #5a6860;
+
+  --user-bubble: #4f8a6c;
+  --user-bubble-text: #fff;
+
+  --tool-accent: #56727a;
+  --tool-accent-text: #445c63;
+  --tool-bg: rgba(86, 114, 122, 0.06);
+
+  --thinking-accent: #8c9a93;
+  --thinking-accent-text: #637069;
+  --thinking-bg: rgba(90, 110, 100, 0.05);
+
+  --border: rgba(34, 64, 48, 0.09);
+  --border-hover: rgba(34, 64, 48, 0.15);
+  --border-bright: rgba(34, 64, 48, 0.22);
+
+  --shadow-sm: 0 1px 2px rgba(20, 44, 32, 0.06);
+  --shadow-md: 0 2px 10px rgba(20, 44, 32, 0.07);
+  --shadow-lg: 0 8px 24px rgba(20, 44, 32, 0.1);
+  --shadow-inset: none;
+
+  --success: #2f7d4f;
+  --warning: #9a6408;
+  --error: #b2433a;
+
+  --ansi-red: #b2433a;
+  --ansi-green: #2f7d4f;
+  --ansi-yellow: #95650e;
+  --ansi-blue: #3b6784;
+  --ansi-magenta: #7d5184;
+  --ansi-cyan: #2e7a78;
+  --ansi-bright-black: #86938c;
+}
+
+::selection {
+  background-color: var(--selection-bg);
+}

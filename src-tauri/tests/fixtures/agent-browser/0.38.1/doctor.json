@@ -1,0 +1,111 @@
+{
+  "checks": [
+    {
+      "category": "Environment",
+      "id": "env.version",
+      "message": "CLI version 0.38.1 (windows x86_64)",
+      "status": "pass"
+    },
+    {
+      "category": "Environment",
+      "id": "env.home",
+      "message": "Home directory C:\\Users\\me",
+      "status": "pass"
+    },
+    {
+      "category": "Environment",
+      "id": "env.state_dir",
+      "message": "State and socket directory C:\\Users\\me\\.agent-browser",
+      "status": "pass"
+    },
+    {
+      "category": "Environment",
+      "id": "env.disk_free",
+      "message": "Disk free check unavailable on this platform",
+      "status": "info"
+    },
+    {
+      "category": "Chrome",
+      "id": "chrome.installed",
+      "message": "154.0.8037.57 at C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+      "status": "pass"
+    },
+    {
+      "category": "Chrome",
+      "id": "chrome.user_data_dir",
+      "message": "1 Chrome profile(s) at C:\\Users\\me\\AppData\\Local\\Google\\Chrome\\User Data",
+      "status": "info"
+    },
+    {
+      "category": "Recording",
+      "id": "recording.ffmpeg",
+      "message": "ffmpeg version 9.0.1-essentials_build-www.gyan.dev at C:\\tools\\ffmpeg\\bin\\ffmpeg.exe",
+      "status": "pass"
+    },
+    {
+      "category": "Recording",
+      "id": "recording.ffmpeg_encoders",
+      "message": "libvpx (.webm) and libx264 (.mp4) encoders available",
+      "status": "pass"
+    },
+    {
+      "category": "Daemons",
+      "id": "daemon.session.default",
+      "message": "Session default (pid 39600)",
+      "status": "pass"
+    },
+    {
+      "category": "Config",
+      "id": "config.user",
+      "message": "C:\\Users\\me\\.agent-browser\\config.json (valid JSON)",
+      "status": "pass"
+    },
+    {
+      "category": "Security",
+      "fix": "export AGENT_BROWSER_ENCRYPTION_KEY=$(openssl rand -hex 32)",
+      "id": "security.encryption_key",
+      "message": "No encryption key set (will be auto-generated on first auth save)",
+      "status": "info"
+    },
+    {
+      "category": "Providers",
+      "id": "providers.browserless",
+      "message": "Browserless: BROWSERLESS_API_KEY not set",
+      "status": "info"
+    },
+    {
+      "category": "Providers",
+      "id": "providers.browserbase",
+      "message": "Browserbase: BROWSERBASE_API_KEY not set",
+      "status": "info"
+    },
+    {
+      "category": "Providers",
+      "id": "providers.browseruse",
+      "message": "Browser Use: BROWSER_USE_API_KEY not set",
+      "status": "info"
+    },
+    {
+      "category": "Providers",
+      "id": "providers.kernel",
+      "message": "Kernel: KERNEL_API_KEY not set",
+      "status": "info"
+    },
+    {
+      "category": "Providers",
+      "id": "providers.agentcore",
+      "message": "AgentCore: no AWS credentials in env (AWS_ACCESS_KEY_ID / AWS_PROFILE)",
+      "status": "info"
+    },
+    {
+      "category": "Providers",
+      "fix": "export AI_GATEWAY_API_KEY=gw_...",
+      "id": "providers.chat",
+      "message": "AI_GATEWAY_API_KEY not set (chat command disabled)",
+      "status": "info"
+    }
+  ],
+  "fixed": [],
+  "success": true,
+  "summary": { "fail": 0, "pass": 8, "warn": 0 }
+}

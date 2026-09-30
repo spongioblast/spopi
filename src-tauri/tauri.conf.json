@@ -1,0 +1,58 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "SPOPI",
+  "identifier": "app.spopi.desktop",
+  "version": "0.7.0",
+  "build": {
+    "frontendDist": "target/frontend-stage/public",
+    "beforeDevCommand": "bun run fetch:pi && bun run fetch:agent-browser && bun run fetch:terminal-font && bun run fetch:cjk-font && bun run build:extensions && bun run build:frontend && bun run stage:frontend",
+    "beforeBuildCommand": "bun run fetch:pi && bun run fetch:agent-browser && bun run fetch:terminal-font && bun run fetch:cjk-font && bun run build:extensions:release && bun run build:frontend && bun run stage:frontend && bun run sign:pi"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "macOSPrivateApi": true,
+    "windows": [],
+    "security": {
+      "csp": "default-src 'self' http://localhost:* http://127.0.0.1:* ws://localhost:* ws://127.0.0.1:*; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' mediastream:; connect-src 'self' http://localhost:* http://127.0.0.1:* ws://localhost:* ws://127.0.0.1:*;",
+      "capabilities": ["default"]
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "createUpdaterArtifacts": true,
+    "macOS": {
+      "signingIdentity": "-",
+      "entitlements": "./entitlements.plist",
+      "infoPlist": "./Info.plist"
+    },
+    "windows": {
+      "nsis": {
+        "template": "nsis/installer.nsi"
+      }
+    },
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "resources": {
+      "target/frontend-stage/public": "public",
+      "../extensions/dist": "extensions",
+      "./resources/pi": "pi",
+      "./resources/agent-browser": "agent-browser",
+      "./resources/skills": "skills"
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEZENTYxNDUxNzJFMENBNEUKUldST3l1QnlVUlJXL1p3b25qRU1zd25TWlF3NTFEUVpCYnBtSFZQaGRmb1ZWRFA0cVJLTUk0SVcK",
+      "endpoints": ["https://github.com/spongioblast/spopi/releases/latest/download/latest.json"],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
+  }
+}

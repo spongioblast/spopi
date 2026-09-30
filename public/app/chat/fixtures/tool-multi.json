@@ -1,0 +1,74 @@
+[
+  { "type": "agent_start", "timestamp": 1000 },
+  {
+    "type": "message_start",
+    "timestamp": 1000,
+    "message": { "id": "user-1", "role": "user", "content": "TOOL:multi" }
+  },
+  {
+    "type": "message_end",
+    "timestamp": 1000,
+    "message": { "id": "user-1", "role": "user", "content": "TOOL:multi" }
+  },
+  {
+    "type": "message_start",
+    "timestamp": 1100,
+    "message": { "id": "asst-1", "role": "assistant", "content": [] }
+  },
+  {
+    "type": "tool_execution_start",
+    "timestamp": 1200,
+    "toolCallId": "r1",
+    "toolName": "read",
+    "args": { "path": "README.md" }
+  },
+  {
+    "type": "tool_execution_end",
+    "timestamp": 1300,
+    "toolCallId": "r1",
+    "toolName": "read",
+    "isError": false,
+    "result": "ok"
+  },
+  {
+    "type": "tool_execution_start",
+    "timestamp": 1400,
+    "toolCallId": "r2",
+    "toolName": "read",
+    "args": { "path": "AGENTS.md" }
+  },
+  {
+    "type": "tool_execution_end",
+    "timestamp": 1600,
+    "toolCallId": "r2",
+    "toolName": "read",
+    "isError": false,
+    "result": "ok"
+  },
+  {
+    "type": "tool_execution_start",
+    "timestamp": 1700,
+    "toolCallId": "b1",
+    "toolName": "bash",
+    "args": { "command": "git status" }
+  },
+  {
+    "type": "tool_execution_end",
+    "timestamp": 1900,
+    "toolCallId": "b1",
+    "toolName": "bash",
+    "isError": false,
+    "result": ""
+  },
+  {
+    "type": "message_end",
+    "timestamp": 2000,
+    "message": {
+      "id": "asst-1",
+      "role": "assistant",
+      "content": [{ "type": "text", "text": "Work done." }],
+      "usage": { "input": 10, "output": 4, "cacheRead": 2 }
+    }
+  },
+  { "type": "agent_settled", "timestamp": 2100 }
+]

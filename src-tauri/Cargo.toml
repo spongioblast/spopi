@@ -1,0 +1,109 @@
+[package]
+name = "spopi"
+version = "0.7.0"
+description = "SPOPI - desktop IDE-lite for the Pi coding agent"
+authors = ["spongioblast"]
+edition = "2021"
+
+[[bin]]
+name = "spopi"
+path = "src/main.rs"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [
+  "image-png",
+  "devtools",
+  "macos-private-api",
+] }
+tauri-plugin-dialog = "2"
+tauri-plugin-fs = "2"
+tauri-plugin-shell = "2"
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"
+tauri-plugin-log = "2"
+tauri-plugin-notification = "2"
+notify-rust = "4.18"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["full"] }
+# rustls + the OS root store. native-tls is schannel on Windows, which fails
+# closed networks with CRYPT_E_REVOCATION_OFFLINE. tauri-plugin-updater's
+# reqwest 0.13 already depends on rustls, not native-tls.
+reqwest = { version = "0.12", default-features = false, features = ["json", "http2", "charset", "rustls-tls-native-roots"] }
+dirs = "5"
+dunce = "1"
+chrono = { version = "0.4", default-features = false, features = ["clock"] }
+if-addrs = "0.13"
+log = "0.4"
+fix-path-env = { git = "https://github.com/tauri-apps/fix-path-env-rs" }
+futures-util = "0.3"
+semver = "1"
+tokio-tungstenite = "0.24"
+rusqlite = { version = "0.32", features = ["bundled"] }
+sha2 = "0.10"
+hmac = "0.12"
+hex = "0.4"
+uuid = { version = "1", features = ["v4"] }
+axum = { version = "0.8", features = ["ws"] }
+tower = "0.5"
+tower-http = { version = "0.6", features = ["fs", "set-header", "compression-gzip", "compression-br"] }
+base64 = "0.22"
+rand = "0.8"
+tempfile = "3"
+portable-pty = "0.9"
+libc = "0.2"
+axum-server = { version = "0.7", features = ["tls-rustls"] }
+rcgen = "0.13"
+qrcode = "0.14"
+rustls = { version = "0.23.45", default-features = false, features = ["ring", "std"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "0.6.4"
+block2 = "0.6.2"
+objc2-foundation = { version = "0.3.2", features = [
+  "NSString",
+  "NSUserDefaults",
+  "NSData",
+  "NSDictionary",
+  "NSError",
+] }
+objc2-app-kit = { version = "0.3.2", features = ["NSImage", "NSBitmapImageRep", "NSImageRep"] }
+# Same objc2-web-kit wry uses. WKSnapshotConfiguration is the piece the Windows path does not need.
+objc2-web-kit = { version = "0.3.2", features = [
+  "WKWebView",
+  "WKSnapshotConfiguration",
+  "block2",
+  "objc2-app-kit",
+] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+# Same crate and feature wry links, so the WebView Tauri hands out is this type.
+webkit2gtk = { version = "=2.0.2", features = ["v2_38"] }
+cairo-rs = { version = "0.18.5", features = ["png"] }
+gio = "0.18.4"
+
+[target.'cfg(windows)'.dependencies]
+# Same versions wry uses, so the WebView2 controller Tauri hands out has these types.
+webview2-com = "0.38"
+windows-core = "0.61"
+windows-sys = { version = "0.59", features = [
+  "Win32_System_JobObjects",
+  "Win32_System_Threading",
+  "Win32_Foundation",
+  "Win32_Security",
+] }
+
+[profile.dev]
+incremental = true
+# One crate, so extra cores do not shorten rustc's frontend. Line tables keep
+# panic locations and skip the full debuginfo that dominated each rebuild.
+debug = "line-tables-only"
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true

@@ -1,0 +1,45 @@
+"$schema" = "../gen/schemas/desktop-schema.json"
+
+# App-local Tauri command permissions. Every custom command registered in
+# `tauri::generate_handler!` (main.rs) must be declared here and included in
+# the [default] set, which the capability references.
+
+[[permission]]
+identifier = "allow-open-folder-as-workspace"
+description = "Allow opening the native folder picker to spawn a new workspace window."
+commands.allow = ["open_folder_as_workspace"]
+
+[[permission]]
+identifier = "allow-locate-workspace"
+description = "Allow picking the new folder of a missing project and moving its chats there."
+commands.allow = ["locate_workspace"]
+
+[[permission]]
+identifier = "allow-open-new-session-in-workspace"
+description = "Allow opening a fresh session in the current workspace window."
+commands.allow = ["open_new_session_in_workspace"]
+
+[[permission]]
+identifier = "allow-open-session-in-project"
+description = "Allow opening or focusing a project's workspace window at a saved session."
+commands.allow = ["open_session_in_project"]
+
+[[permission]]
+identifier = "allow-show-task-completion-notification"
+description = "Allow showing a task completion notification that opens its saved session."
+commands.allow = ["show_task_completion_notification"]
+
+[[permission]]
+identifier = "allow-retry-startup"
+description = "Allow retrying native runtime startup from the bootstrap error window."
+commands.allow = ["retry_startup"]
+[default]
+description = "Default set of SPOPI app command permissions."
+permissions = [
+  "allow-open-folder-as-workspace",
+  "allow-locate-workspace",
+  "allow-open-new-session-in-workspace",
+  "allow-open-session-in-project",
+  "allow-show-task-completion-notification",
+  "allow-retry-startup",
+]

@@ -1,0 +1,221 @@
+/* ABOUTME: Styles the review diff in the editor slot. */
+/* ABOUTME: Colors come from theme tokens so every theme and user.css apply. */
+
+.spopi-review {
+  display: none;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+  background: var(--bg-solid);
+}
+
+.spopi-review.is-visible {
+  display: flex;
+}
+
+.review-diff {
+  font-family: var(--font-mono, ui-monospace, "Cascadia Code", Consolas, monospace);
+  font-size: var(--font-size-sm);
+  overflow: auto;
+}
+
+.review-hunk-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  background: var(--bg-glass);
+  border-bottom: 1px solid var(--border);
+}
+
+.review-hunk-range {
+  flex: 1;
+  color: var(--text-secondary);
+}
+
+.review-row {
+  display: grid;
+  grid-template-columns: 4ch 4ch 1.5ch 1fr;
+  gap: var(--space-2);
+  padding: 0 var(--space-2);
+}
+
+.review-row[data-kind="add"] {
+  background: color-mix(in srgb, var(--success) 14%, transparent);
+}
+
+.review-row[data-kind="del"] {
+  background: color-mix(in srgb, var(--error) 14%, transparent);
+}
+
+.review-gutter {
+  color: var(--text-secondary);
+  text-align: right;
+}
+
+.review-code {
+  white-space: pre;
+}
+
+.review-comment-draft {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-2);
+}
+
+.review-comment-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.review-inline-list {
+  display: none;
+}
+
+body:not([data-layout="wide"]) .review-inline-list {
+  display: block;
+  max-height: 35vh;
+  overflow-y: auto;
+  border-bottom: 1px solid var(--border);
+}
+
+.review-scope {
+  display: flex;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+}
+
+.review-scope [aria-checked="true"] {
+  color: var(--text-primary);
+}
+
+.review-files {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.review-file-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  cursor: pointer;
+}
+
+.review-file-row[aria-selected="true"] {
+  background: var(--bg-active);
+}
+
+.review-path {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.review-dir {
+  color: var(--text-muted);
+}
+
+.review-stat {
+  margin-left: auto;
+  display: flex;
+  gap: var(--space-1);
+  font-size: var(--font-size-xs);
+}
+
+.review-stat .add {
+  color: var(--success);
+}
+
+.review-stat .del {
+  color: var(--error);
+}
+
+.review-tag,
+.review-sidebar-empty {
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.review-sidebar-empty {
+  padding: var(--space-3);
+}
+
+/* The diff body already says why the scope is empty. */
+.review-inline-list .review-sidebar-empty {
+  display: none;
+}
+
+.review-view-head,
+.review-file-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.review-view-head {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--border);
+}
+
+.review-file-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: var(--space-2) var(--space-3);
+  background: var(--bg-solid);
+  border-bottom: 1px solid var(--border);
+}
+
+.review-spacer {
+  flex: 1;
+}
+
+.review-body {
+  overflow: auto;
+  min-height: 0;
+  flex: 1;
+}
+
+.review-file-notice {
+  margin: var(--space-2) var(--space-3);
+  color: var(--text-muted);
+}
+
+.review-file-path {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-1-5);
+  min-width: 0;
+}
+
+.review-file-path .add {
+  color: var(--success);
+}
+
+.review-file-path .del {
+  color: var(--error);
+}
+
+.review-gap {
+  display: block;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: var(--font-size-xs);
+  text-align: left;
+  padding: var(--space-1) var(--space-3);
+  cursor: pointer;
+}
+
+.review-diff .review-gutter {
+  border: 0;
+  background: transparent;
+  font: inherit;
+  padding: 0;
+}

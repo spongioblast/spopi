@@ -1,0 +1,345 @@
+/* ABOUTME: Styles the floating composer card, toolbar, and send button. */
+/* ABOUTME: The textarea grows inside the card. */
+/* Input / composer — floating glass card, toolbar, image previews, send/abort buttons
+   (.btn-primary join with .dialog-actions button stays in style.css — shared;
+   @keyframes fadeIn stays in style.css — shared)
+   (public/app/composer-submit.js + image-attachment)
+   ═══════════════════════════════════════════════════════ */
+
+.input-area {
+  padding-top: var(--space-4);
+  /* design-token-ignore: --kb-inset is the live keyboard overlap, not a theme length */
+  padding-bottom: calc(var(--space-4) + var(--kb-inset, 0px));
+  padding-left: max(var(--space-4), calc((100% - 960px) / 2));
+  padding-right: max(var(--space-4), calc((100% - 960px) / 2));
+  background: var(--bg-solid);
+  border-top: none;
+}
+
+#chat-form {
+  display: block;
+  width: 100%;
+}
+
+/* Unified composer card — previews + textarea + toolbar in one bordered card */
+.composer-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-glass);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm), var(--shadow-inset);
+  backdrop-filter: blur(var(--blur));
+  -webkit-backdrop-filter: blur(var(--blur));
+  transition:
+    border-color var(--duration) var(--ease),
+    box-shadow var(--duration) var(--ease),
+    background var(--duration) var(--ease);
+}
+
+.composer-card:focus-within {
+  border-color: var(--accent);
+  box-shadow:
+    0 0 0 3px var(--accent-glow),
+    var(--shadow-sm),
+    var(--shadow-inset);
+  background: var(--bg-glass-hover);
+}
+
+/* Working: a quiet accent border. The live strip above names the step; send turns into Stop. */
+.composer-card.streaming,
+.composer-card.streaming:focus-within {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+  box-shadow: var(--shadow-sm), var(--shadow-inset);
+}
+
+.composer-card .image-previews {
+  padding: var(--space-2) var(--space-3) 0;
+}
+
+.composer-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: 0 var(--space-2) var(--space-1);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.composer-toolbar.model-menu-open {
+  overflow: visible;
+}
+
+.composer-toolbar::-webkit-scrollbar {
+  display: none;
+}
+
+.composer-toolbar-left,
+.composer-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex-shrink: 0;
+}
+
+/* Actions on the first row, model and thinking on a shorter row under them. */
+.composer-toolbar-left {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  flex: 1 1 auto;
+  min-width: 0;
+  flex-shrink: 1;
+}
+
+.composer-toolbar-actions,
+.composer-toolbar-meta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--space-0-5);
+  min-width: 0;
+}
+
+.composer-toolbar-actions {
+  width: 100%;
+}
+
+.composer-toolbar-actions .composer-toolbar-right {
+  margin-left: auto;
+}
+
+/* Toolbar variants of model/thinking pills — flatter to sit inside the card */
+.composer-toolbar .model-dropdown-btn {
+  background: transparent;
+  border-color: transparent;
+  height: 22px;
+  min-height: 22px;
+  padding: 0 var(--space-1-5);
+  font-size: var(--font-size-xs);
+}
+
+.composer-toolbar .model-dropdown-btn:hover {
+  background: var(--bg-glass-hover);
+  border-color: transparent;
+  color: var(--text-primary);
+}
+
+.composer-toolbar .thinking-tag {
+  background: transparent;
+  border-color: transparent;
+  height: 22px;
+  min-height: 22px;
+  padding: 0 var(--space-1-5);
+  font-size: var(--font-size-xs);
+  display: flex;
+  align-items: center;
+}
+
+.composer-toolbar .thinking-tag:hover {
+  background: var(--bg-glass-hover);
+}
+
+/* Menus anchored in the composer open upward, right-aligned */
+.composer-toolbar .model-dropdown-menu {
+  top: auto;
+  bottom: calc(100% + 6px);
+  left: auto;
+  right: 0;
+  max-width: min(360px, calc(100cqw - var(--space-4)));
+  animation: dropdownInUp 0.15s var(--ease);
+}
+
+@keyframes dropdownInUp {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.input-icon-btn {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background var(--duration) var(--ease),
+    color var(--duration) var(--ease),
+    opacity var(--duration) var(--ease);
+  flex-shrink: 0;
+}
+
+.input-icon-btn:hover {
+  background: var(--bg-glass-hover);
+}
+
+.input-icon-btn:active {
+  opacity: 0.7;
+}
+
+.composer-toolbar .composer-chip,
+.composer-toolbar .input-icon-btn {
+  height: 22px;
+  min-height: 22px;
+}
+
+.composer-toolbar .input-icon-btn {
+  width: 22px;
+}
+
+.composer-toolbar .composer-chip {
+  padding: 0 var(--space-1-5);
+  font-size: var(--font-size-xs);
+}
+
+#message-input {
+  padding: var(--space-3) var(--space-3) var(--space-1);
+  min-height: calc(2lh + var(--space-3) + var(--space-1));
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: var(--chat-font-size, var(--font-size-lg));
+  outline: none;
+  resize: none;
+  max-height: 160px;
+  line-height: 1.6;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+#message-input:disabled {
+  opacity: 1;
+  cursor: not-allowed;
+}
+
+:root[data-scheme="light"] .composer-card:not(:focus-within):not(.streaming) {
+  border-color: var(--border-hover);
+}
+
+#send-btn {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent);
+  border: none;
+  cursor: pointer;
+  transition:
+    background var(--duration) var(--ease),
+    box-shadow var(--duration) var(--ease),
+    opacity var(--duration) var(--ease);
+  box-shadow:
+    3px 3px 10px var(--accent-glow),
+    -2px -2px 6px rgba(255, 255, 255, 0.15),
+    inset 0 1px 2px rgba(255, 255, 255, 0.2);
+}
+
+#send-btn:hover:not(:disabled) {
+  transform: scale(1.1);
+  filter: brightness(1.15);
+  box-shadow: 0 6px 24px var(--accent-glow);
+}
+
+#send-btn:active:not(:disabled) {
+  transform: scale(0.88);
+  transition: transform 0.1s var(--ease);
+}
+
+.send-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--on-accent);
+}
+
+#abort-btn {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: var(--error);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-sm);
+  border: none;
+  cursor: pointer;
+  color: white;
+  transition:
+    background var(--duration) var(--ease),
+    box-shadow var(--duration) var(--ease),
+    color var(--duration) var(--ease);
+  box-shadow: 0 4px 16px rgba(248, 113, 113, 0.3);
+}
+
+#abort-btn:hover:not(:disabled) {
+  transform: scale(1.1);
+}
+#abort-btn:active:not(:disabled) {
+  transform: scale(0.88);
+  transition: transform 0.1s var(--ease);
+}
+
+/* Narrow screens — reduce toolbar item footprint to keep send button visible */
+
+/* ─── Large-paste offload prompt (composer-paste-offload.js) ─── */
+
+.paste-offload-prompt {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  border-bottom: 1px solid var(--border);
+}
+
+.paste-offload-prompt.hidden {
+  display: none;
+}
+
+.paste-offload-label {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.paste-offload-prompt button {
+  flex: 0 0 auto;
+  padding: var(--space-0-5) var(--space-1-5);
+  border: 1px solid var(--border-hover);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--font-size-sm);
+}
+
+.paste-offload-prompt button:hover,
+.paste-offload-prompt button:focus-visible {
+  border-color: var(--accent);
+  background: var(--accent-quiet);
+}
+
+.paste-offload-prompt button:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}

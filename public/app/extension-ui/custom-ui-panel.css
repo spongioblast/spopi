@@ -1,0 +1,43 @@
+/* ABOUTME: Styles the custom extension UI overlay. */
+/* ABOUTME: The terminal surface fills the dialog. */
+/* ═══════════════════════════════════════════════════════
+   Custom extension UI overlay (public/app/extension-ui/custom-ui-panel.js)
+
+   Hosts an xterm.js screen showing a pi-tui component bridged out of the
+   pi process. The backdrop and frosted panel come from the shared
+   `.ui-overlay` / `.ui-dialog` primitives in design-system.css; only
+   centering, sizing and motion live here.
+   ═══════════════════════════════════════════════════════ */
+
+.custom-ui-overlay {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: var(--z-dialog);
+  animation: fadeIn 0.15s;
+}
+
+.custom-ui-surface {
+  padding: var(--space-4);
+  max-width: 96vw;
+  max-height: 90vh;
+  overflow: auto;
+  /* Flex-centred, so it needs the no-static-transform keyframe. */
+  animation: sheetInCentered 0.2s var(--ease);
+}
+
+/* xterm sizes itself from the cols/rows the component asked for, so the
+   screen must not be stretched by the flex parent. */
+.custom-ui-screen {
+  display: block;
+}
+
+.custom-ui-screen .xterm {
+  padding: 0;
+}
+
+/* The component paints its own focus affordances; xterm's selection layer
+   would only add a second, conflicting highlight. */
+.custom-ui-screen .xterm-selection {
+  display: none;
+}

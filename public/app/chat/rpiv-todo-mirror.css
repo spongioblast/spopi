@@ -1,0 +1,223 @@
+/* ABOUTME: Styles the mirrored todo panel that tracks an extension widget. */
+/* ABOUTME: The panel is hidden when the extension has no todo list. */
+.rpiv-todo-panel {
+  position: absolute;
+  right: max(var(--space-4), calc((100% - 960px) / 2));
+  bottom: calc(100% + var(--space-2));
+  z-index: 12;
+  overflow: hidden;
+  width: min(420px, calc(100vw - var(--space-8)));
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-glass);
+  box-shadow: var(--shadow-sm), var(--shadow-inset);
+  color: var(--text-primary);
+  backdrop-filter: blur(var(--blur));
+  -webkit-backdrop-filter: blur(var(--blur));
+  transition:
+    width var(--duration) var(--ease),
+    padding var(--duration) var(--ease),
+    border-radius var(--duration) var(--ease),
+    background var(--duration) var(--ease),
+    box-shadow var(--duration) var(--ease);
+}
+
+.rpiv-todo-panel.hidden {
+  display: none;
+}
+
+.rpiv-todo-panel__header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--control-height-sm);
+  transition: min-height var(--duration) var(--ease);
+}
+
+.rpiv-todo-panel__titleGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.rpiv-todo-panel__dot {
+  font-size: var(--font-size-sm);
+  line-height: 1;
+}
+
+.rpiv-todo-panel__dot.is-active {
+  color: var(--accent);
+}
+
+.rpiv-todo-panel__title {
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition:
+    max-width var(--duration) var(--ease),
+    opacity var(--duration) var(--ease);
+}
+
+.rpiv-todo-panel__summary,
+.rpiv-todo-panel__more {
+  font-size: var(--font-size-sm);
+}
+
+.rpiv-todo-panel__list {
+  display: grid;
+  gap: var(--space-1);
+  overflow: hidden;
+  max-height: 200px;
+  margin: var(--space-1) 0 0;
+  padding: 0;
+  list-style: none;
+  opacity: 1;
+  transition:
+    max-height var(--duration) var(--ease),
+    margin var(--duration) var(--ease),
+    opacity var(--duration) var(--ease);
+}
+
+.rpiv-todo-panel__task {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: baseline;
+  gap: var(--space-2);
+  min-width: 0;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: 1.35;
+}
+
+.rpiv-todo-panel__glyph {
+  line-height: 1;
+}
+
+.rpiv-todo-panel__text {
+  overflow: hidden;
+  min-width: 0;
+  color: var(--text-primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rpiv-todo-panel__task.is-in-progress .rpiv-todo-panel__text {
+  color: var(--accent-text);
+  font-weight: 600;
+}
+
+.rpiv-todo-panel__task.is-completed .rpiv-todo-panel__text {
+  text-decoration: line-through;
+}
+
+.rpiv-todo-panel__task.is-in-progress .rpiv-todo-panel__glyph {
+  color: var(--warning);
+}
+
+.rpiv-todo-panel__task.is-completed .rpiv-todo-panel__glyph {
+  color: var(--success);
+}
+
+.rpiv-todo-panel__meta {
+  overflow: hidden;
+  min-width: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rpiv-todo-panel__more {
+  overflow: hidden;
+  max-height: var(--control-height-sm);
+  margin-top: var(--space-1);
+  padding-left: var(--space-5);
+  opacity: 1;
+  transition:
+    max-height var(--duration) var(--ease),
+    margin var(--duration) var(--ease),
+    opacity var(--duration) var(--ease);
+}
+
+.rpiv-todo-panel.is-collapsed {
+  width: 116px;
+  min-width: 0;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-pill);
+}
+
+.rpiv-todo-panel.is-collapsed:hover,
+.rpiv-todo-panel.is-collapsed:focus-within,
+.rpiv-todo-panel.is-collapsed.is-hover-expanded {
+  width: min(420px, calc(100vw - var(--space-8)));
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+}
+
+.rpiv-todo-panel.is-collapsed .rpiv-todo-panel__header {
+  min-height: var(--control-height-md);
+}
+
+.rpiv-todo-panel.is-collapsed:hover .rpiv-todo-panel__header,
+.rpiv-todo-panel.is-collapsed:focus-within .rpiv-todo-panel__header,
+.rpiv-todo-panel.is-collapsed.is-hover-expanded .rpiv-todo-panel__header {
+  min-height: var(--control-height-sm);
+}
+
+.rpiv-todo-panel.is-collapsed .rpiv-todo-panel__title {
+  max-width: 52px;
+  opacity: 1;
+}
+
+.rpiv-todo-panel.is-collapsed:hover .rpiv-todo-panel__title,
+.rpiv-todo-panel.is-collapsed:focus-within .rpiv-todo-panel__title,
+.rpiv-todo-panel.is-collapsed.is-hover-expanded .rpiv-todo-panel__title {
+  max-width: 120px;
+  opacity: 1;
+}
+
+.rpiv-todo-panel.is-collapsed .rpiv-todo-panel__list,
+.rpiv-todo-panel.is-collapsed .rpiv-todo-panel__more {
+  max-height: 0;
+  margin: 0;
+  opacity: 0;
+}
+
+.rpiv-todo-panel.is-collapsed:hover .rpiv-todo-panel__list,
+.rpiv-todo-panel.is-collapsed:focus-within .rpiv-todo-panel__list,
+.rpiv-todo-panel.is-collapsed.is-hover-expanded .rpiv-todo-panel__list {
+  max-height: 200px;
+  margin: var(--space-1) 0 0;
+  opacity: 1;
+}
+
+.rpiv-todo-panel.is-collapsed:hover .rpiv-todo-panel__more,
+.rpiv-todo-panel.is-collapsed:focus-within .rpiv-todo-panel__more,
+.rpiv-todo-panel.is-collapsed.is-hover-expanded .rpiv-todo-panel__more {
+  max-height: var(--control-height-sm);
+  margin-top: var(--space-1);
+  opacity: 1;
+}
+
+.rpiv-todo-panel.is-collapsed .rpiv-todo-panel__summary {
+  color: var(--text-secondary);
+  font-weight: 650;
+}
+
+.rpiv-todo-panel.is-complete {
+  background: var(--bg-glass);
+  box-shadow: var(--shadow-sm), var(--shadow-inset);
+}
+
+.rpiv-todo-panel.is-complete .rpiv-todo-panel__task {
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.rpiv-todo-panel.is-complete .rpiv-todo-panel__meta {
+  display: none;
+}

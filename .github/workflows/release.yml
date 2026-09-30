@@ -1,0 +1,391 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Two installers per OS: the two architectures people actually use.
+          # macOS Apple Silicon (arm64) host build.
+          - os: macos-latest
+          # macOS Intel (x64). macos-13 Intel runners are gone, so this
+          # cross-compiles x86_64 from an Apple Silicon runner.
+          - os: macos-14
+            pi_target_platform: darwin-x64
+            rust_target: x86_64-apple-darwin
+          # Linux AppImage only. It is the one Linux target the updater
+          # supports, and it avoids shipping deb/rpm next to it. Built on
+          # 24.04 so the bundled WebKitGTK matches current distros (jammy's
+          # 4.1 segfaults on Fedora 43+).
+          - os: ubuntu-24.04
+            pi_target_platform: linux-x64
+            linux_bundles: appimage
+          - os: ubuntu-24.04-arm
+            pi_target_platform: linux-arm64
+            linux_bundles: appimage
+          - os: windows-2022
+            pi_target_platform: windows-x64
+          - os: windows-11-arm
+            pi_target_platform: windows-arm64
+
+    runs-on: ${{ matrix.os }}
+
+    env:
+      # Mitigate intermittent crates.io download failures on CI runners
+      # ("curl failed [16] Error in the HTTP2 framing layer"). Disabling
+      # HTTP/2 multiplexing forces cargo's curl downloader back to HTTP/1.1,
+      # which avoids the flaky HTTP2 framing-layer errors. The sparse
+      # protocol + retries make transient registry hiccups self-healing.
+      CARGO_HTTP_MULTIPLEXING: "false"
+      CARGO_NET_RETRY: "10"
+      CARGO_REGISTRIES_CRATES_IO_PROTOCOL: sparse
+      CARGO_HTTP_CHECK_REVOKE: "false"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      # The release text is the tag's section of CHANGELOG.md ("## 0.7.0" for v0.7.0).
+      - name: Release notes from CHANGELOG.md
+        id: notes
+        shell: bash
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          body="$(awk -v h="## ${version}" '$0 == h || index($0, h " ") == 1 { on = 1; next } /^## / { if (on) exit } on' CHANGELOG.md)"
+          if [ -z "$(printf '%s' "$body" | tr -d '[:space:]')" ]; then
+            body="SPOPI ${GITHUB_REF_NAME}."
+          fi
+          {
+            echo "body<<SPOPI_NOTES_EOF"
+            printf '%s\n\nDownload the installer for your platform from the assets below.\n' "$body"
+            echo "SPOPI_NOTES_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust_target }}
+
+      # Cache the cargo registry + git db + build artifacts. This both speeds
+      # up builds and makes transient crates.io download failures far less
+      # likely to break a release (the crate is usually already on disk from a
+      # prior run).
+      #
+      # The cargo workspace is `src-tauri/` and no target-dir is configured, so
+      # build output lands in `src-tauri/target`.
+      #
+      # Actions caches are scoped by ref and this workflow only runs on tags,
+      # so a cache saved here would land in a `refs/tags/vX` scope no later run
+      # can read (a run sees its own ref plus the default branch). Saving
+      # happens in cache-warm.yml on main instead, the one scope every tag run
+      # can restore from; `save-if` keeps tag runs read-only.
+      - name: Restore cargo + build artifacts cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+          # Must stay identical to cache-warm.yml, along with the CARGO_* env
+          # above: rust-cache hashes every CARGO*/RUST* variable into the key,
+          # so a difference in either place silently stops the cache resolving.
+          shared-key: spopi-release-${{ matrix.os }}-${{ matrix.rust_target }}
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          WEBKIT_DEV_PKG="libwebkit2gtk-4.1-dev"
+          if ! apt-cache show "$WEBKIT_DEV_PKG" >/dev/null 2>&1; then
+            WEBKIT_DEV_PKG="libwebkit2gtk-4.0-dev"
+          fi
+          sudo apt-get install -y \
+            desktop-file-utils \
+            "$WEBKIT_DEV_PKG" \
+            libappindicator3-dev \
+            librsvg2-dev \
+            gstreamer1.0-tools \
+            gstreamer1.0-plugins-base \
+            gstreamer1.0-plugins-good \
+            rpm \
+            patchelf
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # Cache embedded release assets. Lockfile changes invalidate the cache so
+      # a build never silently ships a stale Pi binary or terminal font.
+      - name: Cache embedded release downloads
+        uses: actions/cache@v5
+        with:
+          path: |
+            .cache/pi-binaries
+            .cache/agent-browser-binaries
+            .cache/terminal-fonts
+            .cache/cjk-fonts
+          key: embedded-assets-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('scripts/pi-version.json', 'scripts/agent-browser-version.json', 'scripts/terminal-font-version.json', 'scripts/cjk-font-version.json') }}
+
+      - name: Fetch embedded pi binary
+        env:
+          PI_TARGET_PLATFORM: ${{ matrix.pi_target_platform }}
+        run: bun run fetch:pi
+
+      - name: Fetch agent-browser binary
+        env:
+          PI_TARGET_PLATFORM: ${{ matrix.pi_target_platform }}
+        run: bun run fetch:agent-browser
+
+      # Sanity-check that the embedded binary actually runs. We can only do
+      # this when the embedded binary's architecture matches the runner's:
+      # the macos-14 job cross-compiles an x86_64 (darwin-x64) binary on an
+      # Apple Silicon runner, which would SIGILL ("Illegal instruction",
+      # exit 132) if executed here. That cross-built binary is exercised on
+      # its own native runner instead. `matrix.rust_target` is only set for
+      # the cross-compile job, so its absence means host arch == target arch.
+      - name: Verify embedded pi runs (Unix)
+        if: runner.os != 'Windows' && matrix.rust_target == ''
+        run: ./src-tauri/resources/pi/pi --version
+
+      - name: Verify embedded pi runs (Windows)
+        if: runner.os == 'Windows' && matrix.rust_target == ''
+        run: .\src-tauri\resources\pi\pi.exe --version
+
+      - name: Build pi extensions bundle
+        run: bun run build:extensions:release
+
+      # linuxdeploy walks the whole AppDir and runs `ldd` on every ELF file it
+      # finds, including the `pi` binary we ship under `resources/pi`. It
+      # tolerates a failing ldd only when the output says "not a dynamic
+      # executable" (elf_file.cpp), and otherwise throws an uncaught
+      # std::runtime_error -- which aborts the whole bundle:
+      #
+      #   Deploying dependencies for ELF file .../SPOPI.AppDir/usr/lib/SPOPI/pi/pi
+      #   terminate called after throwing an instance of 'std::runtime_error'
+      #     what():  Failed to run ldd: exited with code 1
+      #   ERROR: Failed to run plugin: gtk (exit code: 134)
+      #
+      # That is the arm64 failure. The x86_64 pi binary is dynamically linked
+      # so ldd succeeds there and only arm64 trips it.
+      #
+      # linuxdeploy resolves `ldd` through PATH, so shim it: pass a successful
+      # ldd through untouched, and rewrite a failure into the exact
+      # "not a dynamic executable" / exit 1 answer that linuxdeploy's guard is
+      # written to absorb, making it log a warning and move on. Only the
+      # AppImage target goes through linuxdeploy; deb/rpm never invoke ldd.
+      - name: Install ldd shim for linuxdeploy (Linux)
+        if: runner.os == 'Linux' && contains(matrix.linux_bundles, 'appimage')
+        run: |
+          mkdir -p "$RUNNER_TEMP/ldd-shim"
+          cat > "$RUNNER_TEMP/ldd-shim/ldd" <<'SH'
+          #!/bin/sh
+          out=$(/usr/bin/ldd "$@") || {
+            printf '\tnot a dynamic executable\n'
+            exit 1
+          }
+          printf '%s\n' "$out"
+          SH
+          chmod +x "$RUNNER_TEMP/ldd-shim/ldd"
+          echo "$RUNNER_TEMP/ldd-shim" >> "$GITHUB_PATH"
+
+      # linuxdeploy also runs `patchelf --set-rpath '$ORIGIN'` on every ELF in
+      # the AppDir, `resources/pi/pi` included. patchelf relocates the program
+      # headers, which shifts every PT_LOAD file offset -- measured once as
+      # x86_64 +0x1000, aarch64 +0x10000, and a DT_RUNPATH the
+      # upstream binary does not have. `pi` is a self-extracting single-file
+      # runtime that seeks its payload at a fixed offset inside
+      # /proc/self/exe, so a shifted binary dies instantly and silently
+      # (killed by a signal, nothing on stderr). In the app that surfaces as
+      # "Pi RPC request failed: ProcessClosed" plus an empty provider list.
+      # deb/rpm never invoke linuxdeploy, which is why only AppImage users hit
+      # it, and the ldd shim above does not help: it stops dependency
+      # deployment, not the rpath rewrite.
+      #
+      # linuxdeploy looks up patchelf in $PATCHELF before falling back to PATH
+      # ("Using patchelf specified in $PATCHELF"), so point it at a shim that
+      # forwards everything except a *write* to the bundled pi. Reads still go
+      # through so linuxdeploy keeps getting truthful answers.
+      - name: Install patchelf shim for linuxdeploy (Linux)
+        if: runner.os == 'Linux' && contains(matrix.linux_bundles, 'appimage')
+        run: |
+          # patchelf itself comes from the "Install Linux dependencies" step.
+          mkdir -p "$RUNNER_TEMP/patchelf-shim"
+          cat > "$RUNNER_TEMP/patchelf-shim/patchelf" <<'SH'
+          #!/bin/sh
+          # patchelf's target file is always the final argument.
+          for arg in "$@"; do target="$arg"; done
+          case "$target" in
+            */pi/pi)
+              for arg in "$@"; do
+                case "$arg" in
+                  --set-rpath|--add-rpath|--force-rpath|--remove-rpath|--shrink-rpath|--set-interpreter|--add-needed|--remove-needed|--replace-needed)
+                    echo "spopi: refusing to rewrite the embedded pi runtime ($target)" >&2
+                    exit 0
+                    ;;
+                esac
+              done
+              ;;
+          esac
+          exec /usr/bin/patchelf "$@"
+          SH
+          chmod +x "$RUNNER_TEMP/patchelf-shim/patchelf"
+          echo "PATCHELF=$RUNNER_TEMP/patchelf-shim/patchelf" >> "$GITHUB_ENV"
+
+      - name: Build Tauri app (Linux AppImage) and publish assets
+        if: runner.os == 'Linux'
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APPIMAGE_EXTRACT_AND_RUN: 1
+          # Workaround for linuxdeploy/strip failures on modern ELF
+          # binaries (e.g. `.relr.dyn`), see tauri#14796.
+          NO_STRIP: "true"
+          # Signing key for the Tauri updater. Required so the bundler
+          # produces `*.sig` files and `latest.json` (the manifest the
+          # auto-updater reads from the GitHub release). Configure these
+          # one-time in repo Settings → Secrets → Actions. See
+          # docs/PI_BUMP.md for how to generate the key pair.
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: "SPOPI ${{ github.ref_name }}"
+          releaseBody: ${{ steps.notes.outputs.body }}
+          releaseDraft: false
+          prerelease: false
+          # AppImage is the only Linux target the Tauri updater supports, so
+          # it is what puts a `linux-*` entry into `latest.json`. It is also
+          # the only target that goes through linuxdeploy -- see the ldd shim
+          # step above and `NO_STRIP` for the workarounds that keeps alive.
+          # `--verbose` keeps linuxdeploy's own stderr in the log instead of
+          # tauri-bundler's generic "failed to run linuxdeploy" wrapper.
+          args: --bundles ${{ matrix.linux_bundles }} --verbose
+          # tauri-action will only attach `latest.json` (the updater
+          # manifest) when this is `true`. Combined with
+          # `bundle.createUpdaterArtifacts` in tauri.conf.json, the
+          # release ends up with: installers + `*.sig` files +
+          # `latest.json` pinning the URL/signature of each platform
+          # bundle. The Tauri updater endpoint then resolves to
+          # `https://github.com/.../releases/latest/download/latest.json`.
+          updaterJsonPreferNsis: true
+
+      # Guard against the failure this shim exists to prevent: if a future
+      # linuxdeploy (or a change to the shim) rewrites the embedded runtime
+      # again, fail loudly here instead of shipping an AppImage whose pi dies
+      # at startup with no stderr.
+      - name: Verify linuxdeploy left the embedded pi untouched (Linux)
+        if: runner.os == 'Linux' && contains(matrix.linux_bundles, 'appimage')
+        run: |
+          set -euo pipefail
+          # Search rather than hardcode the target dir, so a layout change fails loudly here
+          # instead of silently skipping the check.
+          appimage="$(find "$PWD" -type f -name '*.AppImage' -path '*/bundle/appimage/*' | head -1)"
+          if [ -z "$appimage" ]; then
+            echo "::error::no AppImage found under $PWD"
+            exit 1
+          fi
+          expected="$(sha256sum "$PWD/src-tauri/resources/pi/pi" | cut -d' ' -f1)"
+          workdir="$RUNNER_TEMP/appimage-pi-check"
+          rm -rf "$workdir"
+          mkdir -p "$workdir"
+          chmod +x "$appimage"
+          (cd "$workdir" && "$appimage" --appimage-extract 'usr/lib/*/pi/pi' >/dev/null)
+          bundled="$(find "$workdir/squashfs-root" -type f -name pi | head -1)"
+          if [ -z "$bundled" ]; then
+            echo "::error::the AppImage does not contain resources/pi/pi"
+            exit 1
+          fi
+          actual="$(sha256sum "$bundled" | cut -d' ' -f1)"
+          if [ "$actual" != "$expected" ]; then
+            echo "::error::linuxdeploy modified the embedded pi runtime (expected $expected, got $actual)"
+            exit 1
+          fi
+          echo "embedded pi is byte-identical to upstream ($actual)"
+
+      # macOS Developer ID signing + notarization. An unset secret reaches the
+      # step as an empty string, and the bundler treats a present-but-empty
+      # APPLE_CERTIFICATE as a certificate to import. Export only the ones that
+      # are set; with none, the app is ad-hoc signed (`signingIdentity: "-"`).
+      - name: Apple signing secrets (macOS, only those that are set)
+        if: runner.os == 'macOS'
+        shell: bash
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_PROVIDER_SHORT_NAME: ${{ secrets.APPLE_PROVIDER_SHORT_NAME }}
+        run: |
+          set -euo pipefail
+          for name in APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY \
+            APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID APPLE_PROVIDER_SHORT_NAME; do
+            value="${!name}"
+            if [ -n "$value" ]; then
+              { echo "$name<<__SPOPI_APPLE_EOF__"; echo "$value"; echo "__SPOPI_APPLE_EOF__"; } >> "$GITHUB_ENV"
+              echo "$name is set"
+            else
+              echo "$name is not set"
+            fi
+          done
+
+      - name: Build Tauri app and publish assets (Windows)
+        if: runner.os == 'Windows'
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: "SPOPI ${{ github.ref_name }}"
+          releaseBody: ${{ steps.notes.outputs.body }}
+          releaseDraft: false
+          prerelease: false
+          # NSIS only (no MSI).
+          args: --bundles nsis
+          updaterJsonPreferNsis: true
+
+      - name: Build Tauri app and publish assets (macOS)
+        if: runner.os == 'macOS'
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: "SPOPI ${{ github.ref_name }}"
+          releaseBody: ${{ steps.notes.outputs.body }}
+          releaseDraft: false
+          prerelease: false
+          args: ${{ matrix.rust_target && format('--target {0}', matrix.rust_target) || '' }}
+          updaterJsonPreferNsis: true
+
+  # tauri-action finds and merges files by Tauri's own names, so the OS label
+  # goes on once every build has uploaded: SPOPI_<version>_<win|mac|linux>_<x64|arm64>.
+  label-assets:
+    needs: build-and-release
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Label release files with OS and arch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/relabel-release-assets.mjs

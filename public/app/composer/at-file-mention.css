@@ -1,0 +1,165 @@
+/* ABOUTME: Styles the @-file mention menu in the composer. */
+/* ABOUTME: The menu is positioned above the caret. */
+/* @-file mention menu (public/app/ui/at-file-mention.js) */
+
+.at-file-mention-menu {
+  position: absolute;
+  z-index: 41;
+  right: 0;
+  bottom: calc(100% + 10px);
+  left: 0;
+  max-height: min(52vh, 520px);
+  padding: var(--space-2);
+  overflow-y: auto;
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--bg-solid) 94%, transparent);
+  border: 1px solid var(--border-hover);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(calc(var(--blur) * 1.5));
+  -webkit-backdrop-filter: blur(calc(var(--blur) * 1.5));
+}
+
+.at-file-mention-option {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  width: 100%;
+  min-height: var(--control-height-lg);
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  color: inherit;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.at-file-mention-option.selected {
+  background: var(--bg-glass-hover);
+}
+
+.at-file-mention-name {
+  font-size: var(--font-size-md);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Inline @-mention pills: a mirror of the textarea sits above it and paints
+   each @token as a pill (composer/mention-chips.js). The textarea value stays
+   the @path. */
+.composer-mention-layer {
+  position: absolute;
+  z-index: 2;
+  box-sizing: border-box;
+  overflow: hidden;
+  margin: 0;
+  border: 0;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: normal;
+  pointer-events: none;
+  user-select: none;
+}
+
+.composer-mention-layer[hidden] {
+  display: none;
+}
+
+#message-input.has-mention-layer {
+  position: relative;
+  z-index: 1;
+  color: transparent;
+  caret-color: var(--text-primary);
+}
+
+/* The pill is the @token's own characters, so it is exactly as wide as the text in the
+   textarea and the caret never drifts. Side padding is cancelled by equal negative margins;
+   vertical padding on an inline box never moves the line, and the composer's line height
+   leaves room for it so pills on neighbouring lines stay apart. */
+.composer-mention-inline {
+  --mention-pad-x: 3px;
+  position: relative;
+  margin: 0 calc(var(--mention-pad-x) * -1);
+  /* design-token-ignore: 1px keeps a clear gap to pills on the next line; --space-0-5 closes it */
+  padding: 1px var(--mention-pad-x);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: var(--accent-text);
+  cursor: pointer;
+  pointer-events: auto;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+.composer-mention-inline:hover {
+  background: color-mix(in srgb, var(--accent) 28%, transparent);
+}
+
+.composer-mention-at,
+.composer-mention-dir {
+  color: var(--text-muted);
+}
+
+.composer-mention-name {
+  font-weight: 600;
+}
+
+/* A small cross on the top-right corner removes the whole mention. */
+.composer-mention-remove {
+  position: absolute;
+  top: calc(var(--space-2) * -1);
+  right: calc(var(--space-2) * -1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  border: 1px solid var(--border-hover);
+  border-radius: var(--radius-pill);
+  background: var(--bg-solid);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: var(--font-size-xs);
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--duration) var(--ease);
+}
+
+.composer-mention-inline:hover .composer-mention-remove,
+.composer-mention-remove:focus-visible {
+  opacity: 1;
+}
+
+.composer-mention-remove:hover {
+  color: var(--text-primary);
+  border-color: var(--accent);
+}
+
+.chat-file-ref {
+  display: inline;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid var(--accent-quiet);
+  background: transparent;
+  color: var(--accent-text);
+  font: inherit;
+  font-family: var(--font-mono, inherit);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.chat-file-ref:hover {
+  border-bottom-color: var(--accent-text);
+}
+
+.at-file-mention-description {
+  overflow: hidden;
+  font-size: var(--font-size-md);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

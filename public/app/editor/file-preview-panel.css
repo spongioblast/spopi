@@ -1,0 +1,584 @@
+/* ABOUTME: Styles the file preview and editor pane. */
+/* ABOUTME: The tab strip and the preview body scroll separately. */
+/* File Preview Panel — split-pane file/editor workspace.
+   DOM owned by index.html and public/app/editor/file-preview-panel.js. */
+
+.workspace {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  position: relative;
+}
+
+.workspace-content {
+  --workspace-header-offset: 36px;
+  flex: 1;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+}
+
+.file-preview-panel {
+  --file-preview-line-number-gutter: 28px;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  min-width: min(380px, 100%);
+  background: var(--bg-frosted);
+  backdrop-filter: blur(var(--blur-heavy)) saturate(1.5);
+  -webkit-backdrop-filter: blur(var(--blur-heavy)) saturate(1.5);
+  border-left: 1px solid var(--border);
+  overflow: hidden;
+  position: relative;
+  margin-top: var(--workspace-header-offset, 36px);
+  transition:
+    width 0.15s var(--ease),
+    flex-basis 0.15s var(--ease);
+}
+
+.file-preview-panel.collapsed {
+  width: 0 !important;
+  flex-basis: 0 !important;
+  min-width: 0;
+  border-left: none;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.file-preview-panel.enlarged {
+  flex: 1;
+  width: auto !important;
+  flex-basis: auto !important;
+  min-width: 0;
+}
+
+.main.preview-enlarged {
+  flex: 0 !important;
+  width: 0 !important;
+  overflow: hidden;
+}
+
+.file-preview-resizer {
+  width: 4px;
+  cursor: col-resize;
+  background: transparent;
+  flex-shrink: 0;
+  -webkit-app-region: no-drag;
+  margin-top: var(--workspace-header-offset, 36px);
+  transition: background 0.15s var(--ease);
+}
+
+.file-preview-resizer.collapsed {
+  display: none;
+}
+
+.file-preview-resizer:hover,
+.file-preview-resizer.dragging {
+  background: var(--border);
+}
+
+body.file-preview-resizing {
+  cursor: col-resize;
+  user-select: none;
+}
+
+.file-preview-resizer:focus-visible {
+  background: var(--accent);
+  outline: none;
+}
+
+.file-preview-tabs-bar {
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-1);
+  min-height: 36px;
+  border-bottom: 1px solid var(--border);
+  -webkit-app-region: drag;
+}
+
+.file-preview-tabs {
+  display: flex;
+  gap: var(--space-0-5);
+  flex: 1;
+  overflow-x: auto;
+  scrollbar-width: none;
+  min-width: 0;
+  -webkit-app-region: no-drag;
+}
+
+.file-preview-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.file-preview-tab {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+  color: var(--text-secondary);
+  transition: background 0.1s var(--ease);
+}
+
+.file-preview-tab:hover {
+  background: var(--bg-glass-hover);
+}
+
+.file-preview-tab.active {
+  background: var(--bg-glass-hover);
+  color: var(--text-primary);
+}
+
+.file-preview-tab-icon {
+  font-size: var(--font-size-sm);
+  line-height: 1;
+}
+
+.file-preview-tab-name {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-preview-tab-dirty {
+  color: var(--accent);
+  /* design-token-ignore: dirty marker is intentionally smaller than the text scale */
+  font-size: 10px;
+}
+
+.file-preview-tab-conflict {
+  color: var(--warning);
+  font-size: var(--font-size-sm);
+}
+
+.file-preview-tab-close {
+  display: flex;
+  -webkit-app-region: no-drag;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border: none;
+  background: none;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  padding: 0;
+  opacity: 0;
+  transition: opacity 0.1s var(--ease);
+}
+
+.file-preview-tab:hover .file-preview-tab-close,
+.file-preview-tab.active .file-preview-tab-close {
+  opacity: 1;
+}
+
+.file-preview-tab-close:hover {
+  background: var(--bg-glass-hover);
+  color: var(--text-primary);
+}
+
+.file-preview-panel-controls {
+  display: flex;
+  gap: var(--space-0-5);
+  flex-shrink: 0;
+  -webkit-app-region: no-drag;
+}
+
+.file-preview-panel button,
+.file-preview-content {
+  -webkit-app-region: no-drag;
+}
+
+.file-preview-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1-5);
+  min-height: 36px;
+  padding: var(--space-1) var(--space-2);
+  border-bottom: 1px solid var(--border);
+  overflow: visible;
+  -webkit-app-region: no-drag;
+}
+
+.file-preview-toolbar.hidden {
+  display: none;
+}
+
+.file-preview-toolbar::-webkit-scrollbar {
+  display: none;
+}
+
+.file-preview-toolbar button,
+.file-preview-mode button {
+  flex-shrink: 0;
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-glass);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+
+.file-preview-go-to-line-input {
+  width: 72px;
+  flex-shrink: 0;
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  outline: none;
+  background: var(--bg-glass);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: var(--font-size-sm);
+}
+
+.file-preview-go-to-line-input:focus {
+  border-color: var(--accent);
+}
+
+.file-preview-toolbar button:hover:not(:disabled),
+.file-preview-mode button.active {
+  border-color: var(--border-hover);
+  background: var(--bg-glass-hover);
+  color: var(--text-primary);
+}
+
+.file-preview-toolbar button:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+
+.file-preview-mode {
+  display: flex;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.file-preview-mode button:first-child {
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+}
+
+.file-preview-mode button:last-child {
+  margin-left: -1px;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+.file-preview-toolbar-check {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex-shrink: 0;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+}
+
+.file-preview-toolbar-check input {
+  margin: 0;
+}
+
+.file-preview-status {
+  min-width: 72px;
+  margin-left: auto;
+  overflow: hidden;
+  font-size: var(--font-size-sm);
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-preview-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+
+.file-preview-dialog {
+  width: min(420px, 100%);
+  padding: var(--space-4);
+  border: 1px solid var(--border-hover);
+  border-radius: var(--radius-lg);
+  background: var(--bg-solid);
+  box-shadow: var(--shadow-lg);
+}
+
+.file-preview-dialog h3 {
+  margin: 0 0 var(--space-2);
+  color: var(--text-primary);
+  font-size: var(--font-size-lg);
+}
+
+.file-preview-dialog p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--font-size-md);
+  line-height: 1.5;
+}
+
+.file-preview-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+.file-preview-dialog-button {
+  padding: var(--space-1-5) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-glass);
+  color: var(--text-primary);
+  font: inherit;
+  cursor: pointer;
+}
+
+.file-preview-dialog-button.primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.file-preview-content {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  min-height: 0;
+}
+
+.file-preview-loading,
+.file-preview-error {
+  padding: var(--space-4);
+  font-size: var(--font-size-md);
+  color: var(--text-secondary);
+}
+
+.file-preview-error {
+  color: var(--accent-danger, #ef4444);
+}
+
+.file-code-editor {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.file-code-editor .cm-editor {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  font-size: var(--preview-font-size, var(--font-size-md));
+}
+
+.file-code-editor .cm-lineNumbers {
+  min-width: var(--file-preview-line-number-gutter);
+}
+
+/* Matches CodeMirror's own selectors, which otherwise win with a light grey. */
+.file-code-editor .cm-editor > .cm-scroller > .cm-selectionLayer .cm-selectionBackground,
+.file-code-editor
+  .cm-editor.cm-focused
+  > .cm-scroller
+  > .cm-selectionLayer
+  .cm-selectionBackground {
+  background: var(--selection-bg);
+}
+
+.file-code-editor .cm-editor .cm-cursor {
+  border-left-color: var(--text-primary);
+}
+
+.file-code-editor .cm-gutters {
+  background: var(--bg-solid);
+  border-right: 1px solid var(--border);
+}
+
+.file-code-editor .cm-activeLineGutter {
+  background: var(--bg-glass-hover);
+  color: var(--text-secondary);
+}
+
+.file-code-editor .cm-scroller {
+  overflow: auto;
+  font-family: "SF Mono", Menlo, Monaco, "Courier New", monospace;
+}
+
+.file-markdown-preview {
+  height: 100%;
+  margin-left: var(--file-preview-line-number-gutter);
+  overflow: auto;
+  padding: var(--space-4);
+  font-size: var(--preview-font-size, var(--font-size-md));
+  line-height: 1.6;
+}
+
+.file-image-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: var(--space-4);
+  background: var(--bg);
+}
+
+.file-html-preview {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  background: var(--bg-solid);
+}
+
+.file-html-frame {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  border: 0;
+  /* design-token-ignore: live HTML preview mimics a browser canvas */
+  background: #fff;
+}
+
+.file-image-img {
+  /* design-token-ignore: preview media needs a readable content-width cap */
+  max-width: min(100%, 640px);
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: var(--radius-xs);
+}
+
+.file-pdf-container {
+  height: 100%;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background: var(--bg);
+}
+
+.file-pdf-page {
+  max-width: 100%;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Keyed to the window, not the center pane. A 768px container query
+   matched the editor column at the default 1300px window and covered the app. */
+body:not([data-layout="wide"]) .file-preview-panel {
+  position: fixed;
+  inset: var(--workspace-header-offset, 36px) 0 0;
+  margin-top: 0;
+  z-index: 500;
+  width: 100% !important;
+  min-width: 0;
+  flex-basis: auto !important;
+  border-left: none;
+  background: var(--bg-solid);
+}
+
+body:not([data-layout="wide"]) .file-preview-panel.collapsed {
+  display: none;
+}
+
+body:not([data-layout="wide"]) .file-preview-resizer {
+  display: none !important;
+}
+
+body:not([data-layout="wide"]) .file-preview-tab-close {
+  opacity: 1;
+}
+
+/* ── Git diff view ─────────────────────────────────────────────────── */
+
+.file-diff-view {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  overflow: auto;
+}
+
+.file-diff-empty {
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--font-size-sm);
+  font-family: "SF Mono", Menlo, Monaco, "Courier New", monospace;
+}
+
+.file-diff-collapse {
+  padding: var(--space-0-5) var(--space-4);
+  background: var(--bg-panel);
+  /* design-token-ignore: diff collapse uses a fallback monospace micro size */
+  font-size: var(--font-size-xs, 11px);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  font-family: "SF Mono", Menlo, Monaco, "Courier New", monospace;
+}
+
+.file-diff-line {
+  display: flex;
+  min-width: 100%;
+  line-height: 1.6;
+  font-size: var(--font-size-md);
+  font-family: "SF Mono", Menlo, Monaco, "Courier New", monospace;
+  border-left: 3px solid transparent;
+}
+
+.file-diff-line--added {
+  background: rgba(0, 200, 80, 0.1);
+  border-left-color: #4ade80;
+}
+
+.file-diff-line--removed {
+  background: rgba(240, 60, 60, 0.12);
+  border-left-color: #f87171;
+}
+
+.file-diff-gutter {
+  min-width: 44px;
+  padding: 0 var(--space-2);
+  text-align: right;
+  background: var(--bg-panel);
+  border-right: 1px solid var(--border);
+  /* design-token-ignore: diff gutter line numbers use a fixed monospace micro size */
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.file-diff-sign {
+  width: 20px;
+  padding: 0 var(--space-1);
+  flex-shrink: 0;
+  font-weight: 600;
+  user-select: none;
+}
+
+.file-diff-line--added .file-diff-sign {
+  color: #4ade80;
+}
+.file-diff-line--removed .file-diff-sign {
+  color: #f87171;
+}
+
+.file-diff-content {
+  padding: 0 var(--space-2) 0 0;
+  white-space: pre;
+  color: var(--text-primary);
+  flex-shrink: 0;
+}

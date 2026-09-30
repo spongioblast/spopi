@@ -1,0 +1,69 @@
+/* ABOUTME: Shared context menu surface. .session-context-menu stays as an alias. */
+/* ABOUTME: The menu is positioned by the module that opens it. */
+
+.ui-context-menu,
+.session-context-menu {
+  position: fixed;
+  z-index: 10000;
+  min-width: 220px;
+  padding: var(--space-1-5) 0;
+  background: var(--bg-frosted);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  border: 0.5px solid var(--border-hover);
+  /* design-token-ignore: context-menu uses native-OS-style bespoke radius */
+  border-radius: 8px;
+  box-shadow:
+    var(--shadow-lg),
+    0 20px 40px rgba(0, 0, 0, 0.15);
+  animation: fadeIn 0.08s ease-out;
+}
+
+.context-menu-item {
+  display: block;
+  /* design-token-ignore: native context-menu item padding, bespoke to mimic the OS menu */
+  padding: 5px 14px;
+  /* design-token-ignore: native context-menu item font size */
+  font-size: 13px;
+  font-family: -apple-system, BlinkMacSystemFont, "San Francisco", system-ui, sans-serif;
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--text-primary);
+  cursor: default;
+  user-select: none;
+  -webkit-user-select: none;
+  white-space: nowrap;
+}
+
+.context-menu-item:hover:not(.is-disabled) {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.context-menu-item.has-hint {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.context-menu-hint {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+.context-menu-item:hover:not(.is-disabled) .context-menu-hint {
+  color: inherit;
+  opacity: 0.8;
+}
+
+.context-menu-item.is-disabled {
+  color: var(--text-placeholder);
+  pointer-events: none;
+}
+
+.context-menu-separator {
+  height: 1px;
+  margin: 5px 0;
+  background: var(--border-hover);
+}

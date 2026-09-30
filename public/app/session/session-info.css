@@ -1,0 +1,73 @@
+/* ABOUTME: Styles the session title and id cluster in the header. */
+/* ABOUTME: The click target is the session info anchor. */
+.session-info-anchor {
+  position: relative;
+  display: inline-flex;
+}
+
+.session-info-panel {
+  z-index: 1001;
+  width: min(420px, calc(100vw - var(--space-6)));
+  padding: var(--space-4);
+  background: var(--bg-solid);
+  border: 1px solid var(--border-hover);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  animation: dropdownIn 0.15s var(--ease);
+  -webkit-app-region: no-drag;
+}
+
+.session-info-panel h2 {
+  margin-bottom: var(--space-2);
+  font-size: var(--font-size-md);
+}
+
+.session-info-list {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.session-info-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0-5);
+  min-width: 0;
+}
+
+.session-info-row dt {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.session-info-row dd {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  min-width: 0;
+  color: var(--text-primary);
+}
+
+.session-info-value {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
+.session-info-copy {
+  flex-shrink: 0;
+}
+
+.session-info-toggle--dim {
+  opacity: 0.6;
+}
+
+.session-info-toggle--dim:hover,
+.session-info-toggle--dim[aria-expanded="true"] {
+  opacity: 1;
+}
+
+.session-info-toggle[aria-expanded="true"] {
+  color: var(--text-primary);
+  background: var(--bg-glass-hover);
+}

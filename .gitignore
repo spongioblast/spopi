@@ -1,0 +1,37 @@
+node_modules/
+coverage/
+.npm-cache/
+.worktrees/
+# npm lock file (this project uses bun exclusively; see AGENTS.md)
+package-lock.json
+.DS_Store
+
+# Tauri build artifacts (the cargo workspace is src-tauri/)
+src-tauri/target/
+src-tauri/gen/
+
+# Pi extension bundles (produced by scripts/build-extensions.js)
+extensions/dist/
+
+# Embedded pi binary tree (produced by scripts/fetch-pi-binary.js)
+src-tauri/resources/pi/
+.cache/pi-binaries/
+# Embedded agent-browser binary (produced by scripts/fetch-agent-browser.js)
+src-tauri/resources/agent-browser/
+.cache/agent-browser-binaries/
+.cache/terminal-fonts/
+.cache/cjk-fonts/
+
+# Vendored font assets live under public/fonts/.
+# Use scripts/fetch-terminal-font.js and scripts/fetch-cjk-font.js to update them.
+
+# Produced by scripts/build-frontend.js: vendor bundles, and the preload graph built
+# from the module imports plus the tracked public/stylesheets.json
+public/vendor/
+public/preload-graph.json
+
+# Zed editor
+.zed/
+
+# Pi's scratch output while working on this repo (long tool output, large pastes)
+/.pi/tmp/

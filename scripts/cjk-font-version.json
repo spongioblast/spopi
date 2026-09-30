@@ -1,0 +1,13 @@
+{
+  "version": "1.522",
+  "sourceFile": "LXGWWenKaiLite-Regular.ttf",
+  "sourceUrl": "https://github.com/lxgw/LxgwWenKai-Lite/releases/download/v1.522/LXGWWenKaiLite-Regular.ttf",
+  "licenseUrl": "https://raw.githubusercontent.com/lxgw/LxgwWenKai-Lite/v1.522/OFL.txt",
+  "licenseSha256": "c38b1994a5e48ac30ac7d1da7d0409fd8fd8127dfe28a13d6e787d5b1ef34a5e",
+  "sha256": "140c99ba4e28e817cec49bf82a0c5fcdc4fe633fb9dfda16d0ee8d59a8545f15",
+  "subsetSet": "gb2312",
+  "outputFiles": ["LXGWWenKaiLite-Regular.gb2312.woff2"],
+  "approxBytes": 1557752,
+  "sizeCapBytes": 2500000,
+  "_comment": "Pinned LXGW WenKai Lite release subsetted to GB2312 (6763 Hanzi) + CJK punctuation/fullwidth. approxBytes is the observed subset size (reference only); sizeCapBytes is the upper bound enforced by the fetch CLI. sourceUrl/sha256 pin the TTF; licenseUrl/licenseSha256 pin the OFL.txt to the same immutable v1.522 tag. To update, change version + the four pinned fields from the official lxgw/LxgwWenKai-Lite release, then run bun run fetch:cjk-font."
+}

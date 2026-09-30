@@ -1,0 +1,21 @@
+/* ABOUTME: The single retry and endpoint-down banner above the composer. */
+/* ABOUTME: It replaces stacked error cards. */
+
+.retry-banner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1-5);
+  align-items: center;
+  margin: var(--space-2) 0;
+  font-size: var(--font-size-sm);
+}
+
+.retry-banner[hidden] {
+  display: none;
+}
+
+.retry-banner-title,
+.retry-banner-message,
+.retry-banner-count {
+  margin: 0;
+}

@@ -1,0 +1,23 @@
+User packages:
+  npm:pi-localllm-provider
+    C:\Users\me\.pi\agent\npm\node_modules\pi-localllm-provider
+  npm:surf-cli
+    C:\Users\me\.pi\agent\npm\node_modules\surf-cli
+  npm:pi-workspace-history
+    C:\Users\me\.pi\agent\npm\node_modules\pi-workspace-history
+  npm:pi-lens (filtered)
+    C:\Users\me\.pi\agent\npm\node_modules\pi-lens
+  npm:pi-mcp-adapter
+    C:\Users\me\.pi\agent\npm\node_modules\pi-mcp-adapter
+  npm:pi-context-view
+    C:\Users\me\.pi\agent\npm\node_modules\pi-context-view
+  npm:@ff-labs/pi-fff
+    C:\Users\me\.pi\agent\npm\node_modules\@ff-labs\pi-fff
+  npm:pi-web-access
+    C:\Users\me\.pi\agent\npm\node_modules\pi-web-access
+  npm:pi-subagents (filtered)
+    C:\Users\me\.pi\agent\npm\node_modules\pi-subagents
+
+Project packages:
+  npm:example-local
+  npm:example-filtered (filtered)

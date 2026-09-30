@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <title>SPOPI</title>
+  <rect width="256" height="256" rx="56" fill="#1a1d26"/>
+  <g fill="#f4f6fb">
+    <rect x="44" y="48" width="168" height="88" rx="44"/>
+    <rect x="68" y="108" width="44" height="112" rx="22"/>
+    <rect x="144" y="108" width="44" height="112" rx="22"/>
+  </g>
+  <g fill="#1a1d26">
+    <circle cx="108" cy="92" r="16"/>
+    <circle cx="148" cy="92" r="16"/>
+  </g>
+</svg>

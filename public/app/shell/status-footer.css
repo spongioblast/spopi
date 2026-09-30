@@ -1,0 +1,11 @@
+/* ABOUTME: Extension status chips in the dock status row. */
+/* ABOUTME: One chip per setStatus key, after ANSI has been stripped. */
+
+.extension-status {
+  display: inline-flex;
+  gap: var(--space-1);
+}
+
+.extension-status-chip {
+  font-size: var(--font-size-sm);
+}

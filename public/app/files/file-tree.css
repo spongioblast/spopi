@@ -1,0 +1,91 @@
+/* ABOUTME: Compact lazy file-tree rows for the Files rail panel. */
+/* ABOUTME: A folder loads its children when it is opened. */
+
+.app-layout.spopi-shell #file-sidebar-up {
+  display: none;
+}
+
+.app-layout.spopi-shell #file-list {
+  padding: var(--space-1-5) var(--space-3);
+}
+
+.app-layout.spopi-shell #file-sidebar-path.is-workspace-name {
+  direction: ltr;
+  padding: var(--space-1) var(--space-3);
+}
+
+.file-tree-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: 22px;
+  padding-right: var(--space-1-5);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.file-tree-row[aria-selected="true"] {
+  background: color-mix(in srgb, var(--text-primary) 11%, transparent);
+  color: var(--text-primary);
+}
+
+.file-tree-row:hover {
+  background: var(--bg-glass-hover);
+}
+
+.file-tree-chevron {
+  width: 12px;
+  height: 12px;
+  flex: 0 0 12px;
+  color: var(--text-ghost);
+  /* design-token-ignore: chevron glyph is smaller than the 12px control */
+  font-size: 8px;
+  line-height: 12px;
+  text-align: center;
+}
+
+.file-tree-icon {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+  display: inline-flex;
+}
+
+.file-tree-row .file-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-tree-mention {
+  opacity: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-placeholder);
+  cursor: pointer;
+  padding: 0 var(--space-1);
+}
+
+.file-tree-row:hover .file-tree-mention,
+.file-tree-row:focus-visible .file-tree-mention,
+.file-tree-mention:focus-visible {
+  opacity: 1;
+}
+
+.file-tree-empty,
+.file-tree-error {
+  padding: var(--space-2);
+  color: var(--text-placeholder);
+  font-size: var(--font-size-sm);
+}
+
+.file-tree-error {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}

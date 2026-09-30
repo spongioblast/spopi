@@ -1,0 +1,416 @@
+/* ABOUTME: SPOPI workbench grid: rail | sidebar | editor-over-dock | chat. */
+/* ABOUTME: The chat column is the rightmost region. */
+
+.app-layout.spopi-shell {
+  display: grid;
+  grid-template-columns: 36px var(--sidebar-width, 240px) 4px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  width: 100%;
+  min-height: 0;
+}
+
+.app-layout.spopi-shell .spopi-rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-0-5);
+  padding: var(--space-1-5) 0;
+  border-right: 1px solid var(--border);
+  background: var(--bg-frosted);
+}
+
+.app-layout.spopi-shell .spopi-rail-spacer {
+  flex: 1;
+}
+
+.app-layout.spopi-shell .spopi-rail-logo {
+  width: var(--control-height-sm);
+  height: var(--control-height-sm);
+  box-sizing: border-box;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  flex: none;
+  pointer-events: none;
+}
+
+.app-layout.spopi-shell .spopi-rail-btn {
+  width: var(--control-height-sm);
+  height: var(--control-height-sm);
+  color: var(--text-secondary);
+}
+
+.app-layout.spopi-shell .spopi-rail-btn.active {
+  color: var(--text-primary);
+  background: var(--bg-glass-active);
+}
+
+.app-layout.spopi-shell .spopi-sidebar-stack {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border-right: 1px solid var(--border);
+}
+
+.app-layout.spopi-shell .spopi-sidebar-stack > * {
+  --panel-width: 100%;
+  width: 100%;
+  min-width: 0;
+  flex-basis: auto;
+  margin-left: 0;
+}
+
+.app-layout.spopi-shell .spopi-sidebar-stack > *:not(.is-active-shell-panel) {
+  display: none;
+}
+
+.app-layout.spopi-shell .spopi-sidebar-stack > .is-active-shell-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: var(--sidebar-bg);
+}
+
+.app-layout.spopi-shell .spopi-sidebar-resizer,
+.app-layout.spopi-shell .spopi-chat-resizer,
+.app-layout.spopi-shell .spopi-dock-resizer {
+  position: relative;
+  z-index: 5;
+  background: transparent;
+}
+
+.app-layout.spopi-shell .spopi-sidebar-resizer::after,
+.app-layout.spopi-shell .spopi-chat-resizer::after,
+.app-layout.spopi-shell .spopi-dock-resizer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: transparent;
+  transition: background 0.12s var(--ease);
+}
+
+.app-layout.spopi-shell .spopi-sidebar-resizer:hover::after,
+.app-layout.spopi-shell .spopi-chat-resizer:hover::after,
+.app-layout.spopi-shell .spopi-dock-resizer:hover::after,
+.app-layout.spopi-shell .spopi-sidebar-resizer.dragging::after,
+.app-layout.spopi-shell .spopi-chat-resizer.dragging::after,
+.app-layout.spopi-shell .spopi-dock-resizer.dragging::after {
+  background: var(--accent);
+}
+
+.app-layout.spopi-shell .spopi-sidebar-resizer,
+.app-layout.spopi-shell .spopi-chat-resizer {
+  cursor: col-resize;
+}
+
+.app-layout.spopi-shell .spopi-dock-resizer {
+  cursor: row-resize;
+  height: 4px;
+  margin: -2px 0;
+}
+
+.app-layout.spopi-shell .workspace {
+  min-width: 0;
+  min-height: 0;
+}
+
+.app-layout.spopi-shell .workspace-content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 4px minmax(380px, var(--chat-dock-width, 34%));
+  grid-template-rows: minmax(0, 1fr);
+  grid-auto-rows: 0;
+  min-height: 0;
+  height: 100%;
+}
+
+.app-layout.spopi-shell .workspace-content > .app-side-panel {
+  display: none;
+}
+
+.app-layout.spopi-shell .pane-center {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  padding-top: var(--workspace-header-offset);
+}
+
+.app-layout.spopi-shell .pane-center #file-preview-panel {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  width: auto !important;
+  flex-basis: auto !important;
+  margin-top: 0;
+  border-left: none;
+  border-bottom: 1px solid var(--border);
+}
+
+.app-layout.spopi-shell #file-preview-resizer {
+  display: none;
+}
+
+.app-layout.spopi-shell .pane-center #file-preview-panel.collapsed {
+  flex: 0 0 0;
+  width: 0;
+  overflow: hidden;
+  border: none;
+}
+
+.app-layout.spopi-shell .pane-center #spopi-review.is-visible {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.app-layout.spopi-shell .pane-center #spopi-subagent.is-visible {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* Review and a subagent are tabs: the editor keeps its tab strip on top, and the tab fills the rest. */
+body:is([data-center-mode="review"], [data-center-mode="subagent"])
+  .app-layout.spopi-shell
+  .pane-center
+  #file-preview-panel {
+  display: flex;
+  flex: 0 0 auto;
+  min-width: 0;
+  opacity: 1;
+  pointer-events: auto;
+  border-bottom: none;
+}
+
+body:is([data-center-mode="review"], [data-center-mode="subagent"])
+  .app-layout.spopi-shell
+  #file-preview-panel
+  > :not(.file-preview-tabs-bar),
+body:is([data-center-mode="review"], [data-center-mode="subagent"])
+  .app-layout.spopi-shell
+  #file-preview-panel
+  .file-preview-panel-controls {
+  display: none;
+}
+
+.app-layout.spopi-shell .spopi-sidebar-stack,
+.app-layout.spopi-shell .pane-center,
+.app-layout.spopi-shell .main,
+.app-layout.spopi-shell .spopi-dock {
+  container-type: inline-size;
+}
+
+.app-layout.spopi-shell .workspace-content > .main {
+  min-width: min(380px, 100%);
+  min-height: 0;
+  width: auto;
+}
+
+.app-layout.spopi-shell .center-tabs {
+  display: none;
+}
+
+body.sidebar-hidden .app-layout.spopi-shell {
+  grid-template-columns: 36px 0 0 minmax(0, 1fr);
+}
+
+body.chat-hidden .app-layout.spopi-shell .workspace-content {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+body.chat-hidden .app-layout.spopi-shell .workspace-content > .main,
+body.chat-hidden .app-layout.spopi-shell .spopi-chat-resizer {
+  display: none;
+}
+
+.phone-tabs {
+  display: none;
+}
+
+/* design-token-ignore: 44px is the coarse-pointer minimum from the phone plan */
+body[data-pointer="coarse"] {
+  --control-height-lg: 44px;
+}
+
+body[data-layout="narrow"] .app-layout.spopi-shell {
+  grid-template-columns: 36px minmax(0, 1fr);
+}
+
+body[data-layout="narrow"] .app-layout.spopi-shell .spopi-sidebar-stack,
+body[data-layout="narrow"] .app-layout.spopi-shell .pane-center,
+body[data-layout="narrow"] .app-layout.spopi-shell .spopi-sidebar-resizer,
+body[data-layout="narrow"] .app-layout.spopi-shell .spopi-chat-resizer {
+  display: none;
+}
+
+body[data-layout="narrow"] .app-layout.spopi-shell .workspace-content {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+body[data-layout="phone"] .app-layout.spopi-shell {
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+}
+
+body[data-layout="phone"] .app-layout.spopi-shell .workspace-content {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+body[data-layout="phone"] .app-layout.spopi-shell .spopi-rail,
+body[data-layout="phone"] .app-layout.spopi-shell .spopi-sidebar-resizer,
+body[data-layout="phone"] .app-layout.spopi-shell .spopi-chat-resizer,
+body[data-layout="phone"] .app-layout.spopi-shell .pane-center,
+body[data-layout="phone"] .app-layout.spopi-shell .spopi-sidebar-stack {
+  display: none;
+}
+
+body[data-layout="phone"] .phone-tabs {
+  display: flex;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3) env(safe-area-inset-bottom);
+  background: var(--bg-solid);
+  border-top: 1px solid var(--border);
+}
+
+body[data-layout="phone"] .phone-tabs button {
+  flex: 1;
+  min-height: var(--control-height-lg);
+}
+
+body[data-layout="phone"] .phone-tabs button.on {
+  color: var(--text-primary);
+  background: var(--bg-active);
+}
+
+body[data-layout="phone"] #header-open-app,
+body[data-layout="phone"] #open-in-terminal-btn,
+body[data-layout="phone"] #toggle-dock,
+body[data-layout="phone"] #toggle-chat {
+  display: none;
+}
+
+body[data-layout="phone"] .notification-stack {
+  top: auto;
+  bottom: calc(var(--tabbar-h, 0px) + var(--space-2));
+}
+
+.phone-more-sheet {
+  display: none;
+}
+
+body[data-layout="phone"] .phone-more-sheet {
+  display: flex;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: var(--tabbar-h, 0px);
+  z-index: 32;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background: var(--bg-solid);
+  border-top: 1px solid var(--border);
+  /* design-token-ignore: the sheet height follows the viewport */
+  max-height: 70vh;
+  overflow: auto;
+}
+
+.phone-more-item {
+  min-height: var(--control-height-lg);
+  text-align: left;
+}
+
+body[data-layout="narrow"] .shell-scrim {
+  display: none;
+}
+
+body[data-layout="narrow"][data-drawer] .shell-scrim {
+  display: block;
+  position: fixed;
+  inset: 0 0 0 36px;
+  z-index: 40;
+  border: 0;
+  background: color-mix(in srgb, var(--bg-base) 55%, transparent);
+}
+
+body[data-layout="narrow"][data-drawer="sidebar"] .app-layout.spopi-shell .spopi-sidebar-stack,
+body[data-layout="narrow"][data-drawer="center"] .app-layout.spopi-shell .pane-center {
+  display: flex;
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 36px;
+  z-index: 41;
+  width: min(360px, calc(100vw - 48px));
+  background: var(--bg-base);
+  box-shadow: var(--shadow-overlay, 0 8px 24px rgb(0 0 0 / 24%));
+}
+
+/* Review in a narrow window: the diff drawer takes the width, since code needs it. */
+body[data-layout="narrow"][data-drawer="center"].review-open .app-layout.spopi-shell .pane-center {
+  width: calc(100vw - 48px);
+}
+
+body[data-layout="phone"][data-phone-region="sessions"]
+  .app-layout.spopi-shell
+  .spopi-sidebar-stack {
+  display: flex;
+  position: fixed;
+  inset: 0 0 var(--tabbar-h, 0px) 0;
+  z-index: 25;
+  background: var(--bg-base);
+}
+
+body[data-layout="phone"][data-phone-region="changes"] .app-layout.spopi-shell .pane-center {
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: var(--tabbar-h, 0px);
+  left: 0;
+  width: 100%;
+  z-index: 25;
+  padding-top: 0;
+  background: var(--bg-base);
+}
+
+body[data-layout="phone"][data-phone-region="changes"] #spopi-review {
+  display: flex;
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+body[data-layout="phone"][data-phone-region="sessions"] .main,
+body[data-layout="phone"][data-phone-region="changes"] .main,
+body[data-layout="phone"][data-phone-region="more"] .main {
+  display: none;
+}
+
+body[data-pointer="coarse"] .session-action-slot,
+body[data-pointer="coarse"] .file-tree-mention,
+body[data-pointer="coarse"] .metrics-copy,
+body[data-pointer="coarse"] .git-row-actions {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+body[data-cap-terminal="0"] .spopi-dock-tab[data-dock="terminal"],
+body[data-cap-git-write="0"] .git-commit-submit,
+body[data-cap-git-write="0"] .git-push {
+  display: none;
+}
+
+body[data-layout="phone"] #dialog-container .dialog {
+  width: 100%;
+  height: 100%;
+  max-height: 100dvh;
+  margin: 0;
+  border-radius: 0;
+}

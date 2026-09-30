@@ -1,0 +1,270 @@
+/* ABOUTME: Styles tool cards with a glass surface and a colored accent. */
+/* ABOUTME: The card content is built by tool-card.js. */
+/* ═══════════════════════════════════════════════════════
+   Tool Cards — glass with coloured left accent (public/app/ui/tool-card.js)
+   ═══════════════════════════════════════════════════════ */
+
+/* One quiet line per call: chevron, tool name, target (truncated), small status mark.
+   The line never wraps, so nothing can overlap the status. */
+.tool-card {
+  background: var(--tool-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  margin: 0;
+  font-size: var(--font-size-sm);
+  overflow: hidden;
+  align-self: stretch;
+  width: 100%;
+  min-width: 0;
+  flex-shrink: 0;
+  transition: border-color var(--duration) var(--ease);
+}
+
+.tool-card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  min-height: var(--control-height-sm);
+  padding: 0 var(--space-2);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  transition: background var(--duration) var(--ease);
+}
+
+.tool-card-header:hover {
+  background: var(--bg-glass-hover);
+}
+
+.tool-card:hover {
+  border-color: var(--border-hover);
+}
+
+.tool-header-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.tool-card-chevron {
+  font-size: var(--font-size-sm);
+  transition: transform var(--duration) var(--ease);
+  opacity: 0.3;
+  flex-shrink: 0;
+}
+
+.tool-card-chevron.expanded {
+  transform: rotate(90deg);
+}
+
+.tool-name {
+  flex-shrink: 0;
+  color: var(--tool-accent-text);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+}
+
+.tool-args-preview-wrap {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.tool-args-preview {
+  display: block;
+  flex: 0 1 auto;
+  min-width: 0;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tool-file-ref {
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  cursor: pointer;
+  text-align: left;
+}
+
+.tool-file-ref:hover,
+.tool-file-ref:focus-visible {
+  color: var(--accent-text);
+  text-decoration: underline;
+}
+
+.tool-header-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex: 0 0 auto;
+}
+
+.tool-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: none;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  opacity: 0;
+  transition:
+    opacity 0.15s,
+    background 0.15s,
+    color 0.15s;
+  padding: 0;
+}
+
+.tool-card-header:hover .tool-action-btn {
+  opacity: 0.6;
+}
+
+.tool-action-btn:hover {
+  opacity: 1 !important;
+  background: var(--bg-glass-hover);
+}
+
+.tool-action-btn.copied {
+  opacity: 1 !important;
+  color: var(--success);
+}
+
+/* A small mark, not a badge. Done calls show only a muted check; the word stays for
+   screen readers. A failed call keeps a short red word so it can be found. */
+.tool-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex-shrink: 0;
+  font-size: 0;
+  line-height: 1;
+}
+
+.tool-status::before {
+  font-size: var(--font-size-xs);
+}
+
+.tool-status.pending,
+.tool-status.streaming {
+  color: var(--tool-accent-text);
+}
+
+.tool-status.pending::before,
+.tool-status.streaming::before {
+  content: "●";
+  animation: pulse 1.2s infinite;
+}
+
+.tool-status.complete {
+  color: color-mix(in srgb, var(--success) 70%, var(--text-muted));
+}
+
+.tool-status.complete::before {
+  content: "✓";
+}
+
+.tool-status.error {
+  color: var(--error);
+  font-size: var(--font-size-xs);
+}
+
+.tool-status.error::before {
+  content: "✕";
+}
+
+.tool-card:has(.tool-status.error) {
+  border-color: color-mix(in srgb, var(--error) 35%, var(--border));
+}
+
+.tool-card-body {
+  display: none;
+  border-top: 1px solid var(--border);
+}
+.tool-card-body.expanded {
+  display: block;
+}
+
+.tool-args {
+  background: rgba(0, 0, 0, 0.15);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-size-sm);
+  overflow-x: auto;
+  white-space: pre-wrap;
+  border-bottom: 1px solid var(--border);
+}
+
+:root[data-scheme="light"] .tool-args {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.tool-output-wrapper {
+  position: relative;
+}
+
+.tool-output {
+  background: rgba(0, 0, 0, 0.1);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-size-sm);
+  max-height: 260px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  white-space: pre-wrap;
+}
+
+:root[data-scheme="light"] .tool-output {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.tool-output::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+.tool-output::-webkit-scrollbar-track {
+  background: transparent;
+}
+.tool-output::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: var(--radius-xs);
+}
+
+/* spopi-tool-output saved the full result; the model saw a digest */
+.tool-output-saved {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-3);
+  border-top: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+}
+
+/* Diff view for Edit tool */
+.tool-diff {
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+  overflow-x: auto;
+  max-height: 300px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-bottom: 1px solid var(--border);
+}
