@@ -239,8 +239,10 @@ mod tests {
         None
     }
 
+    /// Started like `run_pi_command_in`: on Unix the tree is killed by process group.
     fn script(bin: &str, code: &str) -> Command {
         let mut command = Command::new(bin);
+        super::super::child_supervision::make_group_leader(&mut command);
         command
             .arg("-e")
             .arg(code)

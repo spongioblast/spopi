@@ -26,13 +26,13 @@ It shares your Pi setup: the same settings, packages, and sessions in `~/.pi/age
 - **No waiting.** Steer Pi mid-turn, queue the next message, fork from any point, or retry with another model.
 - **Your phone, if you want it.** Off by default, over your own network or Tailscale.
 
-## No telemetry, no company behind it
+## No telemetry, no business model behind it
 
 "Nothing hidden" goes for SPOPI itself, not only for [what Pi does](#nothing-hidden).
 
 - **What SPOPI is.** MIT-licensed source on GitHub. The interface is plain HTML, CSS, and JavaScript files on your disk that you can open and read.
 - **No telemetry, no tracking, no account.** No usage data, crash reports, or analytics go anywhere. SPOPI's own requests are the update check against this repository's GitHub releases (at start and every six hours) and, on the Packages page, the public package list and an npm or Git check for newer versions of the packages you installed. None of them carries your code, your prompts, or an ID. Everything else goes only where you point it: your model provider, or nowhere with a local model.
-- **No business model behind it.** No business model, no paid tier, no investors, nothing to upsell, and so no reason to collect anything about you.
+- **No business model behind it.** No paid tier, no investors, nothing to upsell, and so no reason to collect anything about you.
 
 ## It checks its own work
 
