@@ -436,7 +436,10 @@ mod tests {
                     frame: json!({"key": key, "value": []}),
                 };
                 for tier in [Tier::Observe, Tier::Control, Tier::Full] {
-                    assert!(!allowed(&remote(tier), &action), "{operation} {key} {tier:?}");
+                    assert!(
+                        !allowed(&remote(tier), &action),
+                        "{operation} {key} {tier:?}"
+                    );
                 }
                 assert!(allowed(&ClientKind::Desktop, &action));
             }

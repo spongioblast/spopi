@@ -73,6 +73,7 @@
 - The Git panel names the project folder it belongs to. After **Initialize repository**, the branch shows in the chat header and **New worktree…** is offered without a reload.
 - Settings → MCP uses the same cards as the other Settings pages. The buttons, **Permission mode**, and the last check time share one row, and the example commands sit in one code box.
 - The Windows installer failed to build: its script calls Restart Manager to close a running SPOPI, but never included that NSIS file.
+- Keeping a project's chats in the project failed when the project was on another drive than Pi's folder ("cannot move the file to a different disk drive"). The chats are now copied over and removed from Pi's folder once the copy is complete.
 - A server's **More** (`…`) button in Settings → MCP did nothing, so a server could not be removed there. The menu opened and the session list closed it again on the same click. **Add server** uses SPOPI's dark lists instead of white system lists, its argument and variable fields say what goes in them, and the hint shows `${NAME}` instead of a bare `$`.
 - Settings → Customizations says the overrides are changes to SPOPI's own interface, shows the folder they live in, and explains each file's status. Safe mode has its own card and no longer repeats its name as the heading.
 - Settings → Phone access is split into Connection, Pair a phone, and Devices cards. Port and allowed sources have sized fields. Pairing says what it does, and an empty device list says so. A help line no longer runs three unrelated texts together.

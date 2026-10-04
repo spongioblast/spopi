@@ -185,8 +185,63 @@ type Moves = Vec<(PathBuf, PathBuf)>;
 
 fn undo_moves(done: &[(PathBuf, PathBuf)]) {
     for (source, target) in done.iter().rev() {
-        let _ = fs::rename(target, source);
+        let _ = move_path(target, source);
     }
+}
+
+/// A rename, or a copy and delete when `to` is on another drive (Pi's folder
+/// on C:, the project on D:). The source goes only after the copy is complete.
+fn move_path(from: &Path, to: &Path) -> std::io::Result<()> {
+    match fs::rename(from, to) {
+        Err(error) if error.kind() == std::io::ErrorKind::CrossesDevices => {
+            copy_then_remove(from, to)
+        }
+        other => other,
+    }
+}
+
+fn copy_then_remove(from: &Path, to: &Path) -> std::io::Result<()> {
+    if to.exists() {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::AlreadyExists,
+            format!("{} already exists", to.display()),
+        ));
+    }
+    if from.is_dir() {
+        if let Err(error) = copy_tree(from, to) {
+            let _ = fs::remove_dir_all(to);
+            return Err(error);
+        }
+        // A partly removed source keeps its copy; leftovers in Pi's folder are harmless.
+        if let Err(error) = fs::remove_dir_all(from) {
+            log::warn!(
+                "[spopi] moved {} but could not remove it: {error}",
+                from.display()
+            );
+        }
+        return Ok(());
+    }
+    if let Err(error) = fs::copy(from, to) {
+        let _ = fs::remove_file(to);
+        return Err(error);
+    }
+    fs::remove_file(from).inspect_err(|_| {
+        let _ = fs::remove_file(to);
+    })
+}
+
+fn copy_tree(from: &Path, to: &Path) -> std::io::Result<()> {
+    fs::create_dir_all(to)?;
+    for entry in fs::read_dir(from)? {
+        let entry = entry?;
+        let target = to.join(entry.file_name());
+        if entry.file_type()?.is_dir() {
+            copy_tree(&entry.path(), &target)?;
+        } else {
+            fs::copy(entry.path(), target)?;
+        }
+    }
+    Ok(())
 }
 
 fn moved_chats(moves: &[(PathBuf, PathBuf)]) -> Vec<PathBuf> {
@@ -212,7 +267,7 @@ fn move_chats(chats: &[PathBuf], destination: &Path) -> Result<Moves, String> {
             undo_moves(&done);
             return Err(format!("{} already exists", target.display()));
         }
-        if let Err(error) = fs::rename(chat, &target) {
+        if let Err(error) = move_path(chat, &target) {
             undo_moves(&done);
             return Err(format!("Cannot move {}: {error}", chat.display()));
         }
@@ -220,7 +275,7 @@ fn move_chats(chats: &[PathBuf], destination: &Path) -> Result<Moves, String> {
         let children = chat.with_extension("");
         if children.is_dir() {
             let child_target = target.with_extension("");
-            if let Err(error) = fs::rename(&children, &child_target) {
+            if let Err(error) = move_path(&children, &child_target) {
                 undo_moves(&done);
                 return Err(format!("Cannot move {}: {error}", children.display()));
             }
@@ -617,6 +672,59 @@ mod tests {
             fs::read_to_string(project.join(".pi").join("settings.json")).unwrap(),
             "{}"
         );
+        fs::remove_dir_all(root).ok();
+    }
+
+    #[test]
+    fn keep_moves_chats_onto_another_drive() {
+        // Temp is on C: and the crate on D: here and on the Windows runner.
+        let agent = temp().join("agent");
+        let project = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("target")
+            .join(agent.parent().unwrap().file_name().unwrap())
+            .join("proj");
+        fs::create_dir_all(&project).unwrap();
+        let project = crate::data::paths::canonical_path(&project).unwrap();
+        let source = default_session_dir(&project, &agent);
+        chat(&source.join("one.jsonl"), &project, None);
+        chat(
+            &source.join("one").join("r").join("session.jsonl"),
+            &project,
+            None,
+        );
+
+        let report = keep_chats_in_project(&project, &agent).unwrap();
+        let sessions = project.join(".pi").join("sessions");
+        assert_eq!(report.moved, 1);
+        assert!(sessions
+            .join("one")
+            .join("r")
+            .join("session.jsonl")
+            .is_file());
+        assert!(!source.join("one.jsonl").exists());
+        assert!(!source.join("one").exists());
+        fs::remove_dir_all(agent.parent().unwrap()).ok();
+        fs::remove_dir_all(project.parent().unwrap()).ok();
+    }
+
+    #[test]
+    fn the_copy_fallback_moves_files_and_folders_and_keeps_an_existing_target() {
+        let root = temp();
+        fs::write(root.join("a.jsonl"), "a").unwrap();
+        copy_then_remove(&root.join("a.jsonl"), &root.join("b.jsonl")).unwrap();
+        assert_eq!(fs::read_to_string(root.join("b.jsonl")).unwrap(), "a");
+        assert!(!root.join("a.jsonl").exists());
+
+        fs::create_dir_all(root.join("dir").join("deep")).unwrap();
+        fs::write(root.join("dir").join("deep").join("x.jsonl"), "x").unwrap();
+        copy_then_remove(&root.join("dir"), &root.join("moved")).unwrap();
+        assert!(root.join("moved").join("deep").join("x.jsonl").is_file());
+        assert!(!root.join("dir").exists());
+
+        fs::write(root.join("c.jsonl"), "c").unwrap();
+        assert!(copy_then_remove(&root.join("c.jsonl"), &root.join("b.jsonl")).is_err());
+        assert_eq!(fs::read_to_string(root.join("b.jsonl")).unwrap(), "a");
+        assert!(root.join("c.jsonl").is_file());
         fs::remove_dir_all(root).ok();
     }
 

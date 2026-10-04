@@ -374,7 +374,9 @@ mod tests {
             .any(|pair| pair == ["--oauth-callback-port", "1455"]));
         let mut spec = spec;
         spec.bearer_token_env_var = Some("--help".into());
-        assert!(add_args(&spec).unwrap_err().contains("environment variable"));
+        assert!(add_args(&spec)
+            .unwrap_err()
+            .contains("environment variable"));
     }
 
     #[test]
@@ -395,8 +397,7 @@ mod tests {
 
     #[test]
     fn parse_list_reads_the_captured_fixtures() {
-        let dir =
-            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../tests/fixtures/pi-cli");
+        let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../tests/fixtures/pi-cli");
         let empty =
             parse_list(&std::fs::read_to_string(dir.join("mcp-list-empty.json")).unwrap()).unwrap();
         assert_eq!(empty["servers"].as_array().unwrap().len(), 0);

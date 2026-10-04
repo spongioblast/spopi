@@ -3,11 +3,11 @@
 
 use super::super::http::engine;
 use super::super::{HostState, OpError};
-use crate::host::capabilities::may_register_workspace;
 use super::{
     dependencies, git_identity, mcp, os, packages, preferences, projects, review_drafts, sessions,
     skills, worktrees,
 };
+use crate::host::capabilities::may_register_workspace;
 use serde_json::Value;
 
 pub(crate) async fn dispatch_host_operation(

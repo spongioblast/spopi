@@ -1,6 +1,9 @@
 // ABOUTME: Reads and writes the Windows Firewall rule that lets paired phones reach SPOPI.
 // ABOUTME: Writing goes through the Windows admin prompt; other systems report unsupported.
 
+// The script builders run only on Windows but stay compiled everywhere so their tests run in CI.
+#![cfg_attr(not(target_os = "windows"), allow(dead_code))]
+
 use serde::Serialize;
 
 pub const RULE_NAME: &str = "SPOPI phone access";

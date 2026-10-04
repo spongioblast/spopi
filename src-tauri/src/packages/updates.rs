@@ -307,7 +307,9 @@ mod tests {
     }
 
     // Tests must never touch the real registry or remote hosts: PI_OFFLINE=1
-    // makes run_update_command fail before spawning any subprocess.
+    // makes run_update_command fail before spawning any subprocess. Tests run in
+    // parallel, so each one holds this lock while the variable is set.
+    static OFFLINE: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
 
     #[test]
     fn parse_source_distinguishes_npm_git_and_local() {
@@ -335,6 +337,7 @@ mod tests {
 
     #[tokio::test]
     async fn check_short_circuits_without_network_for_pinned_local_and_refed_git() {
+        let _offline = OFFLINE.lock().await;
         std::env::set_var("PI_OFFLINE", "1");
         for record in [
             info("npm:foo@1.2.3", Some("/tmp/installed"), Some("1.0.0")),
@@ -358,6 +361,7 @@ mod tests {
         // Unpinned npm with an installed version is the one shape that reaches
         // the subprocess path; under PI_OFFLINE it must fail closed (no update)
         // without ever spawning npm.
+        let _offline = OFFLINE.lock().await;
         std::env::set_var("PI_OFFLINE", "1");
         let locations = super::locations_for_workspace(None).unwrap();
         assert!(

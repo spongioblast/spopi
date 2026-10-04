@@ -152,10 +152,7 @@ pub async fn install(dest: &Path, log: impl Fn(String)) -> Result<(), String> {
 
 /// The download and the unpacked copy before it replaces `dest`.
 fn partial_paths(parent: &Path) -> (PathBuf, PathBuf) {
-    (
-        parent.join("node-download.tar.gz"),
-        parent.join("node-new"),
-    )
+    (parent.join("node-download.tar.gz"), parent.join("node-new"))
 }
 
 /// Removes what a cancelled or timed-out install left next to `dest`.

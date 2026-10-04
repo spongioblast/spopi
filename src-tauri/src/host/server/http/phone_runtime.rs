@@ -68,8 +68,8 @@ async fn resolve_workspace(
 ) -> Result<Json<Value>, Refused> {
     may_run(&kind)?;
     let register = may_register_workspace(&kind);
-    let workspace_id =
-        files::resolve_workspace_path(&state, &body.project_path, register).map_err(|code| {
+    let workspace_id = files::resolve_workspace_path(&state, &body.project_path, register)
+        .map_err(|code| {
             let status = if code == "project_not_found" {
                 StatusCode::NOT_FOUND
             } else if code == "loopback_required" {

@@ -560,7 +560,10 @@ mod tests {
         let nested = ws_dir.join("sessions").join("sess").join("x");
         fs::create_dir_all(nested.join("repo.git")).unwrap();
         for escape in ["../sessions/sess", "sess/x", "sess\\x", "..", "."] {
-            assert!(find_git_dir(&ws_dir.join("sessions"), escape).is_none(), "{escape}");
+            assert!(
+                find_git_dir(&ws_dir.join("sessions"), escape).is_none(),
+                "{escape}"
+            );
         }
         assert_eq!(
             turn_range(&git_dir, "turn:u1"),

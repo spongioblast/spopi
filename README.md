@@ -32,7 +32,28 @@ It shares your Pi setup: the same settings, packages, and sessions in `~/.pi/age
 
 - **What SPOPI is.** MIT-licensed source on GitHub. The interface is plain HTML, CSS, and JavaScript files on your disk that you can open and read.
 - **No telemetry, no tracking, no account.** No usage data, crash reports, or analytics go anywhere. SPOPI's own requests are the update check against this repository's GitHub releases (at start and every six hours) and, on the Packages page, the public package list and an npm or Git check for newer versions of the packages you installed. None of them carries your code, your prompts, or an ID. Everything else goes only where you point it: your model provider, or nowhere with a local model.
-- **No company behind it.** No business model, no paid tier, no investors, nothing to upsell, and so no reason to collect anything about you.
+- **No business model behind it.** No business model, no paid tier, no investors, nothing to upsell, and so no reason to collect anything about you.
+
+## It checks its own work
+
+After a turn that edits files, SPOPI runs your project's check: `tsc`, `cargo check`, `go vet`, or the `check` script in `package.json`. A failure in a file Pi just changed goes back to Pi, and Pi fixes it before the turn ends. If Pi cannot fix it, you are told.
+
+Pi can also open what it built. [agent-browser](https://github.com/vercel-labs/agent-browser) comes with SPOPI, so Pi can click through your local app and read screenshots. It needs Chrome, which Settings → Dependencies can download. `/skill:verify-recipe` saves how your project is built, tested, and started, so Pi knows next time.
+
+## Nothing hidden
+
+- **The turn stays readable.** Thinking and tool calls fold into one "Worked for …" row that counts files read, commands run, and files edited. The answer stays in view. Open the row to see every step.
+- **You set the permissions.** **Ask** checks before each command or edit. **Auto-edit** edits freely and asks before shell commands. **Full access** tells you once and stops asking. Requests show above the chat box, not in pop-ups. A project's own Pi extensions and check command run only after you trust it, so a cloned repository cannot start code on open. This is not a sandbox: Pi runs with your user's rights, and Settings lists ways to run it in a container.
+- **Long output stays out of the prompt.** A 10,000-line build log is saved to a file, and Pi gets the path plus the first and last lines. You still see all of it.
+
+When a turn finishes and the window is in the background, you get a desktop notification.
+
+## Pi's way, not a new one
+
+- **Plans are files.** There is no plan mode. Ask Pi to write the plan in Markdown, edit it, then have Pi work through it.
+- **Packages just work.** Install them from Settings → Packages. A package's dialogs, panels, and slash commands appear in SPOPI as they do in the terminal. The recommended ones add per-turn undo (`pi-workspace-history`), live diagnostics (`pi-lens`), subagents (`pi-subagents`), and worktree commands (`@pify/worktree`).
+- **MCP is Pi's.** Settings → MCP adds and lists servers through Pi. The π button opens Pi in a terminal tab for anything only Pi's own interface does, such as switching servers on and off. Quit it and SPOPI picks up the changes.
+- **Your setup is plain files.** Keys, models, prompts, and `AGENTS.md` can be edited in Settings, and they are the files the terminal reads.
 
 ## Ask Pi to change the UI
 
@@ -76,34 +97,13 @@ Switch models in the middle of a session, or ask the same question again with an
 
 **Cockpit** (`/cockpit`) shows each prompt's tokens, speed, cache hits, and time. On vLLM it adds KV cache, time to first token, queue, and prefill, which is what you watch when you tune a model on your own GPU. Settings → Usage tracks spending on cloud models.
 
-## It checks its own work
-
-After a turn that edits files, SPOPI runs your project's check: `tsc`, `cargo check`, `go vet`, or the `check` script in `package.json`. A failure in a file Pi just changed goes back to Pi, and Pi fixes it before the turn ends. If Pi cannot fix it, you are told.
-
-Pi can also open what it built. [agent-browser](https://github.com/vercel-labs/agent-browser) comes with SPOPI, so Pi can click through your local app and read screenshots. It needs Chrome, which Settings → Dependencies can download. `/skill:verify-recipe` saves how your project is built, tested, and started, so Pi knows next time.
-
-## Nothing hidden
-
-- **The turn stays readable.** Thinking and tool calls fold into one "Worked for …" row that counts files read, commands run, and files edited. The answer stays in view. Open the row to see every step.
-- **You set the permissions.** **Ask** checks before each command or edit. **Auto-edit** edits freely and asks before shell commands. **Full access** tells you once and stops asking. Requests show above the chat box, not in pop-ups. A project's own Pi extensions and check command run only after you trust it, so a cloned repository cannot start code on open. This is not a sandbox: Pi runs with your user's rights, and Settings lists ways to run it in a container.
-- **Long output stays out of the prompt.** A 10,000-line build log is saved to a file, and Pi gets the path plus the first and last lines. You still see all of it.
-
-When a turn finishes and the window is in the background, you get a desktop notification.
-
-## Pi's way, not a new one
-
-- **Plans are files.** There is no plan mode. Ask Pi to write the plan in Markdown, edit it, then have Pi work through it.
-- **Packages just work.** Install them from Settings → Packages. A package's dialogs, panels, and slash commands appear in SPOPI as they do in the terminal. The recommended ones add per-turn undo (`pi-workspace-history`), live diagnostics (`pi-lens`), subagents (`pi-subagents`), and worktree commands (`@pify/worktree`).
-- **MCP is Pi's.** Settings → MCP adds and lists servers through Pi. The π button opens Pi in a terminal tab for anything only Pi's own interface does, such as switching servers on and off. Quit it and SPOPI picks up the changes.
-- **Your setup is plain files.** Keys, models, prompts, and `AGENTS.md` can be edited in Settings, and they are the files the terminal reads.
-
 ## From your phone
 
 Turn on Phone access, scan the code, and follow or steer a session from your phone on the same network or over Tailscale. HTTPS only, each pairing code works once, and you decide whether a phone may watch, control, or do everything. On Windows, one button lets the phone through the firewall. It is assumed you use OpenVPN or Wireguard to tunnel into your network. Don't expose your port outside of your network.
 
 ![Settings → Phone access, with a pairing QR code open.](docs/readme/phone-settings.png)
 
-This is the phone side. Full control of SPOPI from the phone.
+Full control of SPOPI from the phone.
 
 <p>
 <img src="docs/readme/phone-pair.png" width="260" alt="The pairing page on a phone: name the device, then Pair this phone.">
@@ -111,9 +111,9 @@ This is the phone side. Full control of SPOPI from the phone.
 <img src="docs/readme/phone-chat.png" width="260" alt="SPOPI on a phone: Pi wrote list_dir.py, ran it, and shows the file sizes. Chat, Sessions, Changes, and More tabs at the bottom.">
 </p>
 
-## What it doesn't do
+## What it doesn't do, and whats to come
 
-SPOPI is not a second agent: planning, tools, compaction, subagents, and MCP are Pi and its packages. No autocomplete as you type, and no codebase index yet. 
+SPOPI is not a second agent: planning, tools, compaction, subagents, and MCP are Pi and its packages. No autocomplete as you type, and no codebase index yet. Next is better phone support for settings, potentially code review etc. Also want to further simplify it, reduce it as PI seems to rapidly expand it's core. What do you think should be next? 
 
 ## Install
 
@@ -182,4 +182,4 @@ MIT. See [LICENSE](./LICENSE).
 
 ## Thanks
 
-SPOPI is built on much of the early work of [Tau](https://github.com/deflating/tau) and [Picot](https://github.com/shixin-guo/picot). Thank you!
+SPOPI is built on much of the early work of [Tau](https://github.com/deflating/tau) and [Picot](https://github.com/shixin-guo/picot). And of course the key is [Pi](https://github.com/earendil-works/pi). Thank you!
