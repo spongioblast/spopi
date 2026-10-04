@@ -14,6 +14,11 @@ describe("sidebar chrome", () => {
     expect(refs.openFolderBtn.id).toBe("open-folder-btn");
     expect(refs.refreshSessionsBtn.id).toBe("refresh-sessions-btn");
     expect(refs.sessionList.id).toBe("session-list");
+    expect(refs.sessionList.getAttribute("role")).toBe("region");
+    expect(refs.sessionList.getAttribute("aria-labelledby")).toBe("session-list-label");
+    expect(root.querySelector("#session-list-label")?.getAttribute("data-i18n")).toBe(
+      "sidebar.sessionList",
+    );
     expect(refs.settingsBtn.id).toBe("settings-btn");
     const { destroy } = mountSidebarChrome(document.createElement("div"));
     destroy();

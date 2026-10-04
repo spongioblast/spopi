@@ -82,7 +82,7 @@ body:has(.settings-panel:not(.hidden)) .metrics-overlay {
 .settings-nav-title {
   font-size: var(--font-size-lg);
   color: var(--text-primary);
-  margin-bottom: 6px;
+  margin-bottom: var(--space-1-5);
   padding: 0 var(--space-2);
 }
 
@@ -137,6 +137,10 @@ body:has(.settings-panel:not(.hidden)) .metrics-overlay {
   overflow-y: auto;
 }
 
+.settings-tab.active {
+  max-width: 52rem;
+}
+
 .settings-tab {
   display: none;
 }
@@ -145,7 +149,7 @@ body:has(.settings-panel:not(.hidden)) .metrics-overlay {
 }
 
 .settings-usage-embed {
-  min-height: 460px;
+  min-height: clamp(18rem, 55vh, 460px);
   border-radius: var(--radius);
   overflow: auto;
   -webkit-overflow-scrolling: touch;
@@ -176,17 +180,42 @@ body:has(.settings-panel:not(.hidden)) .metrics-overlay {
   background: var(--bg-glass-hover);
 }
 
-.settings-body {
+.settings-header {
+  margin-bottom: var(--space-3);
+}
+
+/* A page wrapper inside the body stacks its cards the same way. */
+.settings-body,
+.settings-stack {
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
+  gap: var(--space-4);
+}
+
+.settings-intro {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+}
+
+.settings-intro > .settings-help {
+  flex: 1 1 20rem;
+  margin: 0;
+}
+
+.settings-intro-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
 }
 
 .settings-section-title {
   font-size: var(--font-size-md);
   letter-spacing: 0.06em;
-  margin-bottom: 8px;
-  font-weight: bold;
+  margin-bottom: var(--space-2);
+  font-weight: var(--font-weight-bold);
 }
 
 .settings-row {
@@ -216,46 +245,6 @@ body:has(.settings-panel:not(.hidden)) .metrics-overlay {
 
 .settings-label-sub.is-warning {
   color: var(--warning);
-}
-
-.settings-toggle {
-  appearance: none;
-  flex: 0 0 auto;
-  width: 40px;
-  height: 22px;
-  border-radius: var(--radius-pill);
-  border: 1px solid var(--border);
-  background: var(--bg-glass-strong);
-  cursor: pointer;
-  position: relative;
-  overflow: hidden;
-  transition:
-    background var(--duration) var(--ease),
-    border-color var(--duration) var(--ease);
-  padding: 0;
-}
-
-.settings-toggle::after {
-  content: "";
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: var(--text-secondary);
-  transition:
-    left 0.25s var(--spring),
-    background 0.25s var(--spring);
-}
-
-.settings-toggle.on {
-  background: var(--accent);
-}
-
-.settings-toggle.on::after {
-  left: 20px;
-  background: var(--on-accent);
 }
 
 .settings-value-btn {
@@ -328,6 +317,38 @@ body:has(.settings-panel:not(.hidden)) .metrics-overlay {
   text-align: right;
 }
 
+#setting-git-identity {
+  align-items: flex-start;
+}
+
+.settings-git-identity {
+  display: grid;
+  gap: var(--space-3);
+  min-width: min(100%, 18rem);
+}
+
+.settings-git-identity .git-identity-fields {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.settings-git-identity-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.settings-git-identity-status {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.settings-git-identity-error {
+  color: var(--error);
+  font-size: var(--font-size-sm);
+}
+
 .settings-live-debug-control {
   display: flex;
   flex: none;
@@ -343,15 +364,15 @@ body:has(.settings-panel:not(.hidden)) .metrics-overlay {
 }
 
 .settings-static-value[data-tone="ok"] {
-  color: var(--accent-success, #4ade80);
+  color: var(--accent-success);
 }
 
 .settings-static-value[data-tone="warn"] {
-  color: var(--accent-warning, #f59e0b);
+  color: var(--accent-warning);
 }
 
 .settings-static-value[data-tone="error"] {
-  color: var(--accent-danger, #ef4444);
+  color: var(--accent-danger);
 }
 
 /* Theme grid */
@@ -365,7 +386,7 @@ body:has(.settings-panel:not(.hidden)) .metrics-overlay {
 .theme-swatch {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   gap: var(--space-2);
   padding: var(--space-2) var(--space-3);
   background: var(--bg-glass);
@@ -396,6 +417,13 @@ body:has(.settings-panel:not(.hidden)) .metrics-overlay {
   box-shadow:
     0 0 0 2px var(--accent-glow),
     var(--shadow-inset);
+}
+
+.theme-swatch-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .swatch-colors {
@@ -449,7 +477,7 @@ body:has(.settings-panel:not(.hidden)) .metrics-overlay {
     flex: 0 0 auto;
     white-space: nowrap;
     padding: var(--space-2) var(--space-3);
-    min-height: 34px;
+    min-height: var(--control-height-md);
     font-size: var(--font-size-sm);
     border-radius: var(--radius-pill);
     background: var(--bg-glass);
@@ -458,21 +486,14 @@ body:has(.settings-panel:not(.hidden)) .metrics-overlay {
 
   .settings-nav-back {
     margin-top: 0;
-    margin-left: 4px;
+    margin-left: var(--space-1);
     flex: 0 0 auto;
     white-space: nowrap;
-    min-height: 34px;
+    min-height: var(--control-height-md);
     padding: var(--space-2) var(--space-3);
     font-size: var(--font-size-sm);
     border-radius: var(--radius-pill);
     border-color: var(--border);
-    background: var(--bg-glass);
-  }
-
-  .settings-section {
-    padding: var(--space-2);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
     background: var(--bg-glass);
   }
 

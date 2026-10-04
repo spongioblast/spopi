@@ -40,34 +40,99 @@ export function mountComposerChrome(root) {
                 },
                 ["Ask"],
               ),
-              el(
-                "button",
-                {
-                  type: "button",
-                  class: "ui-icon-button ui-icon-button--sm ui-icon-button--ghost input-icon-btn",
-                  id: "attach-btn",
-                  title: "Attach image",
-                  "data-i18n-title": "input.attachImage",
-                  "aria-label": "Attach image",
-                  "data-i18n-aria-label": "input.attachImage",
-                  tabindex: "-1",
-                },
-                [createIcon("paperclip", { size: 15 })],
-              ),
-              el(
-                "button",
-                {
-                  type: "button",
-                  class: "ui-icon-button ui-icon-button--sm ui-icon-button--ghost input-icon-btn",
-                  id: "command-btn",
-                  title: "Commands",
-                  "data-i18n-title": "input.commands",
-                  "aria-label": "Open commands",
-                  "data-i18n-aria-label": "shell.openCommandsLabel",
-                  tabindex: "-1",
-                },
-                [createIcon("slash", { size: 14 })],
-              ),
+              el("div", { class: "model-dropdown", id: "model-dropdown" }, [
+                el(
+                  "button",
+                  {
+                    type: "button",
+                    class: "ui-button ui-button--sm ui-button--ghost model-dropdown-btn",
+                    id: "model-dropdown-btn",
+                    title: "Switch model",
+                    "data-i18n-title": "input.switchModel",
+                    "aria-label": "Switch model",
+                    "data-i18n-aria-label": "input.switchModel",
+                    tabindex: "-1",
+                  },
+                  [
+                    el("span", { class: "model-dropdown-label", id: "model-dropdown-label" }, [
+                      "model",
+                    ]),
+                    createIcon("model-chevron", {
+                      width: 10,
+                      height: 6,
+                      viewBox: "0 0 10 6",
+                      className: "model-dropdown-chevron",
+                    }),
+                  ],
+                ),
+                el("div", { class: "model-dropdown-menu hidden", id: "model-dropdown-menu" }),
+              ]),
+              el("div", { class: "composer-more" }, [
+                el(
+                  "button",
+                  {
+                    type: "button",
+                    class: "ui-icon-button ui-icon-button--sm ui-icon-button--ghost input-icon-btn",
+                    id: "composer-more-btn",
+                    title: "More",
+                    "data-i18n-title": "composer.moreTools",
+                    "aria-label": "More",
+                    "data-i18n-aria-label": "composer.moreTools",
+                    tabindex: "-1",
+                  },
+                  [createIcon("ellipsis", { size: 14 })],
+                ),
+                el(
+                  "div",
+                  { class: "composer-more-menu hidden", id: "composer-more-menu", role: "menu" },
+                  [
+                    el(
+                      "button",
+                      {
+                        type: "button",
+                        class: "thinking-tag off",
+                        id: "thinking-btn",
+                        role: "menuitem",
+                        title: "Thinking effort controls reasoning depth. Click to cycle.",
+                        "data-i18n-title": "settings.thinkingTitle",
+                        "aria-label": "Thinking effort: off. Click to cycle reasoning depth.",
+                        "data-i18n-aria-label": "shell.thinkingEffortOffClickToCycleReasoningLabel",
+                        tabindex: "-1",
+                        "data-i18n": "shell.thinkOff",
+                      },
+                      ["Think off"],
+                    ),
+                    el(
+                      "button",
+                      {
+                        type: "button",
+                        class: "composer-more-item",
+                        id: "attach-btn",
+                        role: "menuitem",
+                        tabindex: "-1",
+                      },
+                      [
+                        createIcon("paperclip", { size: 16 }),
+                        el("span", { "data-i18n": "input.attachImage" }, ["Attach image"]),
+                      ],
+                    ),
+                    el(
+                      "button",
+                      {
+                        type: "button",
+                        class: "composer-more-item",
+                        id: "command-btn",
+                        role: "menuitem",
+                        tabindex: "-1",
+                      },
+                      [
+                        createIcon("slash", { size: 16 }),
+                        el("span", { "data-i18n": "input.commands" }, ["Commands"]),
+                      ],
+                    ),
+                  ],
+                ),
+              ]),
               el("input", {
                 type: "file",
                 id: "image-input",
@@ -114,50 +179,6 @@ export function mountComposerChrome(root) {
                 ),
               ]),
             ]),
-            el("div", { class: "composer-toolbar-meta" }, [
-              el("div", { class: "model-dropdown", id: "model-dropdown" }, [
-                el(
-                  "button",
-                  {
-                    type: "button",
-                    class: "ui-button ui-button--sm ui-button--ghost model-dropdown-btn",
-                    id: "model-dropdown-btn",
-                    title: "Switch model",
-                    "data-i18n-title": "input.switchModel",
-                    "aria-label": "Switch model",
-                    "data-i18n-aria-label": "input.switchModel",
-                    tabindex: "-1",
-                  },
-                  [
-                    el("span", { class: "model-dropdown-label", id: "model-dropdown-label" }, [
-                      "model",
-                    ]),
-                    createIcon("model-chevron", {
-                      width: 10,
-                      height: 6,
-                      viewBox: "0 0 10 6",
-                      className: "model-dropdown-chevron",
-                    }),
-                  ],
-                ),
-                el("div", { class: "model-dropdown-menu hidden", id: "model-dropdown-menu" }),
-              ]),
-              el(
-                "button",
-                {
-                  type: "button",
-                  class: "thinking-tag off",
-                  id: "thinking-btn",
-                  title: "Thinking effort controls reasoning depth. Click to cycle.",
-                  "data-i18n-title": "settings.thinkingTitle",
-                  "aria-label": "Thinking effort: off. Click to cycle reasoning depth.",
-                  "data-i18n-aria-label": "shell.thinkingEffortOffClickToCycleReasoningLabel",
-                  tabindex: "-1",
-                  "data-i18n": "shell.thinkOff",
-                },
-                ["Think off"],
-              ),
-            ]),
           ]),
         ]),
       ]),
@@ -165,6 +186,8 @@ export function mountComposerChrome(root) {
     el("div", { class: "extension-widgets hidden", id: "extension-widgets-below" }),
   ]);
   const nodes = [inputArea];
+  /** @type {Array<() => void>} */
+  const unbinders = [];
   root.append(inputArea);
   const refs = {
     inputArea,
@@ -190,10 +213,57 @@ export function mountComposerChrome(root) {
     approvalBar: inputArea.querySelector("#approval-bar"),
     guardChip: inputArea.querySelector("#guard-chip"),
     contextRing: inputArea.querySelector("#context-ring"),
+    moreBtn: inputArea.querySelector("#composer-more-btn"),
+    moreMenu: inputArea.querySelector("#composer-more-menu"),
   };
+  const moreBtn = refs.moreBtn;
+  const moreMenu = refs.moreMenu;
+  if (moreBtn instanceof HTMLElement && moreMenu instanceof HTMLElement) {
+    const toolbar = moreBtn.closest(".composer-toolbar");
+    moreBtn.setAttribute("aria-haspopup", "menu");
+    moreBtn.setAttribute("aria-expanded", "false");
+    /** @param {boolean} open */
+    const setMore = (open) => {
+      moreMenu.classList.toggle("hidden", !open);
+      toolbar?.classList.toggle("more-menu-open", open);
+      moreBtn.setAttribute("aria-expanded", open ? "true" : "false");
+    };
+    moreBtn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      setMore(moreMenu.classList.contains("hidden"));
+    });
+    for (const item of moreMenu.querySelectorAll(".composer-more-item")) {
+      item.addEventListener("click", () => setMore(false));
+    }
+    /** @param {PointerEvent} event */
+    const closeMore = (event) => {
+      if (
+        !(event.target instanceof Node) ||
+        moreMenu.contains(event.target) ||
+        moreBtn.contains(event.target)
+      ) {
+        return;
+      }
+      setMore(false);
+    };
+    /** @param {KeyboardEvent} event */
+    const escapeMore = (event) => {
+      if (event.key !== "Escape" || moreMenu.classList.contains("hidden")) return;
+      // Escape also stops the turn; an open menu takes it first.
+      event.stopPropagation();
+      setMore(false);
+    };
+    document.addEventListener("pointerdown", closeMore);
+    document.addEventListener("keydown", escapeMore, true);
+    unbinders.push(() => {
+      document.removeEventListener("pointerdown", closeMore);
+      document.removeEventListener("keydown", escapeMore, true);
+    });
+  }
   return {
     refs,
     destroy() {
+      for (const unbind of unbinders) unbind();
       for (const node of nodes) node.remove();
     },
   };

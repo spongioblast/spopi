@@ -12,7 +12,6 @@ describe("createOAuthLoginOperationManager", () => {
     const manager = createOAuthLoginOperationManager({ createId: () => "op-1" });
     const started = manager.start();
     expect(started.operationId).toBe("op-1");
-    expect(manager.getStatus("op-1").state).toBe("starting");
 
     const code = manager.bindDeviceCode("op-1", {
       verificationUri: "https://example.com/activate",
@@ -33,8 +32,9 @@ describe("createOAuthLoginOperationManager", () => {
       message: "waiting for authorization",
     });
     expect(manager.complete("op-1")).toEqual({ type: "complete" });
-    // Terminal: the map is empty again, so status falls back to expired (M2).
-    expect(manager.getStatus("op-1").state).toBe("expired");
+    // Terminal: the operation is gone, so a late event for it throws and a new login can start.
+    expect(() => manager.bindProgress("op-1", "late")).toThrow("OAuth operation not found");
+    expect(() => manager.start()).not.toThrow();
   });
 
   it("rejects a second start while one is active", () => {

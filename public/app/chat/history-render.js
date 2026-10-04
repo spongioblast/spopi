@@ -183,7 +183,7 @@ export function createHistoryRenderer({
       (Array.isArray(entries) ? entries : []).filter((entry) => entry?.type === "context_edit")
     );
     workbench.setContextMessages?.(messages);
-    console.info("[SESSION-LOAD] renderHistory start", {
+    console.info("[spopi] session load: renderHistory start", {
       sessionId: getSessionId(),
       messageCount: messages.length,
       roles: summarizeMessageRoles(messages),

@@ -16,6 +16,7 @@ import { appKeybindings, formatChord } from "../ui/keybindings.js";
  *   scope?: string,
  *   shortcut?: string,
  *   action?: string,
+ *   passArgsToPi?: boolean,
  * }} SlashSourceCommand
  */
 
@@ -69,6 +70,14 @@ export const SPOPI_COMMANDS = [
     source: "spopi",
     type: "builtin",
     action: "cockpit",
+  },
+  {
+    name: "mcp",
+    descriptionKey: "composer.slashMenu.cmd.mcp",
+    source: "spopi",
+    type: "builtin",
+    action: "mcp",
+    passArgsToPi: true,
   },
   {
     name: "tui",

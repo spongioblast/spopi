@@ -305,7 +305,7 @@ export function mountSkillsInstallTab({
     const projectTrusted = isProjectTrusted();
     const locked = phase === "installing";
     const tabs = el("div", {
-      class: "skills-scope-tabs",
+      class: "ui-tabs skills-scope-tabs",
       role: "group",
       aria: { label: t("settings.installSkills.title") },
     });
@@ -317,7 +317,7 @@ export function mountSkillsInstallTab({
           "button",
           {
             type: "button",
-            class: `skills-scope-tab${active ? " active" : ""}`,
+            class: `ui-tab skills-scope-tab${active ? " active" : ""}`,
             "aria-pressed": String(active),
             dataset: { scope: value },
             disabled: disabled ? true : undefined,

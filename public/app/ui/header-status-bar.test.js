@@ -1,8 +1,6 @@
-// ABOUTME: Tests createHeaderStatusBar aggregate lifecycle.
-// ABOUTME: Includes "starts empty and exposes the documented surface".
+// ABOUTME: Pins the header session-aggregate lifecycle: totals come only from get_session_stats.
+// ABOUTME: Re-hydrating replaces the totals, and a reset clears them for a new session.
 // @vitest-environment jsdom
-// ABOUTME: Pins the header session-aggregate lifecycle: aggregate totals only hydrate
-// ABOUTME: from authoritative stats and live completions; current context is independent.
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -44,9 +42,7 @@ function makeBar() {
 describe("createHeaderStatusBar aggregate lifecycle", () => {
   it("starts empty and exposes the documented surface", () => {
     const { bar, onTotalsChange } = makeBar();
-    expect(typeof bar.applyLiveUsage).toBe("function");
-    expect(typeof bar.hydrateSessionStats).toBe("function");
-    expect(typeof bar.reset).toBe("function");
+    expect(Object.keys(bar).sort()).toEqual(["hydrateSessionStats", "reset"]);
     expect(document.getElementById("session-cost").textContent).toBe("");
     expect(onTotalsChange).not.toHaveBeenCalled();
   });
@@ -69,32 +65,25 @@ describe("createHeaderStatusBar aggregate lifecycle", () => {
     expect(document.getElementById("session-cost").textContent).toContain("0.02");
   });
 
-  it("accumulates only newly received live usage after hydration", () => {
+  it("replaces the totals with a newer get_session_stats for the same session", () => {
     const { bar, onTotalsChange } = makeBar();
     bar.hydrateSessionStats({
       sessionFile: "/s/a.jsonl",
-      tokens: { input: 100, output: 50, cacheRead: 30, cacheWrite: 5, total: 185 },
+      tokens: { input: 100, output: 50, cacheRead: 30 },
       cost: { total: 0.02 },
     });
-    expect(
-      bar.applyLiveUsage(
-        {
-          input: 40,
-          output: 20,
-          cacheRead: 10,
-          cacheWrite: 0,
-          cost: { total: 0.01 },
-        },
-        { sessionFile: "/s/a.jsonl" },
-      ),
-    ).toBe(true);
+    bar.hydrateSessionStats({
+      sessionFile: "/s/a.jsonl",
+      tokens: { input: 140, output: 70, cacheRead: 40 },
+      cost: { total: 0.03 },
+    });
     expect(onTotalsChange).toHaveBeenLastCalledWith(
       expect.objectContaining({ input: 140, output: 70, cacheRead: 40 }),
     );
     expect(document.getElementById("session-cost").textContent).toContain("0.03");
   });
 
-  it("clears both aggregate and current context on reset for a new session", () => {
+  it("clears the aggregate on reset for a new session", () => {
     const { bar, onTotalsChange } = makeBar();
     bar.hydrateSessionStats({
       sessionFile: "/s/a.jsonl",
@@ -108,23 +97,10 @@ describe("createHeaderStatusBar aggregate lifecycle", () => {
     expect(document.getElementById("session-cost").textContent).toBe("");
   });
 
-  it("ignores live usage without a confirmed identity", () => {
+  it("ignores stats without a session file", () => {
     const { bar, onTotalsChange } = makeBar();
-    expect(bar.applyLiveUsage({ input: 40, output: 20, cost: { total: 0.01 } })).toBe(false);
+    expect(bar.hydrateSessionStats({ tokens: { input: 40 }, cost: { total: 0.01 } })).toBe(false);
     expect(onTotalsChange).not.toHaveBeenCalled();
-
-    bar.hydrateSessionStats({
-      sessionFile: "/s/a.jsonl",
-      tokens: { input: 100, output: 50, cacheRead: 30 },
-      cost: { total: 0.02 },
-    });
-    expect(
-      bar.applyLiveUsage(
-        { input: 40, output: 20, cost: { total: 0.01 } },
-        { sessionFile: undefined },
-      ),
-    ).toBe(false);
-    expect(onTotalsChange).toHaveBeenLastCalledWith(expect.objectContaining({ output: 50 }));
   });
 
   it("resets the aggregate to authoritative zero when tokens are null", () => {
@@ -141,17 +117,20 @@ describe("createHeaderStatusBar aggregate lifecycle", () => {
     expect(document.getElementById("session-cost").textContent).toBe("");
   });
 
-  it("ignores a live usage that belongs to a different session than the hydrated one", () => {
+  it("ignores stats for a different session than the hydrated one", () => {
     const { bar, onTotalsChange } = makeBar();
     bar.hydrateSessionStats({
       sessionFile: "/s/a.jsonl",
       tokens: { input: 100, output: 50, cacheRead: 30, cacheWrite: 5, total: 185 },
       cost: { total: 0.02 },
     });
-    bar.applyLiveUsage(
-      { input: 40, output: 20, cacheRead: 10, cacheWrite: 0, cost: { total: 0.01 } },
-      { sessionFile: "/s/other.jsonl" },
-    );
+    expect(
+      bar.hydrateSessionStats({
+        sessionFile: "/s/other.jsonl",
+        tokens: { input: 1, output: 1 },
+        cost: { total: 9 },
+      }),
+    ).toBe(false);
     expect(onTotalsChange).toHaveBeenLastCalledWith(expect.objectContaining({ output: 50 }));
   });
 });

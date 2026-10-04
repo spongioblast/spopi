@@ -114,6 +114,12 @@ try {
         `http://127.0.0.1:${loopback}/app/workspaces/workspace-a/sessions/temporary-e2e`,
         { waitUntil: "domcontentloaded" },
       );
+      // The first session page on a fresh profile shows the first-run note once. It opens
+      // after a preference read and a dependency check, so dismiss it instead of racing it.
+      const firstRun = desktop.locator(".first-run-dialog");
+      await firstRun.waitFor({ timeout: 20000 });
+      await firstRun.locator(".dialog-actions .ui-button--primary").click();
+      await firstRun.waitFor({ state: "detached", timeout: 5000 });
       const files = desktop.locator(".spopi-rail [data-nav='files']");
       await files.click();
       await desktop.locator(".shell-scrim").waitFor({ timeout: 10000 });
@@ -165,7 +171,8 @@ try {
     };
   });
   assert.notEqual(preview.position, "fixed", `preview position ${preview.position}`);
-  assert.ok(preview.chat >= 380, `chat width ${preview.chat}`);
+  // Below about 1400px the chat may shrink to 280px so the editor keeps its room.
+  assert.ok(preview.chat >= 280 && preview.chat <= 600, `chat width ${preview.chat}`);
   console.log("e2e responsive pairing passed");
 } finally {
   await browser.close();

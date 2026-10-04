@@ -62,7 +62,7 @@ function setup({ enabled = true }: { enabled?: boolean } = {}) {
 
 /**
  * A pi-tui-shaped component whose close key resolves its caller, the way
- * pi-mcp-adapter's panel calls `done()` from its own quit handler.
+ * package panels call `done()` from their own quit handler.
  */
 function createComponent(lines: string[] = ["line one"]) {
   let done: (result: unknown) => void = () => {};

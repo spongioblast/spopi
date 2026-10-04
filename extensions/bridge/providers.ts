@@ -6,7 +6,6 @@ import {
   buildModelsJsonProviderEntry,
   defaultReasoning,
   detectProviderProtocol,
-  fetchUpstreamModels,
   KEYLESS_API_KEY,
   type ModelsJsonDocument,
   mergeProviderIntoModelsJson,
@@ -14,7 +13,7 @@ import {
   resolveProviderId,
   testProviderConnectivity,
 } from "../custom-provider-probe";
-import { setupOneModel } from "../provider-model-setup";
+import { configureOneModel } from "../provider-model-setup";
 import {
   asProviderProtocol,
   configTools,
@@ -87,14 +86,6 @@ export const handlers = {
     }
     return { ok: true, data: result };
   },
-  list_custom_provider_models: async (_ctx, params) => {
-    const listed = await fetchUpstreamModels({
-      baseUrl: asString(params.baseUrl),
-      apiKey: asString(params.apiKey),
-      protocol: asProviderProtocol(params.protocol),
-    });
-    return { ok: true, data: listed };
-  },
   test_custom_provider: async (_ctx, params) => {
     const result = await testProviderConnectivity({
       baseUrl: asString(params.baseUrl),
@@ -127,7 +118,7 @@ export const handlers = {
       : typeof entry.apiKey === "string"
         ? entry.apiKey
         : undefined;
-    const result = await setupOneModel({
+    const result = await configureOneModel({
       baseUrl: entry.baseUrl,
       apiKey: apiKey === KEYLESS_API_KEY ? "" : apiKey,
       modelId,

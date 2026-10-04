@@ -125,7 +125,7 @@ export function mountResourcesTab({
     const root = el("div", { class: "resources-tab" });
     root.append(
       el("div", { class: "resources-toolbar" }, [
-        el("div", { class: "skills-scope-tabs", role: "group" }, [
+        el("div", { class: "ui-tabs skills-scope-tabs", role: "group" }, [
           scopeButton("global"),
           scopeButton("project"),
         ]),
@@ -176,7 +176,7 @@ export function mountResourcesTab({
   function scopeButton(name) {
     return el("button", {
       type: "button",
-      class: `skills-scope-tab${scope === name ? " active" : ""}`,
+      class: `ui-tab skills-scope-tab${scope === name ? " active" : ""}`,
       text: t(`settings.resources.${name}`),
       "aria-pressed": String(scope === name),
       onClick: () => {
@@ -191,7 +191,7 @@ export function mountResourcesTab({
   function renderRow(item) {
     const toggleButton = el("button", {
       type: "button",
-      class: `settings-toggle${item.enabled ? " on" : ""}`,
+      class: `ui-toggle settings-toggle${item.enabled ? " on" : ""}`,
       role: "switch",
       "aria-checked": String(item.enabled),
       "aria-label": item.name,

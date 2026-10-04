@@ -1,4 +1,4 @@
-// ABOUTME: Writes the golden Pi 0.87 session JSONL fixture.
+// ABOUTME: Writes the golden Pi session JSONL fixture (tests/fixtures/pi-sessions/scripted.jsonl).
 // ABOUTME: --from-pi records a live run when PI_BIN is set.
 
 import { mkdir, writeFile } from "node:fs/promises";
@@ -6,7 +6,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
-const out = join(root, "tests", "fixtures", "pi-sessions", "0.87.1", "scripted.jsonl");
+const out = join(root, "tests", "fixtures", "pi-sessions", "scripted.jsonl");
 
 const lines = [
   {

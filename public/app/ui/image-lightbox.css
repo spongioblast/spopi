@@ -8,11 +8,11 @@
 .image-lightbox-overlay {
   position: fixed;
   inset: 0;
-  z-index: 9000;
+  z-index: var(--z-lightbox);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.82);
+  background: var(--overlay-scrim-strong);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   opacity: 0;
@@ -30,7 +30,7 @@
   max-height: 88vh;
   object-fit: contain;
   border-radius: var(--radius-lg);
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6);
+  box-shadow: var(--elevation-lg);
   transform: scale(0.94);
   transition: transform 0.22s var(--ease);
   user-select: none;

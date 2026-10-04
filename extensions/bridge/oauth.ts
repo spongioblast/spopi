@@ -123,11 +123,6 @@ export const handlers = {
     if (cancelled) ctx.oauthNotify?.(cancelled);
     return { ok: true, data: { operationId } };
   },
-  get_oauth_login_status: async (_ctx, params) => {
-    const operationId = asString(params.operationId);
-    if (!operationId) throw new Error("operationId is required");
-    return { ok: true, data: oauthLoginManager.getStatus(operationId) };
-  },
   oauth_logout: async (ctx, params) => {
     const { registry } = configTools(ctx);
     const _op = "oauth_logout";

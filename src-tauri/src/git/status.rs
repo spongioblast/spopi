@@ -50,6 +50,7 @@ impl GitService {
             .map(|bytes| display_path(&bytes).trim().to_string())
             .filter(|value| !value.is_empty());
         let stats = change_stats(root, &parsed.head_state, parsed.counts.untracked);
+        let remotes = remote::remote_names(root).unwrap_or_default();
         if let Some(record) = recover_lock(&self.snapshots).get_mut(&id) {
             record.head_state = parsed.head_state.clone();
             record.head_oid = head_oid.clone();
@@ -62,6 +63,7 @@ impl GitService {
             index_tree_oid,
             branch: parsed.branch,
             upstream: parsed.upstream,
+            remotes,
             ahead: parsed.ahead,
             behind: parsed.behind,
             change_stats: stats,

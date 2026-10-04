@@ -1,6 +1,5 @@
-// ABOUTME: Clamps and applies the saved sidebar, chat, and dock sizes.
-// ABOUTME: The values are CSS variables on the layout root.
-// ABOUTME: Persisted shell sizes and hidden flags as ui.layout.* preferences.
+// ABOUTME: Clamps and applies ui.layout: sidebar, chat, and dock sizes, hidden flags, and Focus.
+// ABOUTME: Sizes become CSS variables on the layout root; flags become body classes.
 
 /**
  * @typedef {{
@@ -10,6 +9,7 @@
  *   sidebarHidden: boolean,
  *   chatHidden: boolean,
  *   dockHidden: boolean,
+ *   focus: boolean,
  * }} LayoutPrefs
  */
 
@@ -21,6 +21,7 @@ export const DEFAULT_LAYOUT = {
   sidebarHidden: false,
   chatHidden: false,
   dockHidden: false,
+  focus: false,
 };
 
 /** @param {unknown} width */
@@ -34,7 +35,7 @@ export function clampSidebarWidth(width) {
 export function clampChatWidthPct(pct) {
   const n = Number(pct);
   if (!Number.isFinite(n)) return DEFAULT_LAYOUT.chatWidthPct;
-  return Math.min(60, Math.max(28, Math.round(n)));
+  return Math.min(60, Math.max(22, Math.round(n)));
 }
 
 /**
@@ -66,6 +67,7 @@ export function normalizeLayout(raw = {}) {
     sidebarHidden: Boolean(raw.sidebarHidden),
     chatHidden: Boolean(raw.chatHidden),
     dockHidden: Boolean(raw.dockHidden),
+    focus: Boolean(raw.focus),
   };
 }
 
@@ -77,10 +79,11 @@ export function normalizeLayout(raw = {}) {
 export function applyLayoutVars(layout, root = document.documentElement) {
   const prefs = normalizeLayout(layout);
   root.style.setProperty("--sidebar-width", `${prefs.sidebarWidth}px`);
-  root.style.setProperty("--chat-dock-width", `${prefs.chatWidthPct}%`);
+  root.style.setProperty("--chat-dock-width", `min(600px, ${prefs.chatWidthPct}%)`);
   root.style.setProperty("--dock-height", `${prefs.dockHeight}px`);
   document.body?.classList.toggle("sidebar-hidden", prefs.sidebarHidden);
   document.body?.classList.toggle("chat-hidden", prefs.chatHidden);
   document.body?.classList.toggle("dock-hidden", prefs.dockHidden);
+  if (document.body) document.body.dataset.layoutPreset = prefs.focus ? "focus" : "workbench";
   return prefs;
 }

@@ -25,6 +25,7 @@ describe("settings pages render their own markup", () => {
     expect(tabs.indexOf("appearance")).toBe(tabs.indexOf("general") + 1);
     expect(tabs.indexOf("terminal")).toBe(tabs.indexOf("appearance") + 1);
     expect(tabs.indexOf("models")).toBeGreaterThan(tabs.indexOf("general"));
+    expect(tabs.indexOf("mcp")).toBe(tabs.indexOf("models") + 1);
     expect(tabs.indexOf("configuration")).toBeGreaterThan(tabs.indexOf("models"));
     expect(tabs).not.toContain("chat");
     expect(SETTINGS_TABS.find((tab) => tab.key === "models").labelKey).toBe(
@@ -40,6 +41,7 @@ describe("settings pages render their own markup", () => {
     const appearance = page(mountAppearanceSettings);
     expect(general.querySelector("#theme-grid")).toBeNull();
     expect(general.querySelector("#setting-language")).not.toBeNull();
+    expect(general.querySelector("#setting-git-identity")).not.toBeNull();
     expect(general.querySelector("#toggle-auto-compact")).not.toBeNull();
     expect(appearance.querySelector("#theme-grid")).not.toBeNull();
     expect(appearance.querySelector("#settings-chat-font-size")).not.toBeNull();
@@ -56,6 +58,43 @@ describe("settings pages render their own markup", () => {
     expect(terminal.querySelector("#settings-terminal-scrollback-input")).not.toBeNull();
     expect(terminal.querySelector("#settings-terminal-smooth-scroll-input")).not.toBeNull();
     expect(terminal.querySelector("#toggle-terminal-webgl")).not.toBeNull();
+  });
+
+  test("form pages are a title, then titled cards and nothing loose", () => {
+    const pages = {
+      general: mountGeneralSettings,
+      appearance: mountAppearanceSettings,
+      terminal: mountTerminalSettings,
+      models: mountModelsSettings,
+      configuration: mountConfigurationSettings,
+    };
+    for (const [name, mount] of Object.entries(pages)) {
+      const root = page(mount);
+      const sections = root.querySelectorAll(".settings-body .settings-section");
+      expect(sections.length, name).toBeGreaterThan(0);
+      for (const section of sections) {
+        expect(section.classList.contains("ui-card"), name).toBe(true);
+        expect(section.firstElementChild?.classList.contains("settings-section-title"), name).toBe(
+          true,
+        );
+      }
+      expect(root.querySelector(".settings-body > .settings-row"), name).toBeNull();
+    }
+  });
+
+  test("narrow windows do not restyle cards", () => {
+    const css = readFileSync(join(process.cwd(), "public/app/settings/settings-panel.css"), "utf8");
+    const narrow = css.slice(css.indexOf("@container settings (max-width: 920px)"));
+    expect(narrow).not.toMatch(/\.settings-section\s*\{/);
+  });
+
+  test("theme swatches show the theme name", () => {
+    const appearance = document.createElement("div");
+    mountAppearanceSettings(appearance).paint();
+    const names = [...appearance.querySelectorAll(".theme-swatch-name")].map(
+      (node) => node.textContent,
+    );
+    expect(names).toContain("Dusk");
   });
 
   test("Usage embeds the cost dashboard", () => {

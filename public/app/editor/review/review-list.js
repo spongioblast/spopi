@@ -175,12 +175,28 @@ function emptyState(scope, unavailable) {
   const key =
     unavailable === "noHistory"
       ? "review.noHistory"
-      : unavailable === "turnGone"
-        ? "review.turnGone"
-        : unavailable === "loadFailed"
-          ? "review.loadFailed"
-          : EMPTY_KEY[scope];
-  return el("div", { class: "review-sidebar-empty" }, [el("p", { text: t(key) })]);
+      : unavailable === "notRecorded"
+        ? "review.notRecorded"
+        : unavailable === "turnGone"
+          ? "review.turnGone"
+          : unavailable === "loadFailed"
+            ? "review.loadFailed"
+            : EMPTY_KEY[scope];
+  const box = el("div", { class: "review-sidebar-empty" }, [el("p", { text: t(key) })]);
+  if (unavailable === "noHistory") {
+    box.append(
+      el("button", {
+        type: "button",
+        class: "ui-button ui-button--sm ui-button--secondary review-open-packages",
+        text: t("review.openPackages"),
+        onClick: () =>
+          document.dispatchEvent(
+            new CustomEvent("spopi-open-settings", { detail: { tab: "extensions" } }),
+          ),
+      }),
+    );
+  }
+  return box;
 }
 
 /**

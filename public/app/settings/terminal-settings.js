@@ -3,7 +3,15 @@
 
 import { onLocaleChange, t, translateSubtree } from "../i18n/i18n.js";
 import { enhanceSelect } from "../ui/select-menu.js";
-import { numberField, row, segmentedLevel, select, toggle } from "../ui/settings-controls.js";
+import {
+  numberField,
+  row,
+  segmentedLevel,
+  select,
+  settingsCard,
+  settingsPage,
+  toggle,
+} from "../ui/settings-controls.js";
 import {
   loadAppearanceCookie,
   normalizeFontLevel,
@@ -143,63 +151,60 @@ export function mountTerminalSettings(root, deps) {
   });
   webglToggle.dataset.i18nAriaLabel = "settings.terminal.webgl";
 
-  const header = document.createElement("div");
-  header.className = "settings-header";
-  const heading = document.createElement("h3");
-  heading.dataset.i18n = "settings.terminal.title";
-  heading.textContent = t("settings.terminal.title");
-  header.append(heading);
   root.replaceChildren(
-    header,
-    elBody([
-      row({
-        id: "setting-terminal-profile",
-        label: "Default shell",
-        labelKey: "settings.terminal.defaultShell",
-        description: "New terminals open with this shell.",
-        descriptionKey: "settings.terminal.defaultShellDescription",
-        control: profileSelect,
-      }),
-      row({
-        id: "setting-terminal-theme",
-        label: "Terminal theme",
-        labelKey: "settings.terminal.theme",
-        description: "Follow the SPOPI theme, or force light or dark.",
-        descriptionKey: "settings.terminal.themeDescription",
-        control: themeSelect,
-      }),
-      row({
-        id: "setting-terminal-font-size",
-        label: "Font size",
-        labelKey: "settings.terminal.fontSize",
-        description: "Terminal text size.",
-        descriptionKey: "settings.terminal.fontSizeDescription",
-        control: font,
-      }),
-      row({
-        id: "setting-terminal-scrollback",
-        label: "Scrollback",
-        labelKey: "settings.terminal.scrollback",
-        description: "Number of terminal history lines to retain.",
-        descriptionKey: "settings.terminal.scrollbackDescription",
-        control: scrollbackInput,
-      }),
-      row({
-        id: "setting-terminal-smooth-scroll",
-        label: "Smooth scroll duration",
-        labelKey: "settings.terminal.smoothScroll",
-        description: "Animation duration in milliseconds; 0 disables it.",
-        descriptionKey: "settings.terminal.smoothScrollDescription",
-        control: smoothScrollInput,
-      }),
-      row({
-        id: "setting-terminal-webgl",
-        label: "WebGL renderer",
-        labelKey: "settings.terminal.webgl",
-        description: "Render the terminal on the GPU. Disable it if text looks blurry.",
-        descriptionKey: "settings.terminal.webglDescription",
-        control: webglToggle,
-      }),
+    ...settingsPage(t("settings.terminal.title"), "settings.terminal.title", [
+      settingsCard(t("settings.terminal.shellSection"), "settings.terminal.shellSection", [
+        row({
+          id: "setting-terminal-profile",
+          label: "Default shell",
+          labelKey: "settings.terminal.defaultShell",
+          description: "New terminals open with this shell.",
+          descriptionKey: "settings.terminal.defaultShellDescription",
+          control: profileSelect,
+        }),
+        row({
+          id: "setting-terminal-scrollback",
+          label: "Scrollback",
+          labelKey: "settings.terminal.scrollback",
+          description: "Number of terminal history lines to retain.",
+          descriptionKey: "settings.terminal.scrollbackDescription",
+          control: scrollbackInput,
+        }),
+      ]),
+      settingsCard(t("settings.terminal.displaySection"), "settings.terminal.displaySection", [
+        row({
+          id: "setting-terminal-theme",
+          label: "Terminal theme",
+          labelKey: "settings.terminal.theme",
+          description: "Follow the SPOPI theme, or force light or dark.",
+          descriptionKey: "settings.terminal.themeDescription",
+          control: themeSelect,
+        }),
+        row({
+          id: "setting-terminal-font-size",
+          label: "Font size",
+          labelKey: "settings.terminal.fontSize",
+          description: "Terminal text size.",
+          descriptionKey: "settings.terminal.fontSizeDescription",
+          control: font,
+        }),
+        row({
+          id: "setting-terminal-smooth-scroll",
+          label: "Smooth scroll duration",
+          labelKey: "settings.terminal.smoothScroll",
+          description: "Animation duration in milliseconds; 0 disables it.",
+          descriptionKey: "settings.terminal.smoothScrollDescription",
+          control: smoothScrollInput,
+        }),
+        row({
+          id: "setting-terminal-webgl",
+          label: "WebGL renderer",
+          labelKey: "settings.terminal.webgl",
+          description: "Render the terminal on the GPU. Disable it if text looks blurry.",
+          descriptionKey: "settings.terminal.webglDescription",
+          control: webglToggle,
+        }),
+      ]),
     ]),
   );
   translateSubtree(root);
@@ -221,19 +226,6 @@ export function mountTerminalSettings(root, deps) {
     smoothScrollInput,
     webglToggle,
   });
-}
-
-/**
- * @param {Array<Node | string>} children
- */
-function elBody(children) {
-  const body = document.createElement("div");
-  body.className = "settings-body";
-  const section = document.createElement("div");
-  section.className = "settings-section";
-  section.append(...children);
-  body.append(section);
-  return body;
 }
 
 /**

@@ -147,49 +147,6 @@ export function mountChatChrome(workspace, main) {
           ]),
         ]),
       ]),
-      el("span", { class: "header-open-app hidden", id: "header-open-app" }, [
-        el(
-          "button",
-          {
-            class: "ui-button ui-button--sm ui-button--secondary header-open-app-btn",
-            id: "header-open-app-btn",
-            title: "Open project",
-            "data-i18n-title": "nav.openWorkspace",
-            "aria-label": "Open project in app",
-            "data-i18n-aria-label": "nav.openWorkspaceInApp",
-          },
-          [
-            el(
-              "span",
-              {
-                class: "header-open-app-logo",
-                id: "header-open-app-logo",
-                "aria-hidden": "true",
-              },
-              [
-                el("img", {
-                  src: "icons/app-cursor.svg",
-                  alt: "",
-                  class: "header-open-app-logo-img",
-                }),
-              ],
-            ),
-          ],
-        ),
-        el(
-          "button",
-          {
-            class: "header-open-app-toggle",
-            id: "header-open-app-toggle",
-            title: "Choose app",
-            "data-i18n-title": "shell.chooseAppTitle",
-            "aria-label": "Choose app to open workspace",
-            "data-i18n-aria-label": "nav.chooseApp",
-          },
-          [createIcon("chevron-down", { size: 10 })],
-        ),
-        el("div", { class: "header-open-app-menu hidden", id: "header-open-app-menu" }),
-      ]),
       el(
         "button",
         {
@@ -317,6 +274,8 @@ export function mountChatChrome(workspace, main) {
   main.append(...column);
   const refs = {
     header,
+    headerRight: header.querySelector(".header-right"),
+    status: header.querySelector(".status"),
     messages: main.querySelector("#messages"),
     scrollBottomBadge: main.querySelector("#scroll-bottom-badge"),
     sidebarToggle: header.querySelector("#sidebar-toggle"),
@@ -348,6 +307,7 @@ export function mountChatChrome(workspace, main) {
  */
 export function headerChromeRefs(root = document) {
   return {
+    header: root.querySelector(".session-header"),
     packageUpdateIndicator: root.querySelector("#package-update-indicator"),
     sidebarToggle: root.querySelector("#sidebar-toggle"),
     messages: root.querySelector("#messages"),
@@ -365,11 +325,6 @@ export function headerChromeRefs(root = document) {
     convNavTooltipQ: root.querySelector("#conv-nav-tooltip-q"),
     convNavTooltipA: root.querySelector("#conv-nav-tooltip-a"),
     convNavTooltipSep: root.querySelector("#conv-nav-tooltip-sep"),
-    openApp: root.querySelector("#header-open-app"),
-    openAppBtn: root.querySelector("#header-open-app-btn"),
-    openAppLogo: root.querySelector("#header-open-app-logo"),
-    openAppToggle: root.querySelector("#header-open-app-toggle"),
-    openAppMenu: root.querySelector("#header-open-app-menu"),
     workspaceIndicator: root.querySelector("#workspace-indicator"),
     gitBranch: root.querySelector("#git-branch-indicator"),
     fileSidebarToggle: root.querySelector("#file-sidebar-toggle"),

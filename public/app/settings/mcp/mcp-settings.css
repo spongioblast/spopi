@@ -1,0 +1,140 @@
+/* ABOUTME: Status dots and rows on the Settings MCP page. */
+/* ABOUTME: Row actions sit at the end of the row head; the rest is a menu. */
+
+.mcp-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--text-secondary);
+  flex: none;
+}
+
+.mcp-dot--ok {
+  background: var(--success);
+}
+
+.mcp-dot--warn {
+  background: var(--warning, var(--tool-accent-text));
+}
+
+.mcp-dot--error {
+  background: var(--error);
+}
+
+.mcp-server-row,
+.mcp-row-head,
+.mcp-row-actions {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+}
+
+.mcp-server-row {
+  flex-direction: column;
+  align-items: stretch;
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.mcp-server-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.mcp-row-head {
+  flex-wrap: wrap;
+}
+
+.mcp-row-actions {
+  margin-left: auto;
+}
+
+.mcp-row-transport,
+.mcp-row-summary,
+.mcp-row-override,
+.mcp-chip {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.mcp-row-override {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.mcp-row-transport {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 28rem;
+}
+
+.mcp-row-extra {
+  white-space: pre-wrap;
+  font-family: var(--font-mono, monospace);
+  font-size: var(--font-size-sm);
+}
+
+.mcp-examples {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-top: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-glass);
+}
+
+.mcp-examples code {
+  padding: 0;
+  background: none;
+  font-family: var(--font-mono, monospace);
+  font-size: var(--font-size-sm);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.mcp-status {
+  margin: var(--space-3) 0 0;
+  font-size: var(--font-size-sm);
+}
+
+.mcp-status + .ui-button {
+  margin-top: var(--space-2);
+}
+
+.mcp-checked {
+  margin-left: auto;
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.mcp-form-error {
+  color: var(--error);
+}
+
+.mcp-form-warning,
+.mcp-trust-note {
+  color: var(--text-secondary);
+}
+
+.mcp-header-actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.mcp-add-form,
+.mcp-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.mcp-add-form {
+  gap: var(--space-2);
+  min-width: min(32rem, 80vw);
+}

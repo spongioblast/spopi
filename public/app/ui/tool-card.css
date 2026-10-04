@@ -204,7 +204,7 @@
 }
 
 .tool-args {
-  background: rgba(0, 0, 0, 0.15);
+  background: var(--shade);
   padding: var(--space-2) var(--space-3);
   font-size: var(--font-size-sm);
   overflow-x: auto;
@@ -213,7 +213,7 @@
 }
 
 :root[data-scheme="light"] .tool-args {
-  background: rgba(0, 0, 0, 0.03);
+  background: var(--shade-weak);
 }
 
 .tool-output-wrapper {
@@ -221,7 +221,7 @@
 }
 
 .tool-output {
-  background: rgba(0, 0, 0, 0.1);
+  background: var(--shade);
   padding: var(--space-2) var(--space-3);
   font-size: var(--font-size-sm);
   max-height: 260px;
@@ -231,7 +231,7 @@
 }
 
 :root[data-scheme="light"] .tool-output {
-  background: rgba(0, 0, 0, 0.02);
+  background: var(--shade-weak);
 }
 
 .tool-output::-webkit-scrollbar {
@@ -261,10 +261,72 @@
 /* Diff view for Edit tool */
 .tool-diff {
   font-size: var(--font-size-sm);
-  line-height: 1.5;
+  line-height: var(--line-height-relaxed);
   overflow-x: auto;
   max-height: 300px;
   overflow-y: auto;
   overscroll-behavior: contain;
   border-bottom: 1px solid var(--border);
+}
+
+.tool-result-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.tool-result-image {
+  max-width: min(100%, 480px);
+  max-height: 320px;
+  border-radius: var(--radius-sm);
+  cursor: zoom-in;
+}
+
+.tool-nested-calls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  border-top: 1px solid var(--border);
+}
+
+.tool-nested-call {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.tool-nested-dot {
+  width: var(--space-2);
+  height: var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--text-secondary);
+  flex: none;
+}
+
+.tool-nested-dot.is-running {
+  background: var(--tool-accent-text);
+  animation: pulse 1.2s infinite;
+}
+
+.tool-nested-dot.is-error {
+  background: var(--error);
+}
+
+.tool-nested-name {
+  font-weight: var(--font-weight-medium);
+}
+
+.tool-nested-args {
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tool-nested-more {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
 }

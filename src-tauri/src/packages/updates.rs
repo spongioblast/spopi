@@ -1,5 +1,5 @@
-// ABOUTME: Checks installed pi packages for available upstream updates.
-// ABOUTME: npm packages are compared against the registry; git packages against their upstream HEAD.
+// ABOUTME: Checks installed pi packages for available upstream updates by running npm or git in the package.
+// ABOUTME: Spec, version, and ref parsing lives in updates_npm.rs and updates_git.rs; this file decides and probes.
 
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
@@ -8,10 +8,11 @@ use std::time::Duration;
 use futures_util::stream::{self, StreamExt};
 use semver::{Version, VersionReq};
 use serde::Serialize;
-use serde_json::Value;
 use tokio::process::Command;
 use tokio::time::timeout;
 
+use super::updates_git::{parse_ls_remote_reference, split_git_ref};
+use super::updates_npm::{latest_npm_version, npm_package_spec};
 use crate::pi::launch::{settings_path, PiPackageInfo};
 
 const UPDATE_CHECK_CONCURRENCY: usize = 4;
@@ -129,10 +130,14 @@ async fn check_package_update(record: &PiPackageInfo, locations: &PackageLocatio
                 "version".to_string(),
                 "--json".to_string(),
             ]);
-            let Some(cwd) = locations.project_root.as_deref() else {
-                return false;
-            };
-            let Ok(output) = run_update_command(&executable, &args, cwd).await else {
+            // Without a project (global packages only) npm still needs a folder to run in;
+            // home has the user's `.npmrc`.
+            let cwd = locations
+                .project_root
+                .clone()
+                .or_else(dirs::home_dir)
+                .unwrap_or_else(|| PathBuf::from(installed_path));
+            let Ok(output) = run_update_command(&executable, &args, &cwd).await else {
                 return false;
             };
             let Some(target_version) = latest_npm_version(&output, range.as_ref()) else {
@@ -206,51 +211,6 @@ fn parse_source(source: &str) -> Result<ParsedSource, String> {
     Ok(ParsedSource::Local)
 }
 
-fn npm_package_spec(spec: &str) -> Result<(String, Option<String>), String> {
-    let spec = spec.trim();
-    if spec.is_empty() {
-        return Err("npm package name cannot be empty".to_string());
-    }
-    let name = if let Some(rest) = spec.strip_prefix('@') {
-        let slash = rest
-            .find('/')
-            .ok_or_else(|| format!("invalid scoped npm package: {spec}"))?;
-        format!("@{}", &rest[..slash + 1]) + rest[slash + 1..].split('@').next().unwrap_or_default()
-    } else {
-        spec.split('@').next().unwrap_or_default().to_string()
-    };
-    if name == "@" || name.ends_with('/') || name.contains('/') && name.split('/').count() != 2 {
-        return Err(format!("invalid npm package name: {spec}"));
-    }
-    let version = spec
-        .strip_prefix(&name)
-        .and_then(|value| value.strip_prefix('@'))
-        .map(ToOwned::to_owned);
-    Ok((name, version))
-}
-
-fn split_git_ref(value: &str) -> (&str, Option<&str>) {
-    if let Some((repo, reference)) = value.split_once('#') {
-        return (repo, Some(reference));
-    }
-    if let Some((prefix, _)) = value.split_once("://") {
-        let scheme_len = prefix.len() + 3;
-        let path_start = value[scheme_len..]
-            .find('/')
-            .map_or(value.len(), |index| scheme_len + index + 1);
-        if let Some(at) = value[path_start..].find('@') {
-            let at = path_start + at;
-            return (&value[..at], Some(&value[at + 1..]));
-        }
-    } else if let Some(slash) = value.find('/') {
-        if let Some(at) = value[slash + 1..].find('@') {
-            let at = slash + 1 + at;
-            return (&value[..at], Some(&value[at + 1..]));
-        }
-    }
-    (value, None)
-}
-
 async fn run_update_command(command: &str, args: &[String], cwd: &Path) -> Result<String, String> {
     if std::env::var("PI_OFFLINE")
         .ok()
@@ -281,35 +241,6 @@ async fn run_update_command(command: &str, args: &[String], cwd: &Path) -> Resul
         return Err(String::from_utf8_lossy(&output.stderr).trim().to_string());
     }
     Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
-}
-
-fn latest_npm_version(output: &str, range: Option<&VersionReq>) -> Option<String> {
-    let value: Value = serde_json::from_str(output.trim()).ok()?;
-    let mut versions = match value {
-        Value::String(version) => vec![version],
-        Value::Array(values) => values
-            .into_iter()
-            .filter_map(|value| value.as_str().map(ToOwned::to_owned))
-            .collect(),
-        _ => return None,
-    };
-    versions.retain(|version| Version::parse(version).is_ok());
-    if let Some(range) = range {
-        versions
-            .into_iter()
-            .filter_map(|version| {
-                let parsed = Version::parse(&version).ok()?;
-                range.matches(&parsed).then_some((parsed, version))
-            })
-            .max_by(|left, right| left.0.cmp(&right.0))
-            .map(|(_, version)| version)
-    } else {
-        versions
-            .into_iter()
-            .filter_map(|version| Some((Version::parse(&version).ok()?, version)))
-            .max_by(|left, right| left.0.cmp(&right.0))
-            .map(|(_, version)| version)
-    }
 }
 
 async fn remote_git_head(installed_path: &str) -> Result<String, String> {
@@ -356,24 +287,9 @@ async fn remote_git_head(installed_path: &str) -> Result<String, String> {
         .ok_or_else(|| "failed to determine remote git HEAD".to_string())
 }
 
-/// Parse a `git ls-remote <ref>` line into its resolved 40-hex-char commit SHA.
-/// Returns None for advert entries that are not the named ref we care about.
-fn parse_ls_remote_reference(line: &str) -> Option<String> {
-    let mut fields = line.split_whitespace();
-    let head = fields.next()?;
-    let reference = fields.next()?;
-    (head.len() == 40
-        && head.bytes().all(|byte| byte.is_ascii_hexdigit())
-        && (reference == "HEAD" || reference.starts_with("refs/heads/")))
-    .then(|| head.to_string())
-}
-
 #[cfg(test)]
 mod tests {
-    use super::{
-        check_package_update, latest_npm_version, npm_package_spec, parse_ls_remote_reference,
-        parse_source, split_git_ref, ParsedSource,
-    };
+    use super::{check_package_update, parse_source, ParsedSource};
     use crate::pi::launch::PiPackageInfo;
 
     fn info(source: &str, installed_path: Option<&str>, version: Option<&str>) -> PiPackageInfo {
@@ -415,91 +331,6 @@ mod tests {
             parse_source("./local/path"),
             Ok(ParsedSource::Local)
         ));
-    }
-
-    #[test]
-    fn npm_package_spec_parses_scoped_pinned_and_range_specs() {
-        assert_eq!(npm_package_spec("foo").unwrap(), ("foo".to_string(), None));
-        assert_eq!(
-            npm_package_spec("foo@1.2.3").unwrap(),
-            ("foo".to_string(), Some("1.2.3".to_string()))
-        );
-        assert_eq!(
-            npm_package_spec("foo@^1.0.0").unwrap(),
-            ("foo".to_string(), Some("^1.0.0".to_string()))
-        );
-        assert_eq!(
-            npm_package_spec("@scope/name").unwrap(),
-            ("@scope/name".to_string(), None)
-        );
-        assert_eq!(
-            npm_package_spec("@scope/name@2.0.0").unwrap(),
-            ("@scope/name".to_string(), Some("2.0.0".to_string()))
-        );
-        assert!(npm_package_spec("").is_err());
-        assert!(npm_package_spec("@missing-slash").is_err());
-    }
-
-    #[test]
-    fn split_git_ref_extracts_hash_and_at_references() {
-        assert_eq!(split_git_ref("a/b"), ("a/b", None));
-        assert_eq!(split_git_ref("a/b#v1"), ("a/b", Some("v1")));
-        assert_eq!(
-            split_git_ref("https://host/a/b@main"),
-            ("https://host/a/b", Some("main"))
-        );
-        assert_eq!(split_git_ref("host:a/b@main"), ("host:a/b", Some("main")));
-    }
-
-    #[test]
-    fn latest_npm_version_handles_string_and_array_shapes() {
-        assert_eq!(
-            latest_npm_version("\"1.2.3\"", None).as_deref(),
-            Some("1.2.3")
-        );
-        assert_eq!(
-            latest_npm_version("[\"1.5.0\", \"2.0.0\", \"1.0.0\"]", None).as_deref(),
-            Some("2.0.0")
-        );
-        assert_eq!(latest_npm_version("not json", None), None);
-        assert_eq!(latest_npm_version("null", None), None);
-    }
-
-    #[test]
-    fn latest_npm_version_filters_invalid_versions_and_applies_range() {
-        assert_eq!(
-            latest_npm_version("[\"latest\", \"1.0.0\", \"not-semver\"]", None).as_deref(),
-            Some("1.0.0")
-        );
-        let range = semver::VersionReq::parse("^1.0.0").unwrap();
-        assert_eq!(
-            latest_npm_version("[\"3.0.0\", \"2.0.0\", \"1.5.0\", \"1.0.0\"]", Some(&range))
-                .as_deref(),
-            Some("1.5.0")
-        );
-    }
-
-    #[test]
-    fn parse_ls_remote_selects_only_matching_reference_heads() {
-        let sha = "0123456789abcdef0123456789abcdef01234567"; // 40 hex chars
-        assert_eq!(
-            parse_ls_remote_reference(&format!("{sha}\tHEAD")).as_deref(),
-            Some(sha)
-        );
-        assert_eq!(
-            parse_ls_remote_reference(&format!("{sha}\trefs/heads/main")).as_deref(),
-            Some(sha)
-        );
-        assert_eq!(
-            parse_ls_remote_reference(&format!("{sha}\trefs/tags/v1.0.0")),
-            None
-        );
-        assert_eq!(parse_ls_remote_reference("deadbeef\tHEAD"), None);
-        assert_eq!(
-            parse_ls_remote_reference(&format!("{sha}\tHEAD\textra")),
-            Some(sha.to_string())
-        );
-        assert_eq!(parse_ls_remote_reference(""), None);
     }
 
     #[tokio::test]

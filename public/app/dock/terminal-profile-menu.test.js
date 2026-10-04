@@ -10,7 +10,9 @@ vi.mock("../ui/context-menu.js", () => ({
   showContextMenu: vi.fn(),
   registerContextMenuHost: vi.fn(),
 }));
+vi.mock("../settings/settings-panel.js", () => ({ openSettingsTab: vi.fn() }));
 
+import { openSettingsTab } from "../settings/settings-panel.js";
 import { showContextMenu } from "../ui/context-menu.js";
 
 afterEach(() => {
@@ -53,16 +55,6 @@ test("chevron opens a menu of available profiles and creates the chosen one", as
   expect(items[1].disabled).toBe(true);
   items[0].action();
   expect(create).toHaveBeenCalledWith("powershell");
-  const settings = document.createElement("button");
-  settings.id = "settings-btn";
-  const opened = vi.fn();
-  settings.addEventListener("click", opened);
-  const tab = document.createElement("button");
-  tab.dataset.settingsTab = "terminal";
-  const openedTab = vi.fn();
-  tab.addEventListener("click", openedTab);
-  document.body.append(settings, tab);
   items.at(-1).action();
-  expect(opened).toHaveBeenCalled();
-  expect(openedTab).toHaveBeenCalled();
+  expect(openSettingsTab).toHaveBeenCalledWith("terminal");
 });

@@ -51,7 +51,7 @@ function commitMode(next) {
 }
 
 /** @param {unknown} call */
-export function bindCacheWarming(call) {
+export function connectCacheWarming(call) {
   configCall = typeof call === "function" ? /** @type {typeof configCall} */ (call) : null;
   return loadCacheWarming();
 }

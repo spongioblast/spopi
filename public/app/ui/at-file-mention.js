@@ -183,7 +183,7 @@ export function mountAtFileMention(options) {
       description.className = "at-file-mention-description";
       description.textContent = candidate.description;
       option.appendChild(label);
-      option.appendChild(description);
+      if (candidate.description !== candidate.label) option.appendChild(description);
       const pathEl = fileSidebarRefs(doc).path;
       const pathTitle = elementTitle(pathEl);
       const root = options.getWorkspacePath?.() || pathTitle || "";

@@ -2,7 +2,8 @@
 // ABOUTME: Dialogs talk to the config and OAuth gateways through the deps bag.
 
 import { t } from "../../i18n/i18n.js";
-import { confirmDialog, openDialog } from "../../ui/dialog.js";
+import { copyText } from "../../ui/clipboard.js";
+import { confirmDialog, getDialogRoot, openDialog } from "../../ui/dialog.js";
 import { createModelsOAuthLoginDialog } from "../models-oauth-login.js";
 import { openCustomProviderEditor } from "../settings-custom-provider.js";
 
@@ -132,7 +133,7 @@ export function createModelsOAuth(deps) {
         });
       },
       copyText: (text) => {
-        void navigator.clipboard?.writeText(text);
+        void copyText(text);
       },
       onSuccess: async () => {
         await deps.onModelConfigurationChanged?.();
@@ -170,22 +171,29 @@ export function createModelsOAuth(deps) {
 
   /** @param {PickerProvider[]} providers */
   function openProviderPicker(providers) {
-    const root = document.getElementById("dialog-container");
+    const root = getDialogRoot();
     if (!root) throw new Error("dialog container is missing");
     let closePicker = () => {};
     const shell = document.createElement("div");
     const head = document.createElement("div");
     head.className = "provider-picker-head";
-    head.innerHTML = `<div><h2 id="provider-picker-title">Add provider</h2><p>Connect a provider to start using its models.</p></div>`;
+    const heading = document.createElement("h2");
+    heading.id = "provider-picker-title";
+    heading.textContent = t("settings.models.addProvider");
+    const hint = document.createElement("p");
+    hint.textContent = t("settings.models.addProviderHint");
+    const intro = document.createElement("div");
+    intro.append(heading, hint);
+    head.appendChild(intro);
     const close = document.createElement("button");
     close.type = "button";
     close.className = "ui-icon-button ui-icon-button--ghost provider-picker-close";
-    close.setAttribute("aria-label", "Close");
+    close.setAttribute("aria-label", t("actions.close"));
     close.textContent = "×";
     head.appendChild(close);
     const search = document.createElement("input");
     search.className = "ui-input provider-picker-search";
-    search.placeholder = "Search providers…";
+    search.placeholder = t("settings.models.searchProviders");
     const toolbar = document.createElement("div");
     toolbar.className = "provider-picker-toolbar";
     toolbar.append(head, search);
@@ -202,7 +210,7 @@ export function createModelsOAuth(deps) {
       if (section === "subscriptions") return "OAuth";
       const count = Array.isArray(p.models) ? p.models.length : 0;
       if (count <= 0) return "";
-      return count === 1 ? "1 model" : `${count} models`;
+      return t(count === 1 ? "models.countOne" : "models.countOther", { count });
     };
 
     /**
@@ -330,7 +338,7 @@ export function createModelsOAuth(deps) {
       if (featuredItems.length) {
         const group = document.createElement("section");
         group.className = "provider-picker-section";
-        group.setAttribute("aria-label", "Custom and subscriptions");
+        group.setAttribute("aria-label", t("settings.models.customAndSubscriptions"));
         const wrap = document.createElement("div");
         wrap.className = "provider-picker-featured";
         wrap.dataset.section = "featured";
@@ -371,7 +379,7 @@ export function createModelsOAuth(deps) {
    * @param {string} subtitle
    */
   function setupDialog(title, subtitle) {
-    const root = document.getElementById("dialog-container");
+    const root = getDialogRoot();
     if (!root) throw new Error("dialog container is missing");
     const caption = document.createElement("p");
     caption.textContent = subtitle;
@@ -386,7 +394,7 @@ export function createModelsOAuth(deps) {
     const close = document.createElement("button");
     close.type = "button";
     close.className = "ui-icon-button ui-icon-button--ghost provider-picker-close";
-    close.setAttribute("aria-label", "Close");
+    close.setAttribute("aria-label", t("actions.close"));
     close.textContent = "×";
     close.onclick = () => handle.close();
     handle.element.querySelector(".dialog-title")?.append(close);
@@ -413,13 +421,12 @@ export function createModelsOAuth(deps) {
   /** @param {PickerProvider} p */
   function showTerminalLoginDialog(p) {
     const { backdrop, dialog } = setupDialog(
-      `Connect ${p.displayName || p.provider}`,
-      "This provider uses your subscription account.",
+      t("settings.models.oauth.connectTitle", { name: p.displayName || p.provider }),
+      t("settings.models.oauth.subscriptionHint"),
     );
     const note = document.createElement("div");
     note.className = "provider-setup-note";
-    note.textContent =
-      "OAuth login is run by the pi agent. Start the login flow from a terminal, then return here to refresh the provider status.";
+    note.textContent = t("settings.models.oauth.terminalLoginNote");
     dialog.appendChild(note);
     const command = document.createElement("code");
     command.className = "provider-login-command";
@@ -429,7 +436,7 @@ export function createModelsOAuth(deps) {
     actions.className = "provider-setup-actions";
     const close = document.createElement("button");
     close.className = "ui-button ui-button--secondary";
-    close.textContent = "Close";
+    close.textContent = t("actions.close");
     close.onclick = () => backdrop.remove();
     actions.appendChild(close);
     dialog.appendChild(actions);

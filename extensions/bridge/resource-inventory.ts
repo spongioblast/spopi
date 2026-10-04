@@ -3,12 +3,14 @@
 
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { basename, join, relative } from "node:path";
+import type { PackageSource, SettingsManager } from "@earendil-works/pi-coding-agent";
 import {
   buildPackageSkillInventory,
   dedupeConfiguredPackages,
   type ResolvedPackage,
   readSettingsPackagesWithDiags,
 } from "./package-skill-inventory";
+import { updatePiSettings } from "./pi-settings";
 import {
   type BuildSkillInventoryOptions,
   buildMatchContext,
@@ -18,8 +20,6 @@ import {
   mutateSkillEnabled,
   overridesOf,
   readSettingsObject,
-  withSettingsLock,
-  writeSettingsAtomically,
 } from "./skill-inventory";
 
 export type ResourceKind = "extension" | "skill" | "prompt" | "theme";
@@ -416,45 +416,68 @@ export async function setResourceEnabled(
     return { inventory: buildResourceInventory(opts), runtimeRestartRequired: true };
   }
 
-  const settingsPath = settingsPathFor(opts.scope, opts);
-  await withSettingsLock(settingsPath, () => {
-    const original = existsSync(settingsPath) ? readSettingsObject(settingsPath) : {};
-    if (item.origin.type === "folder") {
+  await updatePiSettings(
+    (manager) => {
+      const global = opts.scope === "global";
+      const original = (
+        global ? manager.getGlobalSettings() : manager.getProjectSettings()
+      ) as Record<string, unknown>;
+      if (item.origin.type === "folder") {
+        const next = nextPackageFilter(
+          kindArray(original, item.kind),
+          item.relativePath,
+          opts.enabled,
+        ) as string[];
+        writeFolderFilter(manager, item.kind, global, next);
+        return;
+      }
+      const packages = Array.isArray(original.packages) ? [...original.packages] : [];
+      const source = item.origin.source || item.origin.label;
+      const index = packages.findIndex((entry) => {
+        if (typeof entry === "string") return entry === source;
+        return (
+          Boolean(entry) &&
+          typeof entry === "object" &&
+          (entry as { source?: string }).source === source
+        );
+      });
+      const existing = index >= 0 ? packages[index] : source;
+      const objectForm: Record<string, unknown> =
+        existing && typeof existing === "object"
+          ? { ...(existing as Record<string, unknown>) }
+          : { source };
       const key = kindKey(item.kind);
-      const next = nextPackageFilter(
-        kindArray(original, item.kind),
-        item.relativePath,
-        opts.enabled,
-      );
-      const updated = { ...original };
-      if (next === undefined) delete updated[key];
-      else updated[key] = next;
-      writeSettingsAtomically(settingsPath, updated);
-      return;
-    }
-    const packages = Array.isArray(original.packages) ? [...original.packages] : [];
-    const source = item.origin.source || item.origin.label;
-    const index = packages.findIndex((entry) => {
-      if (typeof entry === "string") return entry === source;
-      return (
-        Boolean(entry) &&
-        typeof entry === "object" &&
-        (entry as { source?: string }).source === source
-      );
-    });
-    const existing = index >= 0 ? packages[index] : source;
-    const objectForm: Record<string, unknown> =
-      existing && typeof existing === "object"
-        ? { ...(existing as Record<string, unknown>) }
-        : { source };
-    const key = kindKey(item.kind);
-    const previous = Array.isArray(objectForm[key]) ? (objectForm[key] as string[]) : undefined;
-    const next = nextPackageFilter(previous, item.relativePath, opts.enabled);
-    if (next === undefined) delete objectForm[key];
-    else objectForm[key] = next;
-    if (index >= 0) packages[index] = objectForm;
-    else packages.push(objectForm);
-    writeSettingsAtomically(settingsPath, { ...original, packages });
-  });
+      const previous = Array.isArray(objectForm[key]) ? (objectForm[key] as string[]) : undefined;
+      const next = nextPackageFilter(previous, item.relativePath, opts.enabled);
+      if (next === undefined) delete objectForm[key];
+      else objectForm[key] = next;
+      if (index >= 0) packages[index] = objectForm;
+      else packages.push(objectForm);
+      const sources = packages as PackageSource[];
+      if (global) manager.setPackages(sources);
+      else manager.setProjectPackages(sources);
+    },
+    { scope: opts.scope, cwd: opts.cwd, agentDir: opts.agentDir },
+  );
   return { inventory: buildResourceInventory(opts), runtimeRestartRequired: true };
+}
+
+/** `undefined` removes the key, which Pi reads as "load everything". */
+function writeFolderFilter(
+  manager: SettingsManager,
+  kind: ResourceKind,
+  global: boolean,
+  paths: string[],
+): void {
+  if (kind === "extension") {
+    if (global) manager.setExtensionPaths(paths);
+    else manager.setProjectExtensionPaths(paths);
+  } else if (kind === "skill") {
+    if (global) manager.setSkillPaths(paths);
+    else manager.setProjectSkillPaths(paths);
+  } else if (kind === "prompt") {
+    if (global) manager.setPromptTemplatePaths(paths);
+    else manager.setProjectPromptTemplatePaths(paths);
+  } else if (global) manager.setThemePaths(paths);
+  else manager.setProjectThemePaths(paths);
 }

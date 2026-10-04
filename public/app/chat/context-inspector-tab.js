@@ -20,14 +20,16 @@ export function mountContextInspector(
   if (!root) return null;
   root.replaceChildren();
   const buckets = bucketMessages(messages);
+  /** @param {number | null} tokens */
+  const count = (tokens) => (tokens == null ? t("contextInspector.unknown") : String(tokens));
   const total = document.createElement("p");
-  total.textContent = `${t("contextInspector.title")} · ${sumBucketTokens(buckets)}`;
+  total.textContent = `${t("contextInspector.title")} · ${count(sumBucketTokens(buckets))}`;
   root.appendChild(total);
   for (const bucket of buckets) {
     const block = document.createElement("section");
     block.dataset.bucket = bucket.name;
     const title = document.createElement("h4");
-    title.textContent = `${bucket.name} (${bucket.tokens})`;
+    title.textContent = `${bucket.name} (${count(bucket.tokens)})`;
     block.appendChild(title);
     for (const item of bucket.items) {
       const row = document.createElement("div");

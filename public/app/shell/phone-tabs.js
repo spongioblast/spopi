@@ -1,8 +1,8 @@
-// ABOUTME: Bottom tab bar for the phone layout. It only sets data-phone-region.
-// ABOUTME: CSS shows one existing region. This file does not duplicate a region.
+// ABOUTME: Bottom tab bar and More sheet for the phone layout; it sets data-phone-region.
+// ABOUTME: phone-layout.css shows the region; the bar publishes its own height as --tabbar-h.
 
 import { t } from "../i18n/i18n.js";
-import { bindModal } from "../ui/dialog.js";
+import { trapModal } from "../ui/dialog.js";
 
 const TABS = [
   ["chat", "shell.phone.chat"],
@@ -13,9 +13,16 @@ const TABS = [
 
 /**
  * @param {HTMLElement} root
+ * @param {{ onSettings?: () => void }} [options]
  */
-export function mountPhoneTabs(root) {
+export function mountPhoneTabs(root, { onSettings } = {}) {
   root.className = "phone-tabs";
+  /** @type {HTMLElement | null} */
+  let sheet = null;
+  const closeSheet = () => {
+    sheet?.remove();
+    sheet = null;
+  };
   root.replaceChildren(
     ...TABS.map(([region, key]) => {
       const button = document.createElement("button");
@@ -26,7 +33,8 @@ export function mountPhoneTabs(root) {
       button.textContent = t(key);
       button.addEventListener("click", () => {
         if (region === "more") {
-          openMoreSheet();
+          closeSheet();
+          sheet = openMoreSheet(() => paint(root), onSettings);
           return;
         }
         selectRegion(region);
@@ -37,9 +45,37 @@ export function mountPhoneTabs(root) {
   );
   if (!document.body.dataset.phoneRegion) document.body.dataset.phoneRegion = "chat";
   paint(root);
+  const publishHeight = () => {
+    const shown = root.isConnected && getComputedStyle(root).display !== "none";
+    const height = shown ? Math.ceil(root.getBoundingClientRect().height) : 0;
+    document.documentElement.style.setProperty("--tabbar-h", `${height}px`);
+  };
+  const observer = typeof ResizeObserver === "function" ? new ResizeObserver(publishHeight) : null;
+  observer?.observe(root);
+  publishHeight();
+  // The bar is mounted in every layout, so a wider window must not move the phone's tab.
+  const onPhone = () => document.body.dataset.layout === "phone";
+  // Picking or starting a chat from the Sessions tab means the user wants to see it.
+  const onSessionOpened = () => {
+    if (!onPhone()) return;
+    if (document.body.dataset.phoneRegion === "sessions") selectRegion("chat");
+    paint(root);
+  };
+  document.addEventListener("spopi-session-opened", onSessionOpened);
+  // A chat's file card opens Review in the center, which only the Changes tab shows.
+  const onReviewShown = () => {
+    if (!onPhone()) return;
+    document.body.dataset.phoneRegion = "changes";
+    paint(root);
+  };
+  document.addEventListener("spopi-review-shown", onReviewShown);
   return {
     destroy() {
-      document.querySelector(".phone-more-sheet")?.remove();
+      document.removeEventListener("spopi-session-opened", onSessionOpened);
+      document.removeEventListener("spopi-review-shown", onReviewShown);
+      observer?.disconnect();
+      document.documentElement.style.setProperty("--tabbar-h", "0px");
+      closeSheet();
       root.replaceChildren();
     },
   };
@@ -54,8 +90,11 @@ function selectRegion(region) {
   }
 }
 
-function openMoreSheet() {
-  document.querySelector(".phone-more-sheet")?.remove();
+/**
+ * @param {() => void} repaintTabs
+ * @param {(() => void) | undefined} onSettings
+ */
+function openMoreSheet(repaintTabs, onSettings) {
   const sheet = document.createElement("div");
   sheet.className = "phone-more-sheet";
   sheet.setAttribute("role", "dialog");
@@ -70,30 +109,24 @@ function openMoreSheet() {
     ],
     ["settings.guard.title", () => document.dispatchEvent(new CustomEvent("spopi-open-guard"))],
     ["shell.phone.sessions", () => selectRegion("sessions")],
-    [
-      "settings.title",
-      () => {
-        const settings = document.querySelector("[data-action='settings']");
-        if (settings instanceof HTMLElement) settings.click();
-      },
-    ],
+    ["settings.title", () => onSettings?.()],
   ];
   for (const [key, run] of items) {
     const button = document.createElement("button");
     button.type = "button";
-    button.className = "phone-more-item";
+    button.className = "ui-button ui-button--ghost phone-more-item";
     button.dataset.i18n = key;
     button.textContent = t(key);
     button.addEventListener("click", () => {
       if (key !== "dock.cockpit") sheet.remove();
       run();
-      const tabs = document.querySelector(".phone-tabs");
-      if (tabs instanceof HTMLElement) paint(tabs);
+      repaintTabs();
     });
     sheet.append(button);
   }
   document.body.append(sheet);
-  bindModal(sheet, { onClose: () => sheet.remove() });
+  trapModal(sheet, { onClose: () => sheet.remove() });
+  return sheet;
 }
 
 /** @param {HTMLElement} root */

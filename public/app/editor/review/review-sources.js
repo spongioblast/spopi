@@ -90,6 +90,7 @@ function fallbackLabel(key, params = {}) {
  *   getTarget?: () => { workspaceId?: string, sessionId?: string, projectPath?: string } | null | undefined,
  *   isGitRepo?: () => boolean,
  *   uiRoot?: () => Promise<string> | string,
+ *   projectRoot?: () => Promise<string> | string,
  *   t?: (key: string, params?: Record<string, unknown>) => string,
  * }} deps
  */
@@ -99,6 +100,16 @@ export function createReviewSources(deps) {
   async function uiRoot() {
     try {
       return String((await deps.uiRoot?.()) || "");
+    } catch {
+      return "";
+    }
+  }
+
+  // Without it, a project the history has not recorded yet has no root, and every
+  // absolute path Pi wrote would count as outside the project.
+  async function projectRoot() {
+    try {
+      return String((await deps.projectRoot?.()) || "");
     } catch {
       return "";
     }
@@ -125,6 +136,7 @@ export function createReviewSources(deps) {
     const meta = record?.meta;
     const root =
       current.projectPath ||
+      (await projectRoot()) ||
       (typeof meta?.realpath === "string" && meta.realpath) ||
       (typeof meta?.cwd === "string" && meta.cwd) ||
       "";

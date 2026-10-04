@@ -4,7 +4,7 @@
 .ui-context-menu,
 .session-context-menu {
   position: fixed;
-  z-index: 10000;
+  z-index: var(--z-context-menu);
   min-width: 220px;
   padding: var(--space-1-5) 0;
   background: var(--bg-frosted);
@@ -13,9 +13,7 @@
   border: 0.5px solid var(--border-hover);
   /* design-token-ignore: context-menu uses native-OS-style bespoke radius */
   border-radius: 8px;
-  box-shadow:
-    var(--shadow-lg),
-    0 20px 40px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-lg), var(--elevation-md);
   animation: fadeIn 0.08s ease-out;
 }
 
@@ -25,9 +23,8 @@
   padding: 5px 14px;
   /* design-token-ignore: native context-menu item font size */
   font-size: 13px;
-  font-family: -apple-system, BlinkMacSystemFont, "San Francisco", system-ui, sans-serif;
-  font-weight: 400;
-  line-height: 1.4;
+  font-weight: var(--font-weight-normal);
+  line-height: var(--line-height-normal);
   color: var(--text-primary);
   cursor: default;
   user-select: none;
@@ -35,9 +32,11 @@
   white-space: nowrap;
 }
 
-.context-menu-item:hover:not(.is-disabled) {
+.context-menu-item:hover:not(.is-disabled),
+.context-menu-item:focus-visible:not(.is-disabled) {
   background: var(--accent);
   color: var(--on-accent);
+  outline: none;
 }
 
 .context-menu-item.has-hint {
@@ -64,6 +63,6 @@
 
 .context-menu-separator {
   height: 1px;
-  margin: 5px 0;
+  margin: var(--space-1) 0;
   background: var(--border-hover);
 }

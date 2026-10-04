@@ -141,7 +141,7 @@ describe("GitHistoryPanel", () => {
     relativeTime.mockRestore();
   });
   it("keeps fallback labels present in all supported locales", () => {
-    for (const lang of ["en", "zh", "ja", "es"]) {
+    for (const lang of ["en", "de", "es", "it", "ja", "zh"]) {
       const messages = JSON.parse(
         readFileSync(join(process.cwd(), `public/locales/${lang}.json`), "utf8"),
       );

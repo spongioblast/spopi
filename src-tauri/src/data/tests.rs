@@ -484,6 +484,27 @@ fn list_all_sessions_skips_unreadable_session_files() {
 }
 
 #[test]
+fn read_jsonl_entries_skips_a_line_that_is_not_utf8_and_keeps_the_rest() {
+    let nonce = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let path = std::env::temp_dir().join(format!("spopi-jsonl-utf8-{nonce}.jsonl"));
+    let mut bytes = b"{\"type\":\"session\"}\n".to_vec();
+    bytes.extend_from_slice(b"{\"bad\":\"\xff\xfe\"}\n");
+    bytes.extend_from_slice(b"{\"type\":\"message\"}\n");
+    fs::write(&path, bytes).unwrap();
+
+    let entries = read_jsonl_entries(&path).unwrap();
+    let types: Vec<&str> = entries
+        .iter()
+        .filter_map(|entry| entry.get("type").and_then(|value| value.as_str()))
+        .collect();
+    assert_eq!(types, ["session", "message"]);
+    fs::remove_file(path).unwrap();
+}
+
+#[test]
 fn remove_session_file_trash_first_prefers_trash_and_falls_back_to_unlink() {
     let nonce = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -913,7 +934,7 @@ fn opens_convertible_preview_input_inside_the_registered_workspace() {
 #[test]
 fn golden_session_fixture_reports_summary_tree_messages_and_cost() {
     let path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../tests/fixtures/pi-sessions/0.87.1/scripted.jsonl");
+        .join("../tests/fixtures/pi-sessions/scripted.jsonl");
     let entries = read_jsonl_entries(&path).unwrap();
     let types: Vec<&str> = entries
         .iter()

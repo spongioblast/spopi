@@ -1,5 +1,5 @@
 // ABOUTME: Binds a live pi instance to a session id and serves snapshots.
-// ABOUTME: It also sends extension UI replies. Spawn and idle stay in runtime.rs.
+// ABOUTME: It also sends extension UI replies. Spawn stays in runtime.rs, reaping in idle.rs.
 
 use super::runtime::{NativeRuntimeEvent, PiRuntime};
 use crate::pi::coordinator::{RuntimeSnapshot, RuntimeStatus, RuntimeTarget};

@@ -68,7 +68,8 @@
   scrollbar-width: none;
 }
 
-.composer-toolbar.model-menu-open {
+.composer-toolbar.model-menu-open,
+.composer-toolbar.more-menu-open {
   overflow: visible;
 }
 
@@ -86,16 +87,28 @@
 
 /* Actions on the first row, model and thinking on a shorter row under them. */
 .composer-toolbar-left {
-  flex-direction: column;
-  align-items: stretch;
+  flex-direction: row;
+  align-items: center;
   gap: 0;
   flex: 1 1 auto;
   min-width: 0;
   flex-shrink: 1;
 }
 
-.composer-toolbar-actions,
-.composer-toolbar-meta {
+.composer-toolbar .model-dropdown {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.composer-toolbar .model-dropdown-label {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.composer-toolbar-actions {
   display: flex;
   align-items: center;
   justify-content: flex-start;
@@ -214,7 +227,7 @@
   outline: none;
   resize: none;
   max-height: 160px;
-  line-height: 1.6;
+  line-height: var(--line-height-code);
   overflow-y: auto;
   overscroll-behavior: contain;
 }
@@ -229,8 +242,8 @@
 }
 
 #send-btn {
-  width: 32px;
-  height: 32px;
+  width: var(--control-height-md);
+  height: var(--control-height-md);
   padding: 0;
   border-radius: 50%;
   display: flex;
@@ -243,6 +256,7 @@
     background var(--duration) var(--ease),
     box-shadow var(--duration) var(--ease),
     opacity var(--duration) var(--ease);
+  /* design-token-ignore: the white sheen is the same in every theme */
   box-shadow:
     3px 3px 10px var(--accent-glow),
     -2px -2px 6px rgba(255, 255, 255, 0.15),
@@ -268,8 +282,8 @@
 }
 
 #abort-btn {
-  width: 32px;
-  height: 32px;
+  width: var(--control-height-md);
+  height: var(--control-height-md);
   padding: 0;
   background: var(--error);
   border-radius: 50%;
@@ -279,12 +293,12 @@
   font-size: var(--font-size-sm);
   border: none;
   cursor: pointer;
-  color: white;
+  color: var(--on-danger);
   transition:
     background var(--duration) var(--ease),
     box-shadow var(--duration) var(--ease),
     color var(--duration) var(--ease);
-  box-shadow: 0 4px 16px rgba(248, 113, 113, 0.3);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--error) 30%, transparent);
 }
 
 #abort-btn:hover:not(:disabled) {
@@ -342,4 +356,67 @@
 .paste-offload-prompt button:disabled {
   cursor: wait;
   opacity: 0.6;
+}
+
+.composer-more {
+  position: relative;
+  flex: none;
+}
+
+.composer-more-menu {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  right: 0;
+  z-index: var(--z-popover);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-0-5);
+  min-width: 10rem;
+  padding: var(--space-1);
+  background: var(--bg-frosted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  animation: dropdownInUp 0.15s var(--ease);
+}
+
+.composer-toolbar .composer-more-menu > button {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--space-2);
+  width: 100%;
+  height: var(--control-height-sm);
+  min-height: var(--control-height-sm);
+  padding: 0 var(--space-2);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.composer-more-item {
+  color: var(--text-primary);
+}
+
+/* model-controls rewrites the thinking label, so it is indented instead of given an icon:
+   item padding, a 16px icon, and the gap add up to --space-8. */
+.composer-toolbar .composer-more-menu > .thinking-tag {
+  padding-left: var(--space-8);
+}
+
+.composer-toolbar .composer-more-menu > button:hover {
+  background: var(--bg-glass-hover);
+}
+
+.composer-more-item svg {
+  flex: none;
+  color: var(--text-secondary);
+}
+
+.composer-more-menu.hidden {
+  display: none;
 }

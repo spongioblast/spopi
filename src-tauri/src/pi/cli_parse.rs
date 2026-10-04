@@ -1,5 +1,5 @@
 // ABOUTME: Parses `pi list` text into package sources, scopes, and install paths.
-// ABOUTME: Pi 0.87 has no JSON list option; the fixture is real command output.
+// ABOUTME: Pi has no JSON list option; the fixture is real command output.
 
 use super::launch::{PackageResourceCounts, PiPackageInfo};
 
@@ -73,7 +73,7 @@ mod tests {
 
     fn fixture() -> String {
         let path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("../tests/fixtures/pi-cli/0.87.1/list.txt");
+            .join("../tests/fixtures/pi-cli/list.txt");
         std::fs::read_to_string(path).expect("pi list fixture")
     }
 

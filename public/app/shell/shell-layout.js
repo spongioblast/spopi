@@ -2,6 +2,7 @@
 // ABOUTME: Evicts stray SPOPI side panels so workspace-content stays one grid row.
 
 import { showPiReview } from "../editor/review-pane.js";
+import { isSettingsOpen } from "../settings/settings-panel.js";
 import { appKeybindings } from "../ui/keybindings.js";
 import { headerChromeRefs } from "./chrome/chat.js";
 import { filePreviewRefs } from "./chrome/file-preview.js";
@@ -10,11 +11,13 @@ import { sidePanelRefs } from "./chrome/side-panels.js";
 import { sidebarChromeRefs } from "./chrome/sidebar.js";
 import { createLayoutMode } from "./layout-mode.js";
 import { applyLayoutVars, DEFAULT_LAYOUT, normalizeLayout } from "./layout-prefs.js";
+import { layoutPresetPatch } from "./layout-preset.js";
 import { mountPhoneTabs } from "./phone-tabs.js";
 import { mountRail, nextRailPanel } from "./rail.js";
 import { mountLayoutResizers } from "./resizers.js";
 
 /**
+ * @typedef {{ app: HTMLElement, workspace: HTMLElement, content: HTMLElement, main: HTMLElement }} ShellLayoutNodes
  * @typedef {typeof DEFAULT_LAYOUT} ShellLayoutState
  * @typedef {(key: string, vars?: Record<string, unknown>) => string} ShellTranslate
  * @typedef {(layout: ShellLayoutState) => void | Promise<void>} PersistLayout
@@ -59,27 +62,6 @@ function wrapIfNeeded(child, wrapperClass, wrapperId) {
   child.parentElement?.insertBefore(wrap, child);
   wrap.appendChild(child);
   return wrap;
-}
-
-/** @returns {HTMLElement | Element | null} */
-function findTerminal() {
-  const byId = document.getElementById("terminal-panel");
-  if (byId) return byId;
-  const byClass = document.querySelector(".terminal-panel");
-  if (byClass) {
-    byClass.id = "terminal-panel";
-    return byClass;
-  }
-  return null;
-}
-
-/**
- * @param {Element | null | undefined} el
- * @returns {HTMLElement | null}
- */
-function asShellRootEl(el) {
-  if (!el || !("dataset" in el) || !("classList" in el) || !("insertBefore" in el)) return null;
-  return /** @type {HTMLElement} */ (el);
 }
 
 /**
@@ -164,13 +146,14 @@ function mountNarrowDrawer(translate) {
  * @param {(() => void) | undefined} [options.onOpenAppearance]
  * @param {(() => void) | undefined} [options.onOpenExtensions]
  * @param {(panel: string) => void} [options.onPanelShown]
+ * @param {ShellLayoutNodes} [options.layout]
  * @returns {{
  *   readonly layout: ShellLayoutState,
  *   setPanel: (panel: string, hidden: boolean) => void,
  *   applyHidden: (patch: Record<string, unknown>) => void,
  *   applyLayout: (next: Record<string, unknown>) => void,
+ *   showCenter: () => void,
  *   paneCenter: HTMLElement | null,
- *   findTerminal: typeof findTerminal,
  *   destroy: () => void,
  * } | null}
  */
@@ -182,15 +165,15 @@ export function applyShellLayout({
   onOpenAppearance,
   onOpenExtensions,
   onPanelShown,
+  layout: nodes,
 } = {}) {
-  const app = asShellRootEl(document.querySelector(".app-layout"));
+  const app = nodes?.app;
   if (!app || app.dataset.spopiShell === "1") return null;
   app.dataset.spopiShell = "1";
   app.classList.add("spopi-shell");
 
   const sidebar = sidebarChromeRefs().sidebar;
-  const workspace = document.querySelector(".workspace");
-  const workspaceContent = document.querySelector(".workspace-content");
+  const { workspace, content: workspaceContent } = nodes;
   const previewRefs = filePreviewRefs();
   const preview = previewRefs.panel;
   const previewResizer = previewRefs.resizer;
@@ -233,7 +216,7 @@ export function applyShellLayout({
   const paneCenter = wrapIfNeeded(preview, "pane-center", "pane-center");
   previewResizer?.classList.add("collapsed");
 
-  const main = workspaceContent?.querySelector(".main");
+  const main = nodes.main;
   if (workspaceContent && main && paneCenter && main.parentElement === workspaceContent) {
     workspaceContent.insertBefore(paneCenter, main);
   }
@@ -248,7 +231,8 @@ export function applyShellLayout({
     workspaceContent.insertBefore(chatHandle, main);
   }
   if (workspaceContent) {
-    const keep = new Set([paneCenter, chatHandle, main].filter(Boolean));
+    /** @type {Set<Element>} */
+    const keep = new Set([paneCenter, chatHandle, main].filter((node) => node !== null));
     for (const child of [...workspaceContent.children]) {
       if (keep.has(child)) continue;
       child.classList.add("collapsed");
@@ -271,7 +255,7 @@ export function applyShellLayout({
    */
   const setPanel = (panel, hidden) => {
     if (panel !== "review") beforeReview = panel;
-    layout = { ...layout, sidebarHidden: hidden };
+    layout = { ...layout, sidebarHidden: hidden, focus: hidden && layout.focus };
     applyLayoutVars(layout);
     for (const [id, selector] of Object.entries(SHELL_PANELS)) {
       const node = document.querySelector(selector);
@@ -288,7 +272,7 @@ export function applyShellLayout({
   const selectRail = (panel) => {
     document.body.dataset.railPanel = panel;
     setPanel(panel, layout.sidebarHidden);
-    for (const item of document.querySelectorAll(".spopi-rail [data-nav]")) {
+    for (const item of rail.querySelectorAll("[data-nav]")) {
       const navItem = asShellNavItem(item);
       if (!navItem) continue;
       const active = navItem.dataset.nav === panel;
@@ -299,7 +283,9 @@ export function applyShellLayout({
 
   /** @param {Record<string, unknown>} patch */
   const applyHidden = (patch) => {
-    layout = normalizeLayout({ ...layout, ...patch });
+    const reveals = patch.sidebarHidden === false || patch.dockHidden === false;
+    const leaveFocus = reveals && !Object.hasOwn(patch, "focus") ? { focus: false } : {};
+    layout = normalizeLayout({ ...layout, ...patch, ...leaveFocus });
     applyLayoutVars(layout);
     persistLayout(layout);
   };
@@ -315,7 +301,10 @@ export function applyShellLayout({
       const next = nextRailPanel(current, id, layout.sidebarHidden);
       document.body.dataset.railPanel = next.panel;
       setPanel(next.panel, next.sidebarHidden);
-      const opener = document.querySelector(`.spopi-rail [data-nav="${id}"]`);
+      const opener =
+        [...rail.querySelectorAll("[data-nav]")].find(
+          (button) => button instanceof HTMLElement && button.dataset.nav === id,
+        ) ?? null;
       if (document.body.dataset.layout !== "narrow") {
         drawer.close();
         if (id === "review" && !next.sidebarHidden) showPiReview();
@@ -340,6 +329,11 @@ export function applyShellLayout({
     if (document.body.dataset.railPanel === "review") selectRail(beforeReview);
     if (document.body.dataset.drawer === "center") drawer.close();
   };
+  // Focus and a narrow window both hide the editor and dock column.
+  const showCenter = () => {
+    if (layout.focus) applyHidden(layoutPresetPatch("workbench"));
+    if (document.body.dataset.layout === "narrow") drawer.open("center", null);
+  };
   document.addEventListener("spopi-review-shown", onReviewShown);
   document.addEventListener("spopi-review-hidden", onReviewHidden);
   mountRail(rail, railOptions);
@@ -353,10 +347,7 @@ export function applyShellLayout({
   });
 
   const keys = appKeybindings();
-  const settingsClosed = () => {
-    const settings = document.getElementById("settings-panel");
-    return !(settings && !settings.classList.contains("hidden"));
-  };
+  const settingsClosed = () => !isSettingsOpen();
   keys.register({
     id: "workspace-search",
     keys: "Mod+P",
@@ -409,7 +400,7 @@ export function applyShellLayout({
   const layoutMode = createLayoutMode();
   const phoneTabs = document.createElement("div");
   document.body.append(phoneTabs);
-  const tabs = mountPhoneTabs(phoneTabs);
+  const tabs = mountPhoneTabs(phoneTabs, { onSettings: () => onSettings?.() });
 
   return {
     get layout() {
@@ -422,8 +413,8 @@ export function applyShellLayout({
       layout = normalizeLayout(next);
       applyLayoutVars(layout);
     },
+    showCenter,
     paneCenter,
-    findTerminal,
     destroy() {
       layoutMode.destroy();
       tabs.destroy();

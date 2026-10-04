@@ -4,7 +4,7 @@
 import { t } from "../../i18n/i18n.js";
 import { copyText } from "../../ui/clipboard.js";
 import { el } from "../../ui/dom.js";
-import { sectionTitle, settingsPage } from "../../ui/settings-controls.js";
+import { settingsCard, settingsPage } from "../../ui/settings-controls.js";
 import { tauriRelaunch } from "../live-debug-setting.js";
 import { agentBrowserSwitch } from "./agent-browser-switch.js";
 import { actionButton, dependencyRow } from "./dependency-row.js";
@@ -33,7 +33,7 @@ import { surfCard } from "./surf-card.js";
 export function mountDependenciesSettings(root, deps = {}) {
   if (!root || !("append" in root)) return { reload() {}, destroy() {} };
   const host = /** @type {HTMLElement} */ (root);
-  const page = /** @type {HTMLElement} */ (el("div", { class: "settings-dependencies" }));
+  const page = /** @type {HTMLElement} */ (el("div", { class: "settings-stack" }));
   host.append(
     ...settingsPage(t("settings.dependencies.title"), "settings.dependencies.title", [page]),
   );
@@ -133,18 +133,17 @@ export function renderDependencies(page, report, deps = {}) {
   const browser = report?.browser || { state: "unknown" };
   const surf = report?.surf || { state: "unknown" };
   const linux = (deps.platform || globalThis.navigator?.userAgent || "").includes("Linux");
-  const header = el("div", { class: "dependencies-header" }, [
+  const header = el("div", { class: "settings-intro" }, [
     el("p", { class: "settings-help", text: t("settings.dependencies.intro") }),
-    actionButton("settings.dependencies.testAll", { onClick: () => deps.onReload?.() }),
-    actionButton("settings.dependencies.showStartNote", {
-      onClick: () => document.dispatchEvent(new CustomEvent("spopi-show-first-run")),
-    }),
+    el("div", { class: "settings-intro-actions" }, [
+      actionButton("settings.dependencies.testAll", { onClick: () => deps.onReload?.() }),
+      actionButton("settings.dependencies.showStartNote", {
+        onClick: () => document.dispatchEvent(new CustomEvent("spopi-show-first-run")),
+      }),
+    ]),
   ]);
   /** @type {Node[]} */
   const builtin = [
-    sectionTitle(t("settings.dependencies.builtIn.title"), {
-      i18n: "settings.dependencies.builtIn.title",
-    }),
     el("p", { class: "settings-help", text: t("settings.dependencies.builtIn.help") }),
     dependencyRow({ labelKey: "settings.dependencies.builtIn.pi", status: pi }),
     dependencyRow({
@@ -169,35 +168,35 @@ export function renderDependencies(page, report, deps = {}) {
       : null;
   page.replaceChildren(
     header,
-    ...builtin,
-    sectionTitle(t("settings.dependencies.npm.title"), {
-      i18n: "settings.dependencies.npm.title",
-    }),
-    npmRow,
-    sectionTitle(t("settings.dependencies.browser.title"), {
-      i18n: "settings.dependencies.browser.title",
-    }),
-    agentBrowserSwitch({
-      preferences: deps.preferences,
-      relaunch,
-    }),
-    browserRow(browser, linux),
-    surfCard({
-      report: surf,
-      npmOk: npm.state === "ok",
-      control: deps.control,
-      configGateway: deps.configGateway,
-      relaunch,
-      onReload: deps.onReload,
-      onJob: deps.onJob,
-      jobRunning: deps.runningJobs?.surf?.state === "running",
-    }),
-    ...(both ? [both] : []),
+    settingsCard(
+      t("settings.dependencies.builtIn.title"),
+      "settings.dependencies.builtIn.title",
+      builtin,
+    ),
+    settingsCard(t("settings.dependencies.npm.title"), "settings.dependencies.npm.title", [npmRow]),
+    settingsCard(t("settings.dependencies.browser.title"), "settings.dependencies.browser.title", [
+      agentBrowserSwitch({
+        preferences: deps.preferences,
+        relaunch,
+      }),
+      browserRow(browser, linux),
+      surfCard({
+        report: surf,
+        npmOk: npm.state === "ok",
+        control: deps.control,
+        configGateway: deps.configGateway,
+        relaunch,
+        onReload: deps.onReload,
+        onJob: deps.onJob,
+        jobRunning: deps.runningJobs?.surf?.state === "running",
+      }),
+      both,
+    ]),
   );
   resumeRunningJobs(page, deps);
 
   /**
-   * @param {{ state?: string, install?: { oneClick?: boolean, commands?: string[], link?: string } }} status
+   * @param {{ state?: string, install?: { oneClick?: boolean, link?: string } }} status
    */
   function npmActions(status) {
     if (status.state === "ok" || status.state === "unknown") return [];
@@ -213,22 +212,6 @@ export function renderDependencies(page, report, deps = {}) {
       return [slot];
     }
     const nodes = [];
-    if (install.commands?.length) {
-      nodes.push(
-        el("p", { class: "dependencies-detail", text: t("settings.dependencies.npm.commands") }),
-      );
-      for (const command of install.commands) {
-        const code = el("code", { class: "dependencies-path", text: command });
-        nodes.push(
-          code,
-          actionButton("settings.dependencies.copy", {
-            onClick: () => {
-              void copyText(command);
-            },
-          }),
-        );
-      }
-    }
     if (install.link) {
       nodes.push(
         actionButton("settings.dependencies.npm.download", {
@@ -242,12 +225,22 @@ export function renderDependencies(page, report, deps = {}) {
   }
 
   /**
-   * @param {{ state?: string, path?: string, detail?: string }} status
+   * @param {{ state?: string, path?: string, detail?: string, noSandbox?: boolean }} status
    * @param {boolean} isLinux
    */
   function browserRow(status, isLinux) {
     /** @type {Node[]} */
     const actions = [];
+    if (status.state === "ok" && status.noSandbox) {
+      const note = /** @type {HTMLElement} */ (
+        el("span", {
+          class: "dependencies-detail",
+          text: t("settings.dependencies.browser.chrome.noSandbox"),
+        })
+      );
+      note.dataset.i18n = "settings.dependencies.browser.chrome.noSandbox";
+      actions.push(note);
+    }
     if (status.state === "missing") {
       const slot = /** @type {HTMLElement} */ (el("span", { class: "dependencies-job-slot" }));
       slot.dataset.dependencyJob = "browser";

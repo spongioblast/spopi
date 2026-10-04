@@ -399,15 +399,9 @@ fn resolve_command_prompt(probe: &dyn ShellProbe) -> Result<ResolvedShell, Profi
 /// path and refuses it (`UNC paths are not supported. Defaulting to Windows
 /// directory.`). Strip the prefix so every profile starts in the workspace.
 pub fn pty_working_dir(workspace_root: &Path) -> PathBuf {
-    let raw = workspace_root.to_string_lossy();
-    let stripped = if let Some(rest) = raw.strip_prefix(r"\\?\UNC\") {
-        format!(r"\\{rest}")
-    } else if let Some(rest) = raw.strip_prefix(r"\\?\") {
-        rest.to_string()
-    } else {
-        raw.into_owned()
-    };
-    PathBuf::from(stripped)
+    PathBuf::from(crate::data::paths::strip_verbatim_prefix(
+        &workspace_root.to_string_lossy(),
+    ))
 }
 
 /// Extra env for a resolved Windows shell. Git Bash inside ConPTY needs

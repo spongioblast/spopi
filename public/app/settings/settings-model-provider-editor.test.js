@@ -34,6 +34,17 @@ test("isKeyReference matches what Pi resolves as env or command", () => {
   expect(isKeyReference("$$literal")).toBe(false);
 });
 
+/** @param {string} label English text or the i18n key when no locale is loaded */
+function clickRowMenuItem(label) {
+  document.querySelector(".models-model-more").click();
+  const keys = { Delete: "models.delete", "Set up model": "models.setup.button" };
+  const item = [...document.querySelectorAll(".context-menu-item")].find((row) =>
+    [label, keys[label]].includes(row.textContent),
+  );
+  if (!item) throw new Error(`menu item ${label} not found`);
+  item.click();
+}
+
 describe("models provider editor", () => {
   let dom;
   let call;
@@ -483,7 +494,7 @@ describe("models provider editor", () => {
     await vi.waitFor(() => expect(document.querySelector(".models-provider-save")).not.toBeNull());
     expect(document.getElementById("dialog-container").querySelector(".dialog")).toBeNull();
 
-    document.querySelector(".models-model-remove").click();
+    clickRowMenuItem("Delete");
     const container = document.getElementById("dialog-container");
     await vi.waitFor(() => expect(container.querySelector(".ui-button--danger")).not.toBeNull());
     container.querySelector(".ui-button--danger").click();
@@ -526,7 +537,7 @@ describe("models provider editor", () => {
     const editor = mountModelsPage({ configGateway: { call } });
     await editor.loadInlineModelsEditor();
     document.querySelectorAll(".models-provider-item")[1].click();
-    document.querySelector(".models-model-setup-row").click();
+    clickRowMenuItem("Set up model");
 
     await vi.waitFor(() => expect(document.querySelectorAll(".model-setup-check")).toHaveLength(4));
     expect(call).toHaveBeenCalledWith(
@@ -703,7 +714,9 @@ describe("models provider editor", () => {
     expect(dialog.getAttribute("role")).toBe("dialog");
     expect(dialog.closest(".ui-overlay.provider-picker-backdrop")).not.toBeNull();
     expect(dialog.querySelector(".ui-input.provider-picker-search")).not.toBeNull();
-    expect(dialog.querySelector("#provider-picker-title").textContent).toBe("Add provider");
+    expect(dialog.querySelector("#provider-picker-title").textContent).toBe(
+      "settings.models.addProvider",
+    );
     const sections = [...dialog.querySelectorAll(".provider-picker-section-title")].map(
       (el) => el.dataset.section,
     );
@@ -711,9 +724,9 @@ describe("models provider editor", () => {
     expect(dialog.querySelector(".provider-picker-toolbar .provider-picker-search")).not.toBeNull();
     expect(dialog.querySelector(".provider-picker-body")).not.toBeNull();
     expect(dialog.querySelector(".provider-picker-featured .provider-picker-card")).not.toBeNull();
-    expect(
-      dialog.querySelector(".provider-picker-grid .provider-picker-card").textContent,
-    ).toContain("1 model");
+    expect(dialog.querySelector(".provider-picker-grid .provider-picker-card").textContent).toMatch(
+      /models\.count(One|Other)|1 model|\d+ models/,
+    );
     expect(
       dialog.querySelector(".provider-picker-grid .provider-picker-card").textContent,
     ).not.toContain("0 models");
@@ -768,7 +781,7 @@ describe("models provider editor", () => {
     );
     expect(cards.find((text) => text.includes("Amazon Bedrock"))).not.toContain("Needs API key");
     expect(cards.find((text) => text.includes("Amazon Bedrock"))).not.toContain("0 models");
-    expect(cards.find((text) => text.includes("Anthropic"))).toContain("2 models");
+    expect(cards.find((text) => text.includes("Anthropic"))).toMatch(/models\.countOther|2 models/);
   });
 });
 

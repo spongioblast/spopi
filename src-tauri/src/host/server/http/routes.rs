@@ -1,9 +1,8 @@
-// ABOUTME: HTTP /health /v2 /api routes moved out of host_server/mod.rs.
-// ABOUTME: Handlers keep the original signatures so the router table is a rename.
+// ABOUTME: Handlers for /, /health, /health/runtime, /v2/bootstrap, and /v2/sessions.
+// ABOUTME: The route table that mounts every HTTP handler is http/mod.rs.
 
-use super::super::{
-    annotate_live_sessions, api_error, api_error_with_detail, host_data_http_error, HostState,
-};
+use super::super::session_view::annotate_live_sessions;
+use super::super::{api_error, api_error_with_detail, host_data_http_error, HostState};
 use crate::host::router::PROTOCOL_VERSION;
 use crate::pi::coordinator::RuntimeTarget;
 use axum::extract::{Json, Query, State};

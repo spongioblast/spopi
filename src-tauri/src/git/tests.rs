@@ -141,6 +141,106 @@ fn push_reports_a_repository_without_a_remote() {
     assert_eq!(service_push_error(root.path()), super::PUSH_NO_REMOTE);
 }
 
+#[test]
+fn remote_urls_and_names_refuse_what_git_would_misread() {
+    use super::remote::{is_safe_remote_name, is_safe_remote_url};
+    for url in [
+        "https://github.com/you/repo.git",
+        "http://host/x",
+        "ssh://git@github.com/you/repo.git",
+        "git@github.com:you/repo.git",
+        "file:///srv/repo.git",
+    ] {
+        assert!(is_safe_remote_url(url), "{url}");
+    }
+    for url in [
+        "",
+        "-uhack",
+        "ext::sh -c touch% /tmp/x",
+        "fd::17",
+        "https://",
+        "https://host/a b",
+        "C:\\repos\\x.git",
+        "/srv/repo.git",
+        "git@host://evil",
+        "github.com:you/repo.git",
+    ] {
+        assert!(!is_safe_remote_url(url), "{url}");
+    }
+    assert!(is_safe_remote_name("origin"));
+    assert!(is_safe_remote_name("up-stream_2"));
+    for name in ["", "-x", ".x", "a..b", "a/b", "a b", "x.lock"] {
+        assert!(!is_safe_remote_name(name), "{name}");
+    }
+}
+
+#[test]
+fn remotes_can_be_added_changed_and_removed() {
+    let root = tempfile::tempdir().unwrap();
+    init_repo_with_commit(root.path());
+    let service = GitService::new();
+    assert!(service.remotes(root.path()).unwrap().is_empty());
+    service
+        .add_remote(root.path(), "origin", " https://example.com/a.git ")
+        .unwrap();
+    assert!(service
+        .add_remote(root.path(), "origin", "https://example.com/b.git")
+        .is_err());
+    assert!(service
+        .add_remote(root.path(), "other", "ext::sh -c id")
+        .is_err());
+    service
+        .set_remote_url(root.path(), "origin", "git@example.com:me/a.git")
+        .unwrap();
+    let listed = service.remotes(root.path()).unwrap();
+    assert_eq!(listed.len(), 1);
+    assert_eq!(listed[0].name, "origin");
+    assert_eq!(listed[0].url, "git@example.com:me/a.git");
+    let snapshot = service.status("owner", root.path(), 0).unwrap();
+    assert_eq!(snapshot.remotes, vec!["origin".to_string()]);
+    assert!(service
+        .set_remote_url(root.path(), "missing", "https://example.com/a.git")
+        .is_err());
+    service.remove_remote(root.path(), "origin").unwrap();
+    assert!(service.remotes(root.path()).unwrap().is_empty());
+    assert!(service.remove_remote(root.path(), "origin").is_err());
+}
+
+#[test]
+fn pull_without_an_upstream_reports_a_code() {
+    let root = tempfile::tempdir().unwrap();
+    init_repo_with_commit(root.path());
+    let bare = tempfile::tempdir().unwrap();
+    assert!(Command::new("git")
+        .args(["init", "--bare"])
+        .arg(bare.path())
+        .output()
+        .unwrap()
+        .status
+        .success());
+    let service = GitService::new();
+    let url = format!(
+        "file:///{}",
+        bare.path()
+            .display()
+            .to_string()
+            .replace('\\', "/")
+            .trim_start_matches('/')
+    );
+    service.add_remote(root.path(), "origin", &url).unwrap();
+    assert_eq!(
+        service.pull(root.path()).unwrap_err(),
+        super::remote::PULL_NO_UPSTREAM
+    );
+    let published = service.push(root.path()).unwrap();
+    assert!(published.set_upstream);
+    assert!(service
+        .status("owner", root.path(), 0)
+        .unwrap()
+        .upstream
+        .is_some());
+}
+
 fn service_push_error(root: &Path) -> String {
     GitService::new()
         .push(root)
@@ -1464,4 +1564,86 @@ fn branches_and_checkout_create_switch() {
     assert!(restored
         .iter()
         .any(|branch| branch.name == before[0].name && branch.current));
+}
+
+fn commit_all(root: &Path, message: &str) {
+    assert!(Command::new("git")
+        .current_dir(root)
+        .args(["add", "-A"])
+        .status()
+        .unwrap()
+        .success());
+    assert!(Command::new("git")
+        .current_dir(root)
+        .args(["commit", "-m", message])
+        .status()
+        .unwrap()
+        .success());
+}
+
+#[test]
+fn worktree_merges_cleanly_and_aborts_a_conflict() {
+    let root = tempfile::tempdir().unwrap();
+    let home = tempfile::tempdir().unwrap();
+    init_repo_with_commit(root.path());
+    let service = GitService::new();
+    let base = service.current_branch(root.path()).unwrap().unwrap();
+    let linked = service
+        .worktree_add(root.path(), "feat", &base, home.path())
+        .unwrap();
+    assert_eq!(
+        super::worktree_link::main_checkout_of(&linked)
+            .unwrap()
+            .canonicalize()
+            .unwrap(),
+        root.path().canonicalize().unwrap()
+    );
+    std::fs::write(linked.join("added.txt"), "from the worktree\n").unwrap();
+    commit_all(&linked, "add a file");
+    let merged = service.merge_branch(root.path(), "feat").unwrap();
+    assert!(merged.merged);
+    assert_eq!(merged.into, base);
+    assert!(root.path().join("added.txt").is_file());
+
+    std::fs::write(root.path().join("file.txt"), "primary\n").unwrap();
+    commit_all(root.path(), "primary edit");
+    std::fs::write(linked.join("file.txt"), "worktree\n").unwrap();
+    commit_all(&linked, "worktree edit");
+    let conflict = service.merge_branch(root.path(), "feat").unwrap();
+    assert!(!conflict.merged);
+    assert!(conflict.conflicts.iter().any(|path| path == "file.txt"));
+    assert!(!root.path().join(".git").join("MERGE_HEAD").exists());
+    assert!(service.is_clean(root.path(), false).unwrap());
+
+    std::fs::write(linked.join("new.txt"), "tracked in the worktree\n").unwrap();
+    commit_all(&linked, "add new");
+    std::fs::write(root.path().join("new.txt"), "untracked in the primary\n").unwrap();
+    let blocked = service.merge_branch(root.path(), "feat").unwrap_err();
+    assert!(!blocked.is_empty());
+}
+
+#[test]
+fn removing_a_dirty_worktree_needs_force_and_keeps_the_branch() {
+    let root = tempfile::tempdir().unwrap();
+    let home = tempfile::tempdir().unwrap();
+    init_repo_with_commit(root.path());
+    let service = GitService::new();
+    let base = service.current_branch(root.path()).unwrap().unwrap();
+    let linked = service
+        .worktree_add(root.path(), "feat", &base, home.path())
+        .unwrap();
+    std::fs::write(linked.join("dirty.txt"), "not committed\n").unwrap();
+    assert!(service.is_clean(&linked, false).unwrap());
+    assert!(!service.is_clean(&linked, true).unwrap());
+    assert!(service
+        .worktree_remove(root.path(), &linked, false)
+        .is_err());
+    service.worktree_remove(root.path(), &linked, true).unwrap();
+    assert!(!linked.exists());
+    let branch = Command::new("git")
+        .current_dir(root.path())
+        .args(["show-ref", "--verify", "--quiet", "refs/heads/feat"])
+        .status()
+        .unwrap();
+    assert!(branch.success());
 }

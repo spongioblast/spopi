@@ -8,8 +8,8 @@ import {
   selectedShellProfile,
   shellProfileChoices,
 } from "../settings/appearance-preferences.js";
+import { openSettingsTab } from "../settings/settings-panel.js";
 import { terminalSettingsRefs } from "../settings/terminal-settings.js";
-import { sidebarChromeRefs } from "../shell/chrome/sidebar.js";
 import { registerContextMenuHost, showContextMenu } from "../ui/context-menu.js";
 
 const PROFILE_LABEL_KEYS = Object.freeze({
@@ -28,14 +28,7 @@ export function defaultTerminalProfile() {
 }
 
 function openDefaultShellSettings() {
-  const settingsBtn = sidebarChromeRefs().settingsBtn;
-  if (settingsBtn && "click" in settingsBtn && typeof settingsBtn.click === "function") {
-    settingsBtn.click();
-  }
-  const terminalTab = document.querySelector('[data-settings-tab="terminal"]');
-  if (terminalTab && "click" in terminalTab && typeof terminalTab.click === "function") {
-    terminalTab.click();
-  }
+  openSettingsTab("terminal");
   const row = terminalSettingsRefs(document).profileRow;
   if (row && "scrollIntoView" in row && typeof row.scrollIntoView === "function") {
     row.scrollIntoView({ block: "nearest" });

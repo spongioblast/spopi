@@ -1,6 +1,8 @@
 // ABOUTME: Wires the Files rail panel to FileTree: refresh, hidden, Finder, collapse.
 // ABOUTME: Under .spopi-shell, Ctrl+B stays with the shell; SPOPI's bind is skipped.
 
+import { t } from "../i18n/i18n.js";
+import { setButtonIcon } from "../ui/icons.js";
 import { FileTree } from "./file-tree.js";
 import { createFileTreeHooks } from "./file-tree-hooks.js";
 import { filesFromGitSnapshot } from "./file-tree-model.js";
@@ -50,6 +52,21 @@ import { filesFromGitSnapshot } from "./file-tree-model.js";
  *   diffSidebarToggle?: HTMLElement | null,
  * }} FileBrowserDeps
  */
+
+/**
+ * The icon shows the current state (crossed out while hidden files stay hidden);
+ * the tooltip names what a click does.
+ * @param {HTMLElement | null | undefined} button
+ * @param {boolean} showHidden
+ */
+export function paintHiddenToggle(button, showHidden) {
+  if (!button) return;
+  const key = showHidden ? "files.hideHiddenFiles" : "files.showHiddenFiles";
+  button.setAttribute("aria-pressed", String(showHidden));
+  button.title = t(key);
+  button.dataset.i18nTitle = key;
+  setButtonIcon(button, showHidden ? "eye" : "eye-off", { size: 14 });
+}
 
 /** @param {unknown} selectedPath @returns {string} */
 export function fileManagerPath(selectedPath) {
@@ -189,7 +206,7 @@ function mountFileBrowser({
       return filesFromGitSnapshot(await runtime.git({ type: "status" }, target));
     },
     onShowHiddenChange(showHidden) {
-      toggleHiddenBtn?.setAttribute("aria-pressed", String(showHidden));
+      paintHiddenToggle(toggleHiddenBtn, showHidden);
     },
   });
   setFileBrowser?.(fileTree);
@@ -220,7 +237,7 @@ function mountFileBrowser({
     const shortcutLabel = isMacOS() ? "⌘B" : "Ctrl+B";
     toggleBtn.title = `${toggleBtn.title || "Files"} (${shortcutLabel})`;
   }
-  if (!document.querySelector(".spopi-shell")) {
+  if (!sidebarEl.closest(".spopi-shell")) {
     document.addEventListener("keydown", (event) => {
       if (!isFilePanelShortcut(event)) return;
       event.preventDefault();
@@ -259,8 +276,7 @@ export function mountSidebarToggle({
   overlay,
   fileSidebarEl,
 }) {
-  if (document.querySelector(".spopi-shell")) return;
-  if (!sidebarEl || !toggleBtn) return;
+  if (!sidebarEl || !toggleBtn || sidebarEl.closest(".spopi-shell")) return;
   const isMobile = () => window.innerWidth <= 768;
   /** @param {boolean} collapsed */
   const setCollapsed = (collapsed) => {

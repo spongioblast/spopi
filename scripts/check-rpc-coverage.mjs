@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // ABOUTME: Checks docs/RPC_COVERAGE.md against Pi's RPC command and event names.
-// ABOUTME: A handled row must name a file that still contains that command or event.
+// ABOUTME: A handled row must name one or more comma-separated files that still contain that name.
 
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
@@ -71,8 +71,15 @@ function findTypeFile(startFile, typeName, seen = new Set()) {
   for (const match of text.matchAll(/export\s+\*\s+from\s+"([^"]+)"/g)) {
     follows.push(match[1]);
   }
-  for (const match of text.matchAll(/import\s+type\s+\{([^}]+)\}\s+from\s+"([^"]+)"/g)) {
-    const names = match[1].split(",").map((part) => part.trim().split(/\s+/).pop());
+  // Pi 1.0 writes `import { type AgentEvent } from "@earendil-works/pi-agent-core"`.
+  for (const match of text.matchAll(/import\s+(?:type\s+)?\{([^}]+)\}\s+from\s+"([^"]+)"/g)) {
+    const names = match[1].split(",").map((part) =>
+      part
+        .trim()
+        .replace(/^type\s+/, "")
+        .split(/\s+/)
+        .pop(),
+    );
     if (names.includes(typeName)) follows.push(match[2]);
   }
   for (const specifier of follows) {
@@ -165,14 +172,24 @@ for (const row of rows) {
     errors.push(`${row.name} is handled without a path`);
     continue;
   }
-  const path = join(root, row.where);
-  if (!existsSync(path)) {
-    errors.push(`${row.name} path does not exist: ${row.where}`);
+  const files = row.where
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+  if (!files.length) {
+    errors.push(`${row.name} is handled without a path`);
     continue;
   }
-  const source = read(path);
-  if (!new RegExp(`\\b${row.name}\\b`).test(source)) {
-    errors.push(`${row.where} does not contain ${row.name}`);
+  for (const file of files) {
+    const path = join(root, file);
+    if (!existsSync(path)) {
+      errors.push(`${row.name} path does not exist: ${file}`);
+      continue;
+    }
+    const source = read(path);
+    if (!new RegExp(`\\b${row.name}\\b`).test(source)) {
+      errors.push(`${file} does not contain ${row.name}`);
+    }
   }
 }
 

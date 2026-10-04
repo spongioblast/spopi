@@ -29,7 +29,6 @@ export function syncMessagesInsets({
   measureHeight = defaultMeasureHeight,
 } = {}) {
   if (!main || !messages || !header || !inputArea) {
-    document.documentElement.style.setProperty("--tabbar-h", "0px");
     document.documentElement.style.setProperty("--kb-inset", "0px");
     return {
       topInset: 0,
@@ -44,12 +43,6 @@ export function syncMessagesInsets({
   const keyboard = viewport
     ? Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop)
     : 0;
-  const tabs = document.querySelector(".phone-tabs");
-  const tabbar =
-    tabs instanceof HTMLElement && getComputedStyle(tabs).display !== "none"
-      ? measureHeight(tabs)
-      : 0;
-  document.documentElement.style.setProperty("--tabbar-h", `${tabbar}px`);
   document.documentElement.style.setProperty("--kb-inset", `${keyboard}px`);
   document.documentElement.style.setProperty("--header-offset", `${headerHeight}px`);
   const bottomInset = measureHeight(inputArea) + CHROME_GAP + keyboard;

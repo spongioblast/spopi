@@ -57,6 +57,7 @@
  */
 
 import { displayLocalPath } from "../files/path-utils.js";
+import { copyText } from "../ui/clipboard.js";
 import { createIcon } from "../ui/icons.js";
 import { describeSessionFile, describeSessionId } from "./session-info.js";
 import { buildSessionTree } from "./session-tree.js";
@@ -65,6 +66,7 @@ export class InfoPanel {
   /**
    * @param {{
    *   panel: HTMLElement,
+   *   messages?: ParentNode | null,
    *   actions: { copyWorkspacePath: Function },
    *   t: (key: string, params?: object) => string,
    *   onNavigateLeaf?: (entryId: string) => void,
@@ -72,14 +74,15 @@ export class InfoPanel {
    *   writeText?: (text: string) => Promise<void> | void,
    * }} options
    */
-  constructor({ panel, actions, t, onNavigateLeaf, isStreaming, writeText }) {
+  constructor({ panel, messages = null, actions, t, onNavigateLeaf, isStreaming, writeText }) {
     /** @type {HTMLElement} */
     this.panel = panel;
+    this.messages = messages;
     this.actions = actions;
     this.t = t;
     this.onNavigateLeaf = onNavigateLeaf || (() => {});
     this.isStreaming = isStreaming || (() => false);
-    this.writeText = writeText || ((text) => navigator.clipboard?.writeText(text));
+    this.writeText = writeText || copyText;
     this.workspacePath = "";
     this.sessionFilePath = "";
     this.sessionId = "";
@@ -549,10 +552,8 @@ export class InfoPanel {
     // Attribute-safe escape (Pi entry ids are generated hex, but stay robust
     // for any id without depending on CSS.escape availability).
     const safeId = escapeAttribute(entryId);
-    const target = [...document.querySelectorAll(`[data-entry-id="${safeId}"]`)].find(
-      (candidate) => !this.panel.contains(candidate),
-    );
-    if (!target) return;
+    const target = this.messages?.querySelector(`[data-entry-id="${safeId}"]`);
+    if (!(target instanceof HTMLElement)) return;
     target.scrollIntoView({ behavior: "smooth", block: "center" });
     target.classList.add("info-panel-flash");
     target.addEventListener("animationend", () => target.classList.remove("info-panel-flash"), {

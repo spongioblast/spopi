@@ -9,7 +9,7 @@ type HealthApi = Pick<ExtensionAPI, "getCommands" | "getAllTools">;
 
 let api: HealthApi | null = null;
 
-export function bindPackageHealth(pi: HealthApi): void {
+export function registerPackageHealth(pi: HealthApi): void {
   api = pi;
 }
 

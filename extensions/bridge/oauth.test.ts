@@ -87,9 +87,5 @@ describe("spopi config oauth operations", () => {
       ok: false,
       error: "operationId is required",
     });
-    await expect(handleSpopiConfig("get_oauth_login_status", {}, {})).resolves.toEqual({
-      ok: false,
-      error: "operationId is required",
-    });
   });
 });

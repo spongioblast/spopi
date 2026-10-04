@@ -2,7 +2,7 @@
 // ABOUTME: Got it, Escape, or a backdrop click writes ui.firstRun.dismissed; a Settings button brings it back when Settings closes.
 
 import { t } from "../i18n/i18n.js";
-import { openDialog } from "../ui/dialog.js";
+import { getDialogRoot, openDialog } from "../ui/dialog.js";
 import { el } from "../ui/dom.js";
 
 export const FIRST_RUN_DISMISSED_KEY = "ui.firstRun.dismissed";
@@ -64,7 +64,7 @@ export async function maybeShowFirstRun(options = {}) {
     preferences,
     control,
     openSettings,
-    container = document.getElementById("dialog-container"),
+    container = getDialogRoot(),
     sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
     force = false,
   } = options;

@@ -13,6 +13,25 @@ pub enum Tier {
     Full,
 }
 
+impl Tier {
+    /// The stored name; anything unknown is Control, the tier a new device gets.
+    pub fn from_name(name: &str) -> Self {
+        match name {
+            "observe" => Self::Observe,
+            "full" => Self::Full,
+            _ => Self::Control,
+        }
+    }
+
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::Observe => "observe",
+            Self::Control => "control",
+            Self::Full => "full",
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ClientKind {
     Desktop,
@@ -299,8 +318,17 @@ fn is_mutation(command_type: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::{ClientKind, HostRouter, RoutedAction, PROTOCOL_VERSION};
+    use super::{ClientKind, HostRouter, RoutedAction, Tier, PROTOCOL_VERSION};
     use serde_json::json;
+
+    #[test]
+    fn a_stored_tier_name_reads_back_and_an_unknown_one_is_control() {
+        for tier in [Tier::Observe, Tier::Control, Tier::Full] {
+            assert_eq!(Tier::from_name(tier.name()), tier);
+        }
+        assert_eq!(Tier::from_name("admin"), Tier::Control);
+        assert_eq!(Tier::from_name(""), Tier::Control);
+    }
 
     fn connect_desktop(router: &mut HostRouter, client_id: &str) {
         router

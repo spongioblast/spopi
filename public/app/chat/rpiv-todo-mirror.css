@@ -56,7 +56,7 @@
   overflow: hidden;
   color: var(--text-secondary);
   font-size: var(--font-size-sm);
-  font-weight: 650;
+  font-weight: var(--font-weight-semibold);
   letter-spacing: 0.01em;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -93,7 +93,7 @@
   min-width: 0;
   color: var(--text-secondary);
   font-size: var(--font-size-sm);
-  line-height: 1.35;
+  line-height: var(--line-height-normal);
 }
 
 .rpiv-todo-panel__glyph {
@@ -110,7 +110,7 @@
 
 .rpiv-todo-panel__task.is-in-progress .rpiv-todo-panel__text {
   color: var(--accent-text);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
 }
 
 .rpiv-todo-panel__task.is-completed .rpiv-todo-panel__text {
@@ -206,7 +206,7 @@
 
 .rpiv-todo-panel.is-collapsed .rpiv-todo-panel__summary {
   color: var(--text-secondary);
-  font-weight: 650;
+  font-weight: var(--font-weight-semibold);
 }
 
 .rpiv-todo-panel.is-complete {

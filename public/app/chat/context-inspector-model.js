@@ -1,5 +1,5 @@
 // ABOUTME: Buckets messages the way pi-context-view walks them for the context inspector tab.
-// ABOUTME: It sums tokens per bucket and does not render anything.
+// ABOUTME: Token counts come only from the messages; a bucket with an uncounted item is unknown.
 
 /**
  * @typedef {{
@@ -30,26 +30,42 @@ export function classifyMessage(message = {}) {
   return "history";
 }
 
-/** @param {ContextMessage[]} [messages] */
+/**
+ * @param {ContextMessage} message
+ * @returns {number | null}
+ */
+function countedTokens(message) {
+  const tokens = Number(message.tokens ?? message.tokenCount);
+  return Number.isFinite(tokens) && tokens >= 0 ? tokens : null;
+}
+
+/**
+ * @param {ContextMessage[]} [messages]
+ * @returns {Array<{ name: string, tokens: number | null, items: ContextMessage[] }>}
+ */
 export function bucketMessages(messages = []) {
-  /** @type {Record<string, { tokens: number, items: ContextMessage[] }>} */
+  /** @type {Record<string, { tokens: number | null, items: ContextMessage[] }>} */
   const buckets = Object.fromEntries(BUCKETS.map((name) => [name, { tokens: 0, items: [] }]));
   for (const message of messages) {
-    const bucket = classifyMessage(message);
-    const tokens = Number(message.tokens || message.tokenCount || estimateTokens(message.content));
-    buckets[bucket].tokens += Number.isFinite(tokens) ? tokens : 0;
-    buckets[bucket].items.push(message);
+    const bucket = buckets[classifyMessage(message)];
+    const tokens = countedTokens(message);
+    bucket.tokens = tokens == null || bucket.tokens == null ? null : bucket.tokens + tokens;
+    bucket.items.push(message);
   }
-  return BUCKETS.map((name) => ({ name, ...buckets[name] })).sort((a, b) => b.tokens - a.tokens);
+  return BUCKETS.map((name) => ({ name, ...buckets[name] })).sort(
+    (a, b) => (b.tokens ?? -1) - (a.tokens ?? -1),
+  );
 }
 
-/** @param {unknown} content */
-function estimateTokens(content) {
-  const text = typeof content === "string" ? content : JSON.stringify(content || "");
-  return Math.ceil(text.length / 4);
-}
-
-/** @param {Array<{ tokens?: number }>} [buckets] */
+/**
+ * @param {Array<{ tokens?: number | null }>} [buckets]
+ * @returns {number | null}
+ */
 export function sumBucketTokens(buckets = []) {
-  return buckets.reduce((sum, bucket) => sum + (Number(bucket.tokens) || 0), 0);
+  let sum = 0;
+  for (const bucket of buckets) {
+    if (bucket.tokens == null) return null;
+    sum += Number(bucket.tokens) || 0;
+  }
+  return sum;
 }

@@ -1,7 +1,8 @@
 // ABOUTME: Renders the git toolbar, including the amend checkbox.
 // ABOUTME: Commit and push actions are invoked by the panel.
-// ABOUTME: Git panel header: branch control, publish pill, fetch/pull/push, AI commit.
+// ABOUTME: Git panel header: branch control, Add remote / Publish button, fetch/pull/push, AI commit.
 
+import { compactWorkspaceLabel } from "../files/path-utils.js";
 import { t } from "../i18n/i18n.js";
 import { setButtonIcon } from "../ui/icons.js";
 
@@ -11,6 +12,7 @@ import { setButtonIcon } from "../ui/icons.js";
  *   headOid?: string | null,
  *   headState?: string | null,
  *   upstream?: string | null,
+ *   remotes?: string[] | null,
  *   ahead?: number | null,
  *   behind?: number | null,
  *   counts?: {
@@ -33,7 +35,9 @@ import { setButtonIcon } from "../ui/icons.js";
  *   pushInProgress?: boolean,
  *   remoteInProgress?: boolean,
  *   amend?: boolean,
+ *   projectPath?: string,
  *   openBranchMenu?: (event: MouseEvent) => void,
+ *   openRemoteDialog?: () => void,
  *   pull: () => void,
  *   fetch: () => void,
  *   push: () => void,
@@ -64,6 +68,22 @@ function iconButton({ className, icon, label, variant, disabled, onClick }) {
   return button;
 }
 
+/**
+ * The project folder this panel belongs to. Read from the workspace path on
+ * every render, so a renamed folder shows its new name.
+ * @param {string | null | undefined} projectPath
+ * @returns {HTMLElement | null}
+ */
+export function renderProjectLabel(projectPath) {
+  const name = compactWorkspaceLabel(projectPath);
+  if (!name) return null;
+  const label = document.createElement("p");
+  label.className = "git-panel-project";
+  label.textContent = name;
+  label.title = String(projectPath);
+  return label;
+}
+
 /** @param {GitToolbarSnapshot | null | undefined} snapshot @returns {string} */
 function branchLabel(snapshot) {
   if (snapshot?.branch) return snapshot.branch;
@@ -82,6 +102,8 @@ export function renderGitToolbar(panel, snapshot) {
   toolbar.className = "git-panel-toolbar";
   const details = document.createElement("div");
   details.className = "git-panel-details";
+  const project = renderProjectLabel(panel.projectPath);
+  if (project) details.append(project);
   const summary = document.createElement("p");
   summary.className = "git-panel-summary";
   const branch = branchLabel(snapshot);
@@ -99,10 +121,15 @@ export function renderGitToolbar(panel, snapshot) {
   branchBtn.title = t("git.currentBranch");
   branchBtn.addEventListener("click", (event) => panel.openBranchMenu?.(event));
   summary.append(branchBtn);
-  if (!snapshot.upstream) {
-    const pill = document.createElement("span");
+  if (!snapshot.upstream && snapshot.branch) {
+    const hasRemote = (snapshot.remotes?.length || 0) > 0;
+    const pill = document.createElement("button");
+    pill.type = "button";
     pill.className = "git-publish-pill";
-    pill.textContent = `↑ ${t("git.publish")}`;
+    pill.textContent = hasRemote ? `↑ ${t("git.publish")}` : t("git.addRemote");
+    pill.title = hasRemote ? t("git.publishTitle") : t("git.addRemoteTitle");
+    pill.disabled = Boolean(panel.pushInProgress || panel.remoteInProgress);
+    pill.addEventListener("click", () => (hasRemote ? panel.push() : panel.openRemoteDialog?.()));
     summary.append(document.createTextNode(" "), pill);
   }
   details.append(summary);

@@ -6,7 +6,12 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     setupFiles: ["./vitest.setup.js"],
-    include: ["public/**/*.test.js", "extensions/**/*.test.ts", "scripts/**/*.test.js"],
+    include: [
+      "public/**/*.test.js",
+      "extensions/**/*.test.ts",
+      "scripts/**/*.test.js",
+      "tests/**/*.test.js",
+    ],
     coverage: {
       provider: "istanbul",
       enabled: false,

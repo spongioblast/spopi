@@ -83,6 +83,16 @@ export function compactWorkspaceLabel(value) {
   return basenameLocalPath(value) || displayLocalPath(value);
 }
 
+/**
+ * Replaces a POSIX home folder prefix (`/Users/name`, `/home/name`) with `~`.
+ * @param {unknown} path
+ * @returns {string}
+ */
+export function shortenPath(path) {
+  if (!path) return "";
+  return String(path).replace(/^\/?(Users|home)\/[^/]+/, "~");
+}
+
 /** @param {unknown} rel @returns {string | null} */
 export function parentPath(rel) {
   if (rel == null || rel === "") return null;

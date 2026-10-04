@@ -75,7 +75,6 @@ const guardedProperties = new Set([
 ]);
 
 let errors = 0;
-let warnings = 0;
 let fixes = 0;
 
 for (const path of cssFiles) {
@@ -83,14 +82,39 @@ for (const path of cssFiles) {
   let source = await readFile(path, "utf8");
   const original = source;
   const lines = source.split("\n");
+  let inFontFace = false;
 
   for (let index = 0; index < lines.length; index += 1) {
     const line = lines[index];
+    if (/^\s*@font-face\b/.test(line)) inFontFace = true;
+    if (inFontFace) {
+      // Descriptors cannot read custom properties: var() there is dropped and every face becomes 400.
+      if (/^\s*font-weight\s*:.*\bvar\(/.test(line)) {
+        errors += 1;
+        console.error(
+          `${displayPath}:${index + 1}: error: var() in an @font-face descriptor is ignored. Use a number.`,
+        );
+      }
+      if (line.includes("}")) inFontFace = false;
+      continue;
+    }
     const declaration = line.match(/^([\t ]*)([\w-]+)\s*:\s*([^;{}]+)(;?)(.*)$/);
     if (!declaration) continue;
 
     const [, indent, property, rawValue, semicolon, suffix] = declaration;
     if (property.startsWith("--") || displayPath === tokenSource) continue;
+    const ruleError = literalRule(property, rawValue.trim());
+    if (ruleError && !hasIgnore(lines, index)) {
+      const token = property.endsWith("height") ? tokenValue(controlTokens, rawValue.trim()) : null;
+      if (fix && token) {
+        lines[index] = `${indent}${property}: ${token}${semicolon}${suffix}`;
+        fixes += 1;
+        continue;
+      }
+      errors += 1;
+      console.error(`${displayPath}:${index + 1}: error: ${ruleError}`);
+      continue;
+    }
     if (!guardedProperties.has(property)) continue;
     if (!/\b\d+(?:\.\d+)?px\b/.test(rawValue)) continue;
     if (onlyLayoutLiteralsRemain(rawValue)) continue;
@@ -114,31 +138,80 @@ for (const path of cssFiles) {
 
   source = lines.join("\n");
   if (fix && source !== original) await writeFile(path, source);
+  if (displayPath.replaceAll("\\", "/") !== tokenSource) {
+    for (const finding of rawColors(source.split("\n"))) {
+      errors += 1;
+      console.error(
+        `${displayPath}:${finding.line}: error: raw colour ${finding.value}. Use a colour token from style-theme.css or add a reasoned design-token-ignore.`,
+      );
+    }
+  }
 }
 
 const staticInlinePattern =
-  /\.style\.(fontSize|height|minHeight|maxHeight|padding|gap|borderRadius)\s*=\s*["'`]([^"'`]*\d+(?:\.\d+)?px[^"'`]*)["'`]/g;
+  /\.style\.(fontSize|height|minHeight|maxHeight|padding|gap|borderRadius|margin\w*|zIndex|fontWeight|color|background\w*|borderColor)\s*=\s*["'`]([^"'`]*)["'`]/g;
 for (const path of jsFiles) {
+  if (path.endsWith(".test.js")) continue;
   const source = await readFile(path, "utf8");
   const displayPath = relative(root, path);
   for (const match of source.matchAll(staticInlinePattern)) {
-    if (match[2].includes("${")) continue;
-    warnings += 1;
+    const value = match[2];
+    if (
+      value.includes("${") ||
+      !/\d+(?:\.\d+)?px|#[0-9a-fA-F]{3,8}\b|\brgba?\(|^\d{3,}$/.test(value)
+    ) {
+      continue;
+    }
+    errors += 1;
     const line = source.slice(0, match.index).split("\n").length;
-    console.warn(
-      `${displayPath}:${line}: warning: static inline style ${match[1]} = ${JSON.stringify(match[2])}; prefer a .ui-* class or CSS token.`,
+    console.error(
+      `${displayPath}:${line}: error: static inline style ${match[1]} = ${JSON.stringify(value)}; use a .ui-* class or CSS token.`,
     );
   }
 }
 
 if (fixes > 0) console.log(`Fixed ${fixes} exact design-token replacement(s).`);
-if (warnings > 0)
-  console.warn(`Design check reported ${warnings} JavaScript inline-style warning(s).`);
 if (errors > 0) {
-  console.error(`Design check failed with ${errors} CSS error(s).`);
+  console.error(`Design check failed with ${errors} error(s).`);
   process.exit(1);
 }
 console.log("Design check passed.");
+
+/**
+ * Margins, overlay z-index, font weight, and control heights. Margins may keep
+ * hairline (1px) and negative nudges, and anything inside var(), calc() or clamp().
+ * @param {string} property
+ * @param {string} value
+ * @returns {string | null}
+ */
+function literalRule(property, value) {
+  if (/^margin(-|$)/.test(property) && !/\b(?:calc|clamp|min|max)\(/.test(value)) {
+    const bare = value
+      .replace(/var\([^)]*\)/g, "")
+      .replace(/-\d+(?:\.\d+)?px/g, "")
+      .replace(/(?<![\d.])1px\b/g, "");
+    if (/\b\d+(?:\.\d+)?px\b/.test(bare)) {
+      return `literal ${property}: ${value}. Use --space-* tokens.`;
+    }
+  }
+  if (property === "z-index" && /^\d+$/.test(value) && Number(value) >= 1000) {
+    return `z-index ${value}. Use a --z-* token from style-theme.css.`;
+  }
+  if (property === "font-weight" && /^(\d+|bold|bolder|lighter)$/.test(value)) {
+    return `font-weight ${value}. Use a --font-weight-* token.`;
+  }
+  if ((property === "height" || property === "min-height") && controlTokens.has(value)) {
+    return `${property}: ${value}. Use var(${controlTokens.get(value)}).`;
+  }
+  // A hand-written stack misses fonts on some OS: "SF Mono, Menlo" fell back to Courier New on Windows.
+  if (
+    property === "font-family" &&
+    !/^(?:inherit\b|var\(--font-(?:sans|mono)\b|"SPOPI )/.test(value)
+  ) {
+    return `font-family: ${value}. Use var(--font-sans) or var(--font-mono).`;
+  }
+  return null;
+}
 
 function exactReplacement(property, value) {
   if (/\bvar\(/.test(value)) return null;
@@ -171,6 +244,56 @@ function onlyLayoutLiteralsRemain(value) {
   return (
     literals.length > 0 && literals.every((literal) => literal === "0px" || literal === "960px")
   );
+}
+
+/**
+ * Hex and rgb()/hsl() literals in declaration values, including var() fallbacks.
+ * Custom property definitions are the place for colours, so they are skipped.
+ * A design-token-ignore covers the declaration that follows it.
+ * @param {string[]} lines
+ */
+function rawColors(lines) {
+  const found = [];
+  let inComment = false;
+  let declaration = null;
+  let property = "";
+  let ignored = false;
+  lines.forEach((rawLine, index) => {
+    let line = rawLine;
+    if (inComment) {
+      const end = line.indexOf("*/");
+      if (end === -1) return;
+      line = line.slice(end + 2);
+      inComment = false;
+    }
+    if (/design-token-ignore:\s*\S/.test(rawLine)) ignored = true;
+    line = line.replace(/\/\*.*?\*\//g, "");
+    const open = line.indexOf("/*");
+    if (open !== -1) {
+      line = line.slice(0, open);
+      inComment = true;
+    }
+    if (line.includes("{")) line = line.slice(line.lastIndexOf("{") + 1);
+    if (declaration === null) {
+      const start = line.match(/^\s*(--)?([\w-]+)\s*:(?!:)(.*)$/);
+      if (!start) return;
+      declaration = start[1] ? "custom" : "plain";
+      property = start[2];
+      line = start[3];
+    }
+    if (declaration === "plain" && !ignored) {
+      const named = /mask/.test(property) ? "" : "|\\b(?:white|black)\\b";
+      const pattern = new RegExp(`#[0-9a-fA-F]{3,8}\\b|\\b(?:rgba?|hsla?)\\(${named}`, "g");
+      for (const match of line.matchAll(pattern)) {
+        found.push({ line: index + 1, value: match[0] });
+      }
+    }
+    if (line.includes(";") || line.includes("}")) {
+      declaration = null;
+      ignored = false;
+    }
+  });
+  return found;
 }
 
 function hasIgnore(lines, index) {

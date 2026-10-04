@@ -33,13 +33,13 @@
 
 .turn-block-notice {
   color: var(--text-muted);
-  font-weight: var(--font-weight-normal, 400);
+  font-weight: var(--font-weight-normal);
 }
 
 .turn-block-notice[data-severity="warning"],
 .turn-block-notice[data-severity="error"] {
   color: var(--warning);
-  font-weight: var(--font-weight-medium, 500);
+  font-weight: var(--font-weight-medium);
 }
 
 .turn-block-thinking pre,

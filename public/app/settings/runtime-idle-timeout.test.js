@@ -6,7 +6,7 @@ import {
   mountRuntimeIdleTimeout,
   normalizeIdleMinutes,
   RUNTIME_IDLE_TIMEOUT_KEY,
-} from "./general-settings.js";
+} from "./runtime-idle-timeout.js";
 
 describe("normalizeIdleMinutes", () => {
   it("keeps a typed number, clamps the range, and defaults the rest", () => {

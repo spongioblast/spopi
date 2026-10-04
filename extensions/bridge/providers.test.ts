@@ -212,13 +212,12 @@ describe("spopi config custom provider operations", () => {
     }
   });
 
-  it("rejects a custom-provider list or test that has no protocol", async () => {
+  it("rejects a custom-provider test that has no protocol", async () => {
     const { handleSpopiConfig } = await loadConfigWithTempHome();
     const error = {
       ok: false,
       error: "protocol must be openai-completions or anthropic-messages",
     };
-    await expect(handleSpopiConfig("list_custom_provider_models", {}, {})).resolves.toEqual(error);
     await expect(handleSpopiConfig("test_custom_provider", {}, {})).resolves.toEqual(error);
   });
 });

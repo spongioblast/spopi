@@ -2,8 +2,8 @@
 // ABOUTME: Choosing a result navigates to that session.
 
 import { t } from "../i18n/i18n.js";
-import { bindModal } from "../ui/dialog.js";
-import { appKeybindings, installKeybindingListener } from "../ui/keybindings.js";
+import { trapModal } from "../ui/dialog.js";
+import { appKeybindings, listenForKeybindings } from "../ui/keybindings.js";
 import { createLoadingPlaceholder } from "../ui/loading-placeholder.js";
 import { escapeHtml } from "../ui/sanitize-markup.js";
 
@@ -379,8 +379,8 @@ export function mountSessionSearchDialog({
       } else open();
     },
   });
-  installKeybindingListener();
-  bindModal(dialogEl, { onClose: () => close() });
+  listenForKeybindings();
+  trapModal(dialogEl, { onClose: () => close() });
   /** @param {KeyboardEvent} event */
   inputEl.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {

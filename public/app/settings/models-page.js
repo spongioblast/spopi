@@ -7,7 +7,8 @@
 // access happens inside pi via the bridge; this module only renders.
 
 import { onLocaleChange, t } from "../i18n/i18n.js";
-import { bindModal, confirmDialog } from "../ui/dialog.js";
+import { confirmDialog, trapModal } from "../ui/dialog.js";
+import { settingsState } from "../ui/settings-states.js";
 import { createModelHealth } from "./models/model-health.js";
 import { createModelsOAuth } from "./models/oauth.js";
 import { createProviderEditor } from "./models/provider-editor.js";
@@ -191,10 +192,13 @@ export function mountModelsPage({
         ? /** @type {{ scrollTop: number }} */ (scrollContainer).scrollTop
         : 0;
     if (!options.preserveUi) {
-      const loading = document.createElement("div");
-      loading.className = "settings-api-keys-loading";
-      loading.textContent = t("settings.loadingProviders");
-      keysRoot.replaceChildren(loading);
+      keysRoot.replaceChildren(
+        settingsState({
+          kind: "loading",
+          text: t("settings.loadingProviders"),
+          className: "settings-api-keys-loading",
+        }),
+      );
     }
     /** @type {unknown} */
     let data;
@@ -266,20 +270,14 @@ export function mountModelsPage({
     const keysRoot = apiKeysContainer;
     // A background refresh that fails keeps the editor the user is in.
     if (preserveUi && keysRoot.querySelector(".models-config-layout")) return;
-    keysRoot.replaceChildren();
-    const wrap = document.createElement("div");
-    wrap.className = "settings-api-keys-empty";
-    const msg = document.createElement("div");
-    msg.textContent = message;
-    const retry = document.createElement("button");
-    retry.type = "button";
-    retry.className = "ui-button ui-button--secondary config-editor-cancel";
-    retry.textContent = t("actions.retry");
-    retry.style.marginTop = "var(--space-2)";
-    retry.addEventListener("click", () => loadApiKeysPanel());
-    wrap.appendChild(msg);
-    wrap.appendChild(retry);
-    keysRoot.appendChild(wrap);
+    keysRoot.replaceChildren(
+      settingsState({
+        kind: "error",
+        text: message,
+        className: "settings-api-keys-empty",
+        onRetry: () => void loadApiKeysPanel(),
+      }),
+    );
   }
 
   /** @param {CatalogProvider[]} providers */
@@ -501,7 +499,7 @@ export function mountModelsPage({
       sourceDialog.addEventListener("click", (event) => {
         if (event.target === sourceDialog) closeSourceDialog();
       });
-      bindModal(dialog, { onClose: closeSourceDialog });
+      trapModal(dialog, { onClose: closeSourceDialog });
       /** @type {Element} */ (inlineModelsTextarea).addEventListener(
         "change",
         renderModelsConfigLayout,
@@ -594,11 +592,13 @@ export function mountModelsPage({
 
     const currentSelection = view.selected;
     if (!currentSelection) {
-      const emptyTitle = document.createElement("h3");
-      emptyTitle.textContent = t("models.noProviders");
-      const emptyHint = document.createElement("p");
-      emptyHint.textContent = t("models.noProvidersHint");
-      main.append(emptyTitle, emptyHint);
+      main.append(
+        settingsState({
+          kind: "empty",
+          text: t("models.noProviders"),
+          hint: t("models.noProvidersHint"),
+        }),
+      );
     } else if (currentSelection.type === "auth") {
       const authProvider = currentSelection.provider;
       const provider = configuredProviders.find((candidate) => candidate.provider === authProvider);

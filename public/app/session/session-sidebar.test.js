@@ -7,13 +7,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createI18n, t } from "../i18n/i18n.js";
 import { resetUiStore, uiStore } from "../storage/ui-store.js";
 import { noteHiddenPath, noteMissingPath, resetMissingWorkspaces } from "./missing-workspace.js";
-import {
-  clearSessionListCache,
-  formatSessionTime,
-  SessionSidebar,
-  seedSessionListCache,
-  workspaceFolderName,
-} from "./session-sidebar.js";
+import { clearSessionListCache, seedSessionListCache } from "./session-list-cache.js";
+import { SessionSidebar } from "./session-sidebar.js";
+import { formatSessionTime, workspaceFolderName } from "./session-sidebar-records.js";
 
 // Test file lives at public/app/session/session-sidebar.test.js.
 // i18n locale JSONs live at public/locales/en.json. Vitest's
@@ -621,11 +617,11 @@ describe("SessionSidebar.render", () => {
     });
 
     const project = container.querySelector(".project-group");
-    const header = project.querySelector(".project-header");
+    const fold = project.querySelector(".project-group-toggle");
     const sessions = project.querySelector(".project-sessions");
     expect(sessions.classList.contains("collapsed")).toBe(true);
 
-    header.click();
+    fold.click();
 
     expect(sessions.classList.contains("collapsed")).toBe(false);
     vi.restoreAllMocks();
@@ -753,11 +749,28 @@ describe("SessionSidebar.render", () => {
     // Confirmation dialog is shown; accept it.
     const confirmDialog = document.querySelector(".dialog");
     expect(confirmDialog).toBeTruthy();
-    document.querySelector(".sidebar-confirm-yes").click();
+    document.querySelector(".ui-button--danger").click();
     await vi.waitFor(() => expect(container.querySelector(".project-archived-row")).toBeFalsy());
 
     expect(control.deleteSessions).toHaveBeenCalledWith(["s-arc-1", "s-arc-2"]);
     expect(sidebar.isArchived("s-arc-1")).toBe(false);
+  });
+
+  it("drops an archived empty chat that has no file, and keeps a saved one the host could not delete", async () => {
+    const { sidebar, container, control } = makeSidebar([
+      { id: "s-empty", timestamp: new Date().toISOString() },
+      { id: "s-saved", timestamp: new Date().toISOString(), filePath: "/s/saved.jsonl" },
+    ]);
+    sidebar.toggleArchived("s-empty");
+    sidebar.toggleArchived("s-saved");
+    await sidebar.load();
+    control.deleteSessions.mockResolvedValueOnce({ deleted: [], errors: ["s-empty", "s-saved"] });
+    container.querySelector(".project-archived-row .archived-delete-all-btn").click();
+    document.querySelector(".ui-button--danger").click();
+
+    await vi.waitFor(() => expect(sidebar.isArchived("s-empty")).toBe(false));
+    expect(sidebar.sessions.some((session) => session.id === "s-empty")).toBe(false);
+    expect(sidebar.isArchived("s-saved")).toBe(true);
   });
 
   it("focuses Cancel and dismisses archived deletion on Escape or click-outside", async () => {
@@ -768,7 +781,9 @@ describe("SessionSidebar.render", () => {
     await sidebar.load();
     const deleteAllBtn = container.querySelector(".project-archived-row .archived-delete-all-btn");
     deleteAllBtn.click();
-    expect(document.activeElement).toBe(document.querySelector(".sidebar-confirm-no"));
+    expect(document.activeElement).toBe(
+      document.querySelector(".dialog-actions .ui-button--secondary"),
+    );
 
     document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
     await Promise.resolve();
@@ -813,7 +828,7 @@ describe("SessionSidebar.render", () => {
 
     control.deleteSessions.mockResolvedValueOnce({ deleted: ["s-1", "s-2"], errors: [] });
     deleteRow.click();
-    document.querySelector(".sidebar-confirm-yes").click();
+    document.querySelector(".ui-button--danger").click();
     await vi.waitFor(() => expect(control.deleteSessions).toHaveBeenCalled());
     await vi.waitFor(() => expect(container.textContent).not.toContain("Two"));
 
@@ -870,6 +885,13 @@ describe("SessionSidebar.render", () => {
     await sidebar.load();
     const buttons = [...container.querySelectorAll(".project-group .project-new-chat-btn")];
     expect(buttons).toHaveLength(2);
+    for (const button of buttons) {
+      const header = button.closest(".project-group-header");
+      const fold = header?.querySelector(".project-group-toggle");
+      expect(header?.getAttribute("role")).toBeNull();
+      expect(fold?.contains(button)).toBe(false);
+      expect(button.parentElement).toBe(header);
+    }
     container.querySelector(".project-group.current-project .project-new-chat-btn").click();
     expect(onCreateSession).toHaveBeenCalledWith("ws-1");
     container.querySelector(".project-group:not(.current-project) .project-new-chat-btn").click();
@@ -983,7 +1005,7 @@ describe("SessionSidebar.render", () => {
     sidebar.setActive("s-1");
     vi.spyOn(console, "error").mockImplementation(() => {});
     const deleting = sidebar.deleteWorkspaceSessions({ path: "/ws-1", name: "ws-1" });
-    document.querySelector(".sidebar-confirm-yes").click();
+    document.querySelector(".ui-button--danger").click();
     await deleting;
     expect(control.deleteSessions).toHaveBeenCalledWith(["s-2"]);
   });
@@ -1007,7 +1029,7 @@ describe("SessionSidebar.render", () => {
     // and silently no-op'd for this shape.
     control.deleteSessions.mockResolvedValueOnce({ deleted: ["pin-1", "pin-2"], errors: [] });
     const deleting = sidebar.deleteWorkspaceSessions({ path: "/ws-1", name: "ws-1" });
-    document.querySelector(".sidebar-confirm-yes").click();
+    document.querySelector(".ui-button--danger").click();
     await deleting;
 
     // Ids derive from this.sessions filtered by projectPath === path; other
@@ -1025,7 +1047,7 @@ describe("SessionSidebar.render", () => {
     await sidebar.load();
 
     container.querySelector(".archived-delete-all-btn").click();
-    document.querySelector(".sidebar-confirm-no").click();
+    document.querySelector(".dialog-actions .ui-button--secondary").click();
     await Promise.resolve();
 
     expect(control.deleteSessions).not.toHaveBeenCalled();
@@ -1432,10 +1454,15 @@ describe("project actions", () => {
     ]);
     await sidebar.load();
     const header = container.querySelector(".project-group-header");
-    expect(header.getAttribute("role")).toBe("button");
-    const expanded = header.getAttribute("aria-expanded");
-    header.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
-    expect(header.getAttribute("aria-expanded")).toBe(expanded === "true" ? "false" : "true");
+    const fold = header?.querySelector(".project-group-toggle");
+    expect(fold).toBeInstanceOf(HTMLButtonElement);
+    expect(header.getAttribute("role")).toBeNull();
+    expect(fold.getAttribute("aria-controls")).toBe(
+      header.parentElement?.querySelector(".project-sessions")?.id,
+    );
+    const expanded = fold.getAttribute("aria-expanded");
+    fold.click();
+    expect(fold.getAttribute("aria-expanded")).toBe(expanded === "true" ? "false" : "true");
   });
 
   it("shows a relink note for chats recorded elsewhere and links them", async () => {
@@ -1448,5 +1475,36 @@ describe("project actions", () => {
     expect(note.textContent).toContain("D:\\old\\other");
     note.querySelector(".project-relink-btn").click();
     await vi.waitFor(() => expect(control.relinkProject).toHaveBeenCalledWith("/other"));
+  });
+});
+
+describe("worktree groups", () => {
+  it("nests a worktree under its project, with a new chat button and a menu", async () => {
+    const { container, sidebar } = makeSidebar([
+      {
+        id: "main",
+        projectPath: "D:\\repo",
+        projectName: "repo",
+        isCurrentWorkspace: true,
+      },
+      {
+        id: "wt",
+        projectPath: "D:\\.worktrees\\repo\\feat-x",
+        projectName: "feat-x",
+        worktreeOf: "D:\\repo",
+        isCurrentWorkspace: false,
+      },
+    ]);
+    await sidebar.load();
+    const group = container.querySelector(".worktree-group");
+    expect(group?.closest(".project-group")?.textContent).toContain("repo");
+    expect(group?.textContent).toContain("feat-x");
+    expect(group?.querySelector(".worktree-new-chat")).toBeInstanceOf(HTMLButtonElement);
+    expect(group?.querySelector(".worktree-menu")).toBeInstanceOf(HTMLButtonElement);
+    expect(container.querySelectorAll(".project-group")).toHaveLength(1);
+    const toggle = group?.querySelector(".project-group-toggle");
+    expect(toggle?.getAttribute("aria-expanded")).toBe("true");
+    /** @type {HTMLElement | null | undefined} */ (toggle)?.click();
+    expect(group?.querySelector(".project-sessions")?.classList.contains("collapsed")).toBe(true);
   });
 });

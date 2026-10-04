@@ -3,6 +3,7 @@
 
 import { basenameLocalPath } from "../files/path-utils.js";
 import { t } from "../i18n/i18n.js";
+import { copyText } from "../ui/clipboard.js";
 
 /**
  * Compact label for a session file path; copy/hover still use the full path.
@@ -72,7 +73,7 @@ export function mountSessionInfo({
   idValue,
   getTarget,
   getSessions,
-  writeText = (text) => navigator.clipboard?.writeText(text),
+  writeText = copyText,
 }) {
   if (!toggle || !panel || !fileValue || !idValue) return { refresh() {} };
 

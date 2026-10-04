@@ -200,9 +200,14 @@ export function mountContextUsage({
       details.push(t("usage.outputSummary", { out: formatTokens(sessionTokens.output) }));
     }
     if (used > 0 && contextWindowSize > 0) {
-      details.push(`Context: ${formatTokens(used)} / ${formatTokens(contextWindowSize)} tokens`);
+      details.push(
+        t("usage.contextOfWindow", {
+          used: formatTokens(used),
+          window: formatTokens(contextWindowSize),
+        }),
+      );
     } else if (used > 0) {
-      details.push(`Context: ${formatTokens(used)} tokens`);
+      details.push(t("usage.contextUsed", { used: formatTokens(used) }));
     }
     return details.length > 0 ? details.join(" · ") : t("usage.contextTitle");
   }

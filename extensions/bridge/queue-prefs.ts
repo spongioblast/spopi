@@ -1,8 +1,9 @@
-// ABOUTME: steeringMode and followUpMode in Pi settings.json.
+// ABOUTME: steeringMode and followUpMode in Pi settings.json, written through SettingsManager.
 // ABOUTME: The live session is updated separately through RPC.
 
 import { agentConfigPath, asString } from "./paths";
-import { readSettingsRecord, updateSettingsObject } from "./settings-io";
+import { updateGlobalSettings } from "./pi-settings";
+import { readSettingsRecord } from "./settings-io";
 
 const MODES = ["all", "one-at-a-time"] as const;
 
@@ -21,14 +22,16 @@ export function readQueueModes() {
   };
 }
 
-export function writeQueueMode(kind: unknown, mode: unknown) {
-  const key = asString(kind) === "followUp" ? "followUpMode" : "steeringMode";
-  if (asString(kind) !== "followUp" && asString(kind) !== "steering") {
+export async function writeQueueMode(kind: unknown, mode: unknown) {
+  const followUp = asString(kind) === "followUp";
+  if (!followUp && asString(kind) !== "steering") {
     throw new Error("kind must be steering or followUp");
   }
   if (!MODES.includes(mode as QueueMode)) throw new Error("mode must be all or one-at-a-time");
-  updateSettingsObject(agentConfigPath(), (settings) => {
-    settings[key] = mode;
+  const queueMode = mode as QueueMode;
+  await updateGlobalSettings((manager) => {
+    if (followUp) manager.setFollowUpMode(queueMode);
+    else manager.setSteeringMode(queueMode);
   });
   return { kind: asString(kind), mode, path: agentConfigPath() };
 }

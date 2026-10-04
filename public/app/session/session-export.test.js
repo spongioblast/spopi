@@ -16,15 +16,6 @@ describe("exportSessionHtml", () => {
     expect(result.path).toBe("D:\\sessions\\one.html");
   });
 
-  it("opens a file url when reveal is unavailable", async () => {
-    const runtime = {
-      request: vi.fn(async () => ({ response: { data: { path: "/tmp/session.html" } } })),
-    };
-    const control = { openExternal: vi.fn(async () => ({})) };
-    await exportSessionHtml(runtime, null, control);
-    expect(control.openExternal).toHaveBeenCalledWith("file:///tmp/session.html");
-  });
-
   it("does nothing when export returns no path", async () => {
     const runtime = { request: vi.fn(async () => ({ response: { data: {} } })) };
     const control = { revealPath: vi.fn() };

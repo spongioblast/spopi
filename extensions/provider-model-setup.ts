@@ -242,7 +242,7 @@ async function probeEfforts(
  * image, (vLLM only) `thinking_token_budget`, and for a thinking model the `reasoning_effort`
  * values it takes. The model list is read once more for its context window; that loads nothing.
  */
-export async function setupOneModel(options: {
+export async function configureOneModel(options: {
   baseUrl: string;
   apiKey?: string;
   modelId: string;

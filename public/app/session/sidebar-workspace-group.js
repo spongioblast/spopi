@@ -41,52 +41,50 @@ function createSectionChevron() {
   return chevron;
 }
 
-/**
- * @param {HTMLElement} header
- * @param {HTMLElement} body
- * @param {((expanded: boolean) => void) | null | undefined} onToggle
- */
-function flipDisclosure(header, body, onToggle) {
-  const next = header.getAttribute("aria-expanded") !== "true";
-  header.setAttribute("aria-expanded", String(next));
-  header.classList.toggle("collapsed", !next);
-  body.classList.toggle("collapsed", !next);
-  onToggle?.(next);
-}
+let disclosureSeq = 0;
 
 /**
- * Wires disclosure semantics onto a header/body pair.
- *
- * The header receives role=button, tabindex, and aria-expanded. Pointer
- * clicks, Enter, and Space all toggle the collapsed state. Clicks that
- * originate inside a nested <button> (new-chat, delete-all, etc.) are
- * ignored so action buttons never trigger folding.
+ * The row stays a plain div. Chevron, title, and count move into one button.
+ * Buttons already in the row (new chat, actions) stay siblings of that button.
  *
  * @param {HTMLElement} header
  * @param {HTMLElement} body
  * @param {boolean} expanded
  * @param {((expanded: boolean) => void) | null | undefined} onToggle
+ * @returns {HTMLButtonElement}
  */
-function wireDisclosure(header, body, expanded, onToggle) {
-  header.setAttribute("role", "button");
-  header.tabIndex = 0;
-  header.setAttribute("aria-expanded", String(expanded));
-  header.classList.toggle("collapsed", !expanded);
-  body.classList.toggle("collapsed", !expanded);
+export function mountDisclosure(header, body, expanded, onToggle) {
+  const toggle = document.createElement("button");
+  toggle.type = "button";
+  toggle.className = "project-group-toggle";
+  for (const child of [...header.childNodes]) {
+    if (child instanceof HTMLButtonElement) continue;
+    toggle.append(child);
+  }
+  header.prepend(toggle);
 
-  const runToggle = () => flipDisclosure(header, body, onToggle);
+  if (!body.id) {
+    disclosureSeq += 1;
+    body.id = `sidebar-disclosure-${disclosureSeq}`;
+  }
+  toggle.setAttribute("aria-controls", body.id);
 
-  header.addEventListener("click", (event) => {
-    const target = event.target;
-    if (!(target instanceof Element) || target.closest("button")) return;
-    runToggle();
+  /**
+   * @param {boolean} open
+   */
+  const apply = (open) => {
+    toggle.setAttribute("aria-expanded", String(open));
+    header.classList.toggle("collapsed", !open);
+    body.classList.toggle("collapsed", !open);
+  };
+  apply(expanded);
+  toggle.addEventListener("click", (event) => {
+    event.stopPropagation();
+    const open = toggle.getAttribute("aria-expanded") !== "true";
+    apply(open);
+    onToggle?.(open);
   });
-
-  header.addEventListener("keydown", (event) => {
-    if (event.key !== "Enter" && event.key !== " ") return;
-    event.preventDefault();
-    runToggle();
-  });
+  return toggle;
 }
 
 /**
@@ -149,7 +147,7 @@ export function buildSidebarSection({
     renderSessions(sessionsContainer);
   }
 
-  wireDisclosure(header, sessionsContainer, expanded, onToggle);
+  mountDisclosure(header, sessionsContainer, expanded, onToggle);
 
   section.appendChild(sessionsContainer);
 
@@ -277,7 +275,7 @@ export function buildSidebarWorkspaceGroup({
     renderSessions(sessionsContainer);
   }
 
-  wireDisclosure(header, sessionsContainer, expanded, onToggle);
+  mountDisclosure(header, sessionsContainer, expanded, onToggle);
 
   group.appendChild(sessionsContainer);
 

@@ -5,7 +5,7 @@ import { registerContextDrop } from "./bridge/context-drop";
 import { registerCustomUiBridge } from "./bridge/custom-ui-bridge";
 import { registerHostUiCapabilityReporter } from "./bridge/host-ui-capabilities";
 import { startOrphanWatchdog } from "./bridge/orphan-watchdog";
-import { bindPackageHealth } from "./bridge/package-health-handlers";
+import { registerPackageHealth } from "./bridge/package-health-handlers";
 import projectTrust from "./bridge/project-trust";
 import { registerSpopiAwareness } from "./bridge/spopi-awareness";
 import { registerSpopiScreenshot } from "./bridge/spopi-screenshot";
@@ -21,7 +21,7 @@ type ConfigRequest = {
 };
 
 export default function spopiBridge(pi: ExtensionAPI) {
-  bindPackageHealth(pi);
+  registerPackageHealth(pi);
   // Stop this runtime if SPOPI dies without taking it down — see
   // src-tauri/src/child_supervision.rs for the other layers.
   startOrphanWatchdog();

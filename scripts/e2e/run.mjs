@@ -8,6 +8,18 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+const agentDir = await mkdtemp(join(tmpdir(), "spopi-e2e-agent-"));
+await writeFile(
+  join(agentDir, "mcp.json"),
+  JSON.stringify({
+    mcpServers: {
+      echo: {
+        command: "node",
+        args: [join(root, "tests/fixtures/mcp/echo-server.mjs")],
+      },
+    },
+  }),
+);
 const stopDir = await mkdtemp(join(tmpdir(), "spopi-e2e-stop-"));
 const stopFile = join(stopDir, "stop");
 await writeFile(stopFile, "run");
@@ -31,6 +43,7 @@ const cargo = spawn(
       CARGO_TARGET_DIR: join(root, "src-tauri", "target"),
       SPOPI_E2E_STOP: stopFile,
       PI_SKIP_VERSION_CHECK: "1",
+      PI_CODING_AGENT_DIR: agentDir,
     },
     stdio: ["ignore", "pipe", "inherit"],
   },
@@ -64,7 +77,11 @@ try {
     SPOPI_E2E_PHONE: match[2],
     SPOPI_E2E_CERT: match[3],
   };
-  const specs = ["e2e/responsive.spec.mjs"];
+  const specs = [
+    "e2e/responsive.spec.mjs",
+    "e2e/mcp-settings.spec.mjs",
+    "e2e/open-in-pi-tui.spec.mjs",
+  ];
   for (const spec of specs) {
     const code = await new Promise((resolveCode, reject) => {
       const child = spawn(process.execPath, [join(root, spec)], {

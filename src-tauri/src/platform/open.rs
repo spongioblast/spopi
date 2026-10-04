@@ -1,179 +1,8 @@
 // ABOUTME: Opens paths and URLs with the OS file manager and the default browser.
-// ABOUTME: Command allowlisting lives here. Pi launch does not call the shell.
+// ABOUTME: Pi launch does not call the shell.
 
-use serde::Serialize;
-#[cfg(target_os = "macos")]
-use std::collections::HashSet;
 use std::path::Path;
-#[cfg(target_os = "macos")]
-use std::path::PathBuf;
 use std::process::Command;
-
-#[derive(Serialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct AppTarget {
-    pub id: String,
-    pub label: String,
-    pub kind: String,
-    pub app_name: Option<String>,
-    pub command: Option<String>,
-}
-
-#[cfg(target_os = "macos")]
-fn macos_installed_app_names() -> HashSet<String> {
-    let mut roots = vec![
-        PathBuf::from("/Applications"),
-        PathBuf::from("/System/Applications"),
-        PathBuf::from("/Applications/Utilities"),
-        PathBuf::from("/System/Applications/Utilities"),
-    ];
-    if let Some(home) = dirs::home_dir() {
-        roots.push(home.join("Applications"));
-    }
-    let mut names = HashSet::new();
-    for root in roots {
-        let Ok(entries) = std::fs::read_dir(root) else {
-            continue;
-        };
-        for entry in entries.flatten() {
-            let path = entry.path();
-            if !path.is_dir() || path.extension().and_then(|ext| ext.to_str()) != Some("app") {
-                continue;
-            }
-            if let Some(stem) = path.file_stem().and_then(|stem| stem.to_str()) {
-                names.insert(stem.to_ascii_lowercase());
-            }
-        }
-    }
-    names
-}
-
-/// List launch targets SPOPI can use to open a workspace in an external app.
-pub fn list_installed_apps() -> Vec<AppTarget> {
-    let candidates: [(&str, &str, &[&str], &str); 6] = [
-        ("vscode", "VS Code", &["Visual Studio Code", "Code"], "code"),
-        ("cursor", "Cursor", &["Cursor"], "cursor"),
-        (
-            "webstorm",
-            "WebStorm",
-            &["WebStorm", "WebStorm EAP"],
-            "webstorm",
-        ),
-        ("zed", "Zed", &["Zed"], "zed"),
-        ("terminal", "Terminal", &["Terminal", "iTerm", "Warp"], ""),
-        ("ghostty", "Ghostty", &["Ghostty"], ""),
-    ];
-
-    #[cfg(target_os = "macos")]
-    {
-        let installed = macos_installed_app_names();
-        let mut targets = Vec::new();
-        for (id, label, bundle_names, _command) in candidates {
-            if let Some(app_name) = bundle_names
-                .iter()
-                .find(|name| installed.contains(&name.to_ascii_lowercase()))
-            {
-                targets.push(AppTarget {
-                    id: id.to_string(),
-                    label: label.to_string(),
-                    kind: "app".to_string(),
-                    app_name: Some((*app_name).to_string()),
-                    command: None,
-                });
-            }
-        }
-        targets.push(AppTarget {
-            id: "finder".to_string(),
-            label: "Finder".to_string(),
-            kind: "finder".to_string(),
-            app_name: None,
-            command: None,
-        });
-        targets
-    }
-
-    #[cfg(not(target_os = "macos"))]
-    {
-        let mut targets: Vec<AppTarget> = candidates
-            .iter()
-            .filter(|(_, _, _, command)| !command.is_empty())
-            .map(|(id, label, _, command)| AppTarget {
-                id: id.to_string(),
-                label: label.to_string(),
-                kind: "command".to_string(),
-                app_name: None,
-                command: Some(command.to_string()),
-            })
-            .collect();
-        targets.push(AppTarget {
-            id: "finder".to_string(),
-            label: "File Manager".to_string(),
-            kind: "finder".to_string(),
-            app_name: None,
-            command: None,
-        });
-        targets
-    }
-}
-
-/// Open a project directory in an external app (editor / terminal / file manager). Blocking.
-pub fn open_in_app(
-    path: &str,
-    app_name: Option<&str>,
-    command: Option<&str>,
-) -> Result<(), String> {
-    let trimmed_path = path.trim();
-    if trimmed_path.is_empty() {
-        return Err("Missing path".to_string());
-    }
-
-    if let Some(command) = command.map(str::trim).filter(|command| !command.is_empty()) {
-        const ALLOWED: &[&str] = &["code", "code.cmd", "cursor", "cursor.cmd", "notepad"];
-        let exe = Path::new(command)
-            .file_name()
-            .and_then(|name| name.to_str())
-            .unwrap_or(command);
-        if !ALLOWED.iter().any(|name| name.eq_ignore_ascii_case(exe)) {
-            return Err("custom open command is not allowlisted".into());
-        }
-        let mut launcher = Command::new(command);
-        crate::platform::windows_child::hide_console(&mut launcher);
-        let status = launcher
-            .arg(trimmed_path)
-            .status()
-            .map_err(|error| format!("Failed to launch `{command}`: {error}"))?;
-        if !status.success() {
-            return Err(format!("`{command}` exited with status {status}"));
-        }
-        return Ok(());
-    }
-
-    if let Some(app_name) = app_name
-        .map(str::trim)
-        .filter(|app_name| !app_name.is_empty())
-    {
-        #[cfg(target_os = "macos")]
-        let status = Command::new("open")
-            .arg("-a")
-            .arg(app_name)
-            .arg(trimmed_path)
-            .status();
-        #[cfg(not(target_os = "macos"))]
-        let status = {
-            let mut launcher = Command::new(app_name);
-            crate::platform::windows_child::hide_console(&mut launcher);
-            launcher.arg(trimmed_path).status()
-        };
-
-        let status = status.map_err(|error| format!("Failed to open `{app_name}`: {error}"))?;
-        if !status.success() {
-            return Err(format!("`{app_name}` failed to open (status {status})"));
-        }
-        return Ok(());
-    }
-
-    open_path(trimmed_path)
-}
 
 /// Open a directory, or select a file, in the OS file manager.
 pub fn reveal_path(path: &str) -> Result<(), String> {
@@ -237,7 +66,11 @@ fn open_path_command(path: &str) -> (&'static str, Vec<String>) {
     }
 }
 
-fn open_path(path: &str) -> Result<(), String> {
+/// Open a file or folder with the desktop's default app. Blocking.
+pub fn open_path(path: &str) -> Result<(), String> {
+    if path.trim().is_empty() {
+        return Err("Missing path".to_string());
+    }
     let path = strip_verbatim_prefix(path.trim());
     let (program, args) = open_path_command(&path);
     launch_file_manager(program, &args)
@@ -266,43 +99,124 @@ fn launch_file_manager(program: &str, args: &[String]) -> Result<(), String> {
     }
 }
 
-/// Open a URL in the user's default browser via the OS opener. Blocking.
-pub fn open_external(url: &str) -> Result<(), String> {
+/// Links in chat come from the model, so only web and mail schemes may reach
+/// the OS opener. `file:`, `ms-*:` and custom protocol handlers can launch
+/// programs.
+const EXTERNAL_SCHEMES: [&str; 3] = ["http", "https", "mailto"];
+
+/// Parse and normalize a URL the user asked to open. The result is
+/// percent-encoded, so it carries no spaces, quotes or control characters.
+pub(crate) fn checked_external_url(url: &str) -> Result<String, String> {
     let trimmed = url.trim();
     if trimmed.is_empty() {
         return Err("Missing URL".to_string());
     }
+    let parsed = tauri::Url::parse(trimmed).map_err(|error| format!("Invalid URL: {error}"))?;
+    let scheme = parsed.scheme();
+    if !EXTERNAL_SCHEMES.contains(&scheme) {
+        return Err(format!("Refusing to open a {scheme}: link"));
+    }
+    if scheme != "mailto" && parsed.host_str().is_none_or(str::is_empty) {
+        return Err("URL has no host".to_string());
+    }
+    Ok(parsed.into())
+}
 
-    #[cfg(target_os = "macos")]
-    let status = Command::new("open").arg(trimmed).status();
+/// Open a URL in the user's default browser via the OS opener. Blocking.
+pub fn open_external(url: &str) -> Result<(), String> {
+    let url = checked_external_url(url)?;
+
     #[cfg(target_os = "windows")]
-    let status = {
-        let mut command = Command::new("cmd");
-        crate::platform::windows_child::hide_console(&mut command);
-        command.args(["/C", "start", "", trimmed]).status()
+    {
+        shell_execute_open(&url)
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        #[cfg(target_os = "macos")]
+        let status = Command::new("open").arg(&url).status();
+        #[cfg(not(target_os = "macos"))]
+        let status = Command::new("xdg-open").arg(&url).status();
+        match status.map_err(|error| format!("Failed to open URL: {error}"))? {
+            code if code.success() => Ok(()),
+            code => Err(format!("Opener exited with status {code}")),
+        }
+    }
+}
+
+/// ShellExecuteW hands the URL to its registered handler without a command
+/// interpreter, so `&`, `|` and `^` stay part of the URL.
+#[cfg(target_os = "windows")]
+fn shell_execute_open(url: &str) -> Result<(), String> {
+    use windows_sys::Win32::UI::Shell::ShellExecuteW;
+    use windows_sys::Win32::UI::WindowsAndMessaging::SW_SHOWNORMAL;
+
+    let wide = |text: &str| text.encode_utf16().chain(Some(0)).collect::<Vec<u16>>();
+    let verb = wide("open");
+    let file = wide(url);
+    // SAFETY: both strings are NUL-terminated UTF-16 buffers that outlive the call.
+    let result = unsafe {
+        ShellExecuteW(
+            std::ptr::null_mut(),
+            verb.as_ptr(),
+            file.as_ptr(),
+            std::ptr::null(),
+            std::ptr::null(),
+            SW_SHOWNORMAL,
+        )
     };
-    #[cfg(all(not(target_os = "macos"), not(target_os = "windows")))]
-    let status = Command::new("xdg-open").arg(trimmed).status();
-
-    match status.map_err(|error| format!("Failed to open URL: {error}"))? {
-        code if code.success() => Ok(()),
-        code => Err(format!("Opener exited with status {code}")),
-    }
-}
-
-pub(crate) fn strip_verbatim_prefix(path: &str) -> String {
-    if let Some(rest) = path.strip_prefix(r"\\?\UNC\") {
-        format!(r"\\{}", rest)
-    } else if let Some(rest) = path.strip_prefix(r"\\?\") {
-        rest.to_string()
+    // Values above 32 mean success; lower values are SE_ERR_* codes.
+    let code = result as isize;
+    if code > 32 {
+        Ok(())
     } else {
-        path.to_string()
+        Err(format!("Failed to open URL (ShellExecute error {code})"))
     }
 }
+
+pub(crate) use crate::data::paths::strip_verbatim_prefix;
 
 #[cfg(test)]
 mod tests {
-    use super::{file_manager_command, strip_verbatim_prefix};
+    use super::{checked_external_url, file_manager_command, strip_verbatim_prefix};
+
+    #[test]
+    fn external_url_accepts_web_and_mail_links() {
+        assert_eq!(
+            checked_external_url(" https://example.com/a?b=1 ").unwrap(),
+            "https://example.com/a?b=1"
+        );
+        assert!(checked_external_url("http://127.0.0.1:8000/v1").is_ok());
+        assert!(checked_external_url("mailto:someone@example.com").is_ok());
+    }
+
+    #[test]
+    fn external_url_keeps_shell_metacharacters_inside_the_url() {
+        let url = checked_external_url("https://example.com/?a=1&calc.exe|x^y").unwrap();
+        assert!(url.starts_with("https://example.com/?"));
+        assert!(!url.contains(' '));
+        let spaced = checked_external_url("https://example.com/a b\"&calc").unwrap();
+        assert!(!spaced.contains(' ') && !spaced.contains('"'));
+    }
+
+    #[test]
+    fn external_url_refuses_program_launching_schemes() {
+        for url in [
+            "file:///C:/Windows/System32/calc.exe",
+            "ms-settings:privacy",
+            "ms-msdt:/id",
+            "javascript:alert(1)",
+            "vscode://file/c:/x",
+            "calc.exe",
+            "C:\\Windows\\System32\\calc.exe",
+            "https://",
+            "",
+        ] {
+            assert!(
+                checked_external_url(url).is_err(),
+                "{url} should be refused"
+            );
+        }
+    }
 
     // Windows `std::fs::canonicalize` returns `\\?\`-prefixed extended-length
     // paths. Bun (the embedded pi runtime) cannot resolve modules from such
@@ -334,9 +248,8 @@ mod tests {
     }
 
     #[test]
-    fn open_in_app_rejects_non_allowlisted_command() {
-        let err = super::open_in_app(".", None, Some("calc.exe")).unwrap_err();
-        assert!(err.contains("allowlisted"), "{err}");
+    fn open_path_needs_a_path() {
+        assert!(super::open_path("  ").is_err());
     }
 
     #[test]

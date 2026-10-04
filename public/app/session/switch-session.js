@@ -2,7 +2,7 @@
 // ABOUTME: A newer navigationGeneration must abort a stale paint.
 
 import { appRoutePath } from "../utils/router.js";
-import { bindSessionTreeModel, branchMessages, sessionTreeModel } from "./session-tree-host.js";
+import { branchMessages, sessionTreeModel, startSessionTreeModel } from "./session-tree-host.js";
 
 /**
  * @typedef {{
@@ -45,7 +45,7 @@ export async function switchSessionTo(sessionId, ctx) {
   try {
     const treeModel =
       sessionTreeModel() ||
-      bindSessionTreeModel({
+      startSessionTreeModel({
         request: (cmd, next) => ctx.runtime.request(cmd, /** @type {object} */ (next)),
         getTarget: () => ctx.getTarget(),
       });

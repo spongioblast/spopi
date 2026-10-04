@@ -1,14 +1,13 @@
 // ABOUTME: Tests the host server: health, static files, and the loopback check.
 // ABOUTME: A non-loopback Host header is unauthorized.
-// ABOUTME: Host server integration tests moved out of the facade.
+
 use super::auth::{is_public_http_request, trusted_loopback_request};
+use super::session_view::messages_from_entries_response;
 use super::ws::{
     extension_ui_requires_owner, runtime_request_timeout, track_connect, track_disconnect,
     RUNTIME_INTERACTIVE_REQUEST_TIMEOUT, RUNTIME_REQUEST_TIMEOUT,
 };
-use super::{
-    bundled_skill_dir, messages_from_entries_response, parse_host_port_override, HostServer,
-};
+use super::{bundled_skill_dir, parse_host_port_override, HostServer};
 use crate::data::metadata_store::MetadataStore;
 use crate::pi::coordinator::RuntimeTarget;
 use crate::pi::runtime::PiRuntime;
@@ -1068,14 +1067,21 @@ async fn host_e2e_serve() {
     drop(probe);
     let state = host.state();
     state.phone.set_allow(vec!["127.0.0.1/32".into()]);
-    state.phone.set_ca_open(true);
+    state.phone.set_enabled(true);
     let tls = temp.join("tls");
     let cert_path = tls.join("phone.crt");
     let addr = std::net::SocketAddr::from((std::net::Ipv4Addr::LOCALHOST, phone_port));
     let static_dir = state.ui.shipped.clone();
     let phone_state = std::sync::Arc::clone(&state);
     tokio::spawn(async move {
-        let _ = crate::host::phone::listen::serve(addr, static_dir, tls, phone_state).await;
+        let _ = crate::host::phone::listen::serve(
+            addr,
+            static_dir,
+            tls,
+            phone_state,
+            axum_server::Handle::new(),
+        )
+        .await;
     });
     let phone_ready = std::net::SocketAddr::from((std::net::Ipv4Addr::LOCALHOST, phone_port));
     for _ in 0..50 {
@@ -1112,21 +1118,20 @@ async fn host_e2e_serve() {
 }
 
 #[tokio::test]
-async fn enabling_the_phone_records_the_current_ui_baseline() {
+async fn the_phone_listener_moves_with_the_address_and_stops_when_disabled() {
     let nonce = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_nanos();
-    let temp = std::env::temp_dir().join(format!("spopi-phone-base-{nonce}"));
+    let temp = std::env::temp_dir().join(format!("spopi-phone-life-{nonce}"));
     let public = temp.join("public");
     fs::create_dir_all(&public).unwrap();
     fs::write(public.join("index.html"), "ok").unwrap();
-    fs::write(public.join("a.js"), "shipped").unwrap();
     let metadata = Arc::new(Mutex::new(
         MetadataStore::open(&temp.join("spopi.sqlite3")).unwrap(),
     ));
     let host = HostServer::start_with_workspaces(
-        public.clone(),
+        public,
         PiRuntime::new(32),
         std::collections::HashMap::new(),
         None,
@@ -1135,46 +1140,181 @@ async fn enabling_the_phone_records_the_current_ui_baseline() {
     .await
     .unwrap();
     let origin = host.origin();
-    let before: serde_json::Value = reqwest::get(format!("{origin}/api/phone/status"))
-        .await
+    let free_port = || {
+        let probe = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        probe.local_addr().unwrap().port()
+    };
+    let client = reqwest::Client::new();
+    let enable = |enabled: bool, port: u16, allow: serde_json::Value| {
+        let client = client.clone();
+        let url = format!("{origin}/api/phone/enable");
+        async move {
+            client
+                .post(url)
+                .json(&json!({"enabled": enabled, "ip": "127.0.0.1", "port": port, "allow": allow}))
+                .send()
+                .await
+                .unwrap()
+                .json::<serde_json::Value>()
+                .await
+                .unwrap()
+        }
+    };
+    let open = |port: u16| {
+        std::net::TcpStream::connect_timeout(
+            &std::net::SocketAddr::from((std::net::Ipv4Addr::LOCALHOST, port)),
+            std::time::Duration::from_millis(200),
+        )
+        .is_ok()
+    };
+    async fn closes(port: u16, open: impl Fn(u16) -> bool) -> bool {
+        for _ in 0..40 {
+            if !open(port) {
+                return true;
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+        }
+        false
+    }
+
+    let first = free_port();
+    let bad = enable(true, first, json!(["192.168.8g0.1/32"])).await;
+    assert_eq!(bad["error"], "allow_invalid");
+    assert_eq!(bad["entry"], "192.168.8g0.1/32");
+    assert_eq!(enable(true, first, json!([])).await["error"], "allow_empty");
+    assert!(!open(first));
+
+    assert_eq!(
+        enable(true, first, json!(["127.0.0.1/32"])).await["ok"],
+        true
+    );
+    assert!(open(first));
+    assert_eq!(
+        enable(true, first, json!(["127.0.0.0/8"])).await["ok"],
+        true
+    );
+    assert!(open(first));
+
+    let second = free_port();
+    assert_eq!(
+        enable(true, second, json!(["127.0.0.1/32"])).await["ok"],
+        true
+    );
+    assert!(open(second));
+    assert!(closes(first, open).await, "the old listener kept running");
+
+    let busy = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let busy_port = busy.local_addr().unwrap().port();
+    let failed = enable(true, busy_port, json!(["127.0.0.1/32"])).await;
+    assert_eq!(failed["error"], "listen_failed");
+    drop(busy);
+
+    assert_eq!(
+        enable(false, second, json!(["127.0.0.1/32"])).await["ok"],
+        true
+    );
+    assert!(
+        closes(second, open).await,
+        "disabling left the listener running"
+    );
+    drop(host);
+    let _ = fs::remove_dir_all(temp);
+}
+
+#[tokio::test]
+async fn phone_access_comes_back_after_a_restart_only_when_it_was_on() {
+    let nonce = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
         .unwrap()
-        .json()
-        .await
-        .unwrap();
-    assert!(!before["changes"].as_array().unwrap().is_empty());
-    let probe = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
-    let port = probe.local_addr().unwrap().port();
-    drop(probe);
-    let enabled = reqwest::Client::new()
-        .post(format!("{origin}/api/phone/enable"))
-        .json(&json!({
-            "enabled": true,
-            "ip": "127.0.0.1",
-            "port": port,
-            "allow": ["127.0.0.1/32"],
-        }))
+        .as_nanos();
+    let temp = std::env::temp_dir().join(format!("spopi-phone-restore-{nonce}"));
+    let public = temp.join("public");
+    fs::create_dir_all(&public).unwrap();
+    fs::write(public.join("index.html"), "ok").unwrap();
+    let port = {
+        let probe = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        probe.local_addr().unwrap().port()
+    };
+    let metadata = Arc::new(Mutex::new(
+        MetadataStore::open(&temp.join("spopi.sqlite3")).unwrap(),
+    ));
+    {
+        let mut store = metadata.lock().unwrap();
+        store
+            .preference_set("ui.phone.ip", &json!("127.0.0.1"))
+            .unwrap();
+        store.preference_set("ui.phone.port", &json!(port)).unwrap();
+        store
+            .preference_set("ui.phone.allow", &json!(["127.0.0.1/32"]))
+            .unwrap();
+    }
+    let host = HostServer::start_with_workspaces(
+        public,
+        PiRuntime::new(32),
+        std::collections::HashMap::new(),
+        None,
+        Some(Arc::clone(&metadata)),
+    )
+    .await
+    .unwrap();
+    let open = || {
+        std::net::TcpStream::connect_timeout(
+            &std::net::SocketAddr::from((std::net::Ipv4Addr::LOCALHOST, port)),
+            std::time::Duration::from_millis(200),
+        )
+        .is_ok()
+    };
+    let enabled = || {
+        metadata
+            .lock()
+            .unwrap()
+            .preference_get("ui.phone.enabled")
+            .unwrap()
+    };
+
+    super::http::phone::restore(Arc::clone(&host.state)).await;
+    assert!(!open(), "phone access started without being turned on");
+
+    let client = reqwest::Client::new();
+    let reply = client
+        .post(format!("{}/api/phone/enable", host.origin()))
+        .json(&json!({"enabled": true, "ip": "127.0.0.1", "port": port, "allow": ["127.0.0.1/32"]}))
         .send()
         .await
+        .unwrap()
+        .json::<serde_json::Value>()
+        .await
         .unwrap();
-    assert!(enabled.status().is_success());
-    let after: serde_json::Value = reqwest::get(format!("{origin}/api/phone/status"))
+    assert_eq!(reply["ok"], true);
+    assert_eq!(enabled(), Some(json!(true)));
+
+    if let Some(running) = host.state.phone.replace_listener(None) {
+        running.handle.shutdown();
+    }
+    host.state.phone.set_enabled(false);
+    for _ in 0..40 {
+        if !open() {
+            break;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+    }
+    super::http::phone::restore(Arc::clone(&host.state)).await;
+    assert!(open(), "phone access did not come back");
+    assert!(host.state.phone.is_enabled());
+
+    let reply = client
+        .post(format!("{}/api/phone/enable", host.origin()))
+        .json(
+            &json!({"enabled": false, "ip": "127.0.0.1", "port": port, "allow": ["127.0.0.1/32"]}),
+        )
+        .send()
         .await
         .unwrap()
-        .json()
+        .json::<serde_json::Value>()
         .await
         .unwrap();
-    assert!(
-        after["changes"].as_array().unwrap().is_empty(),
-        "changes after enable: {after}"
-    );
-    fs::write(public.join("audit2-probe.js"), "probe").unwrap();
-    let edited: serde_json::Value = reqwest::get(format!("{origin}/api/phone/status"))
-        .await
-        .unwrap()
-        .json()
-        .await
-        .unwrap();
-    assert_eq!(edited["changes"].as_array().unwrap().len(), 1);
+    assert_eq!(reply["ok"], true);
+    assert_eq!(enabled(), Some(json!(false)));
     drop(host);
     let _ = fs::remove_dir_all(temp);
 }

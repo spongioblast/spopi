@@ -6,13 +6,17 @@ import { t } from "../i18n/i18n.js";
 /**
  * @param {string} key
  * @param {string} fallback
+ * @param {Record<string, string | number>} [params]
  */
-export function translate(key, fallback) {
+export function translate(key, fallback, params) {
+  const filled = params
+    ? fallback.replace(/\{(\w+)\}/g, (match, name) => String(params[name] ?? match))
+    : fallback;
   try {
-    const value = t(key);
-    return value && value !== key ? value : fallback;
+    const value = t(key, params);
+    return value && value !== key ? value : filled;
   } catch {
-    return fallback;
+    return filled;
   }
 }
 
@@ -30,15 +34,6 @@ export function resolveMetricsUrl(stored, fallbackUrl) {
 export function num(value) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : 0;
-}
-
-/** @param {unknown} value */
-export function fmtInt(value) {
-  const n = num(value);
-  if (Math.abs(n) >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (Math.abs(n) >= 10_000) return `${Math.round(n / 1000)}k`;
-  if (Math.abs(n) >= 1000) return `${(n / 1000).toFixed(1)}k`;
-  return String(Math.round(n));
 }
 
 /** @param {unknown} value */

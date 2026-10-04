@@ -144,6 +144,8 @@ import { encodeBase64, resolveTerminalTheme, TerminalTab } from "./terminal-tab.
  * @typedef {{
  *   adapter: TerminalHostAdapter,
  *   getWorkspaceId: () => (string | null | undefined),
+ *   layout: { workspace: HTMLElement, content: HTMLElement, main: HTMLElement },
+ *   toolbar: HTMLElement | null,
  * }} MountTerminalPanelOptions
  *
  * @typedef {{
@@ -188,7 +190,7 @@ function currentTerminalPreferences() {
  * @param {MountTerminalPanelOptions} opts
  * @returns {MountTerminalPanelResult | null}
  */
-export function mountTerminalPanel({ adapter, getWorkspaceId }) {
+export function mountTerminalPanel({ adapter, getWorkspaceId, layout, toolbar }) {
   /** @type {TerminalDisplayPreferences} */
   let prefs = currentTerminalPreferences();
   /** @type {TerminalPanel | undefined} */
@@ -286,17 +288,15 @@ export function mountTerminalPanel({ adapter, getWorkspaceId }) {
       docked: true,
       subscribeLocale: onLocaleChange,
       onSendToChat: sendTerminalToChat,
-      getAvailableHeight: () => document.querySelector(".workspace")?.clientHeight || 600,
-      getFullscreenBounds: getChatPanelFullscreenBounds,
+      getAvailableHeight: () => layout.workspace.clientHeight || 600,
+      getFullscreenBounds: () => chatPanelFullscreenBounds(layout),
       getDefaultProfile: () =>
         normalizeTerminalProfile(loadAppearanceCookie().terminalDefaultProfile),
       client: createPanelClient(client, () => /** @type {TerminalPanel} */ (panel)),
     }),
   );
-  const workspace = document.querySelector(".workspace");
-  const toolbar = document.querySelector(".workspace .header-right");
-  if (!workspace || !toolbar) return null;
-  panel.mount({ toggleContainer: toolbar, panelContainer: workspace });
+  if (!toolbar) return null;
+  panel.mount({ toggleContainer: toolbar, panelContainer: layout.workspace });
   mountTerminalProfileMenu(
     /** @type {{ button?: Element | null, create?: (profileId: string) => unknown, listProfiles?: () => Promise<unknown>, locked?: () => false }} */ ({
       button: panel.root?.querySelector("[data-terminal-new-tab]"),
@@ -423,16 +423,12 @@ function listTerminalProfiles(client) {
 }
 
 /**
- * @returns {{ left: number, top: number, right: number } | null}
+ * @param {MountTerminalPanelOptions["layout"]} layout
+ * @returns {{ left: number, top: number, right: number }}
  */
-function getChatPanelFullscreenBounds() {
-  const workspace = document.querySelector(".workspace");
-  const workspaceContent = document.querySelector(".workspace-content");
-  const main = document.querySelector(".workspace .main");
-  if (!workspace || !workspaceContent || !main) return null;
-
+function chatPanelFullscreenBounds({ workspace, content, main }) {
   const workspaceRect = workspace.getBoundingClientRect();
-  const contentRect = workspaceContent.getBoundingClientRect();
+  const contentRect = content.getBoundingClientRect();
   const mainRect = main.getBoundingClientRect();
   return {
     left: mainRect.left - workspaceRect.left,
@@ -548,6 +544,7 @@ export function handleTerminalFrame(frame, client, panel) {
       panel.markActivity(/** @type {string} */ (payload.terminalId));
     } else if (payload.type === "terminal_exited" || payload.type === "terminal_failed") {
       client.removeTab(/** @type {string} */ (payload.terminalId), payload.generation ?? null);
+      emitTerminalClosed(payload.terminalId, payload.generation);
       client.requestList();
     }
     return;
@@ -598,6 +595,21 @@ export function handleTerminalFrame(frame, client, panel) {
     if (msg.type === "terminal_created") {
       panel.activateWhenListed?.(/** @type {{ terminalId?: string }} */ (msg).terminalId);
     }
+    if (msg.type === "terminal_closed") {
+      emitTerminalClosed(/** @type {{ terminalId?: string }} */ (msg).terminalId);
+    }
     client.requestList();
   }
+}
+
+/**
+ * A tab ended, by a close or by its shell exiting. An exited tab stays listed
+ * until closed, so the exit carries the generation needed to close it.
+ * @param {unknown} terminalId
+ * @param {unknown} [generation]
+ */
+function emitTerminalClosed(terminalId, generation) {
+  document.dispatchEvent(
+    new CustomEvent("spopi-terminal-closed", { detail: { terminalId, generation } }),
+  );
 }

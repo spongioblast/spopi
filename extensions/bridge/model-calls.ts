@@ -170,12 +170,4 @@ export const handlers = {
     });
     return { ok: true, data: result };
   },
-  model_health: async (ctx, params) => {
-    const result = await modelHealth(ctx as ModelCallContext, {
-      provider: asString(params.provider),
-      modelId: asString(params.modelId),
-      timeoutMs: typeof params.timeoutMs === "number" ? params.timeoutMs : undefined,
-    });
-    return { ok: true, data: result };
-  },
 } satisfies BridgeHandlers;

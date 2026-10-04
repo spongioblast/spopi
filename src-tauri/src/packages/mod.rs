@@ -5,3 +5,5 @@
 //! Package enablement that Pi itself reads stays in settings.json.
 
 pub(crate) mod updates;
+mod updates_git;
+mod updates_npm;

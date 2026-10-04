@@ -657,29 +657,25 @@ describe("mutation: atomic settings patches", () => {
     expect(readJson(settingsPath).skills).toEqual(["-skills/baoyu-skills/baoyu-diagram"]);
   });
 
-  it("waits for a concurrently held lock and succeeds once released", async () => {
-    const opts = makeOptions();
+  it("refuses while another writer holds the lock and leaves settings.json unchanged", async () => {
+    const opts = makeOptions({ globalSettings: { theme: "dark" } as never });
     const settingsPath = join(opts.agentDir, "settings.json");
     const lockDir = `${settingsPath}.lock`;
+    const before = readFileSync(settingsPath, "utf8");
     const inv = buildSkillInventory(opts);
-    // Hold the Pi-compatible lock directory from outside the mutation.
     await mkdirAsync(lockDir);
-    let released = false;
-    const releaser = new Promise<void>((resolve) => {
-      setTimeout(async () => {
-        await rmdirAsync(lockDir);
-        released = true;
-        resolve();
-      }, 120);
-    });
-    await mutateSkillEnabled({
-      ...mutationBase(opts),
-      target: skillTarget(inv, "baoyu-diagram"),
-      enabled: false,
-    });
-    expect(released).toBe(true);
-    expect(readJson(settingsPath).skills).toEqual(["-skills/baoyu-skills/baoyu-diagram"]);
-    await releaser;
+    try {
+      await expect(
+        mutateSkillEnabled({
+          ...mutationBase(opts),
+          target: skillTarget(inv, "baoyu-diagram"),
+          enabled: false,
+        }),
+      ).rejects.toThrow(/lock/i);
+      expect(readFileSync(settingsPath, "utf8")).toBe(before);
+    } finally {
+      await rmdirAsync(lockDir);
+    }
   });
 
   it("migrates a legacy skills object and preserves enableSkillCommands", async () => {

@@ -1,22 +1,7 @@
-// ABOUTME: Owns the session-aggregate cost row in the header and publishes
-// ABOUTME: token totals for the combined context pill. Completely separate from
-// ABOUTME: the current-context (lastUsage) lifecycle so a successful Compact can
-// ABOUTME: invalidate stale context without fabricating usage.
+// ABOUTME: Owns the session-aggregate cost row in the header and publishes token totals.
+// ABOUTME: Totals come only from Pi's get_session_stats, never from the current context.
 
-/**
- * @param {number} amount
- */
-function formatCost(amount) {
-  return Number.isFinite(amount) ? amount.toFixed(4) : "0.0000";
-}
-
-/**
- * @param {unknown} value
- */
-function finiteAmount(value) {
-  const amount = Number(value);
-  return Number.isFinite(amount) && amount > 0 ? amount : 0;
-}
+import { formatUsd } from "./formatters.js";
 
 /**
  * @param {unknown} value
@@ -27,22 +12,8 @@ function finiteToken(value) {
 }
 
 /**
- * @param {unknown} prev
- * @param {unknown} next
- */
-function sum(prev, next) {
-  return finiteAmount(prev) + finiteAmount(next);
-}
-
-/**
- * Build a header status bar that renders session-aggregate cost
- * (sourced only from `hydrateSessionStats` and post-hydration `applyLiveUsage`)
- * and notifies the caller of token totals for the combined usage pill.
- *
- * Aggregate totals are intentionally not derived from `lastUsage`/history
- * replay: repeated mirror syncs and history rendering must never increment
- * them. Only the authoritative `get_session_stats` hydration and new live
- * assistant completions for the same active session contribute.
+ * Build a header status bar that renders the session-aggregate cost and
+ * notifies the caller of token totals for the combined usage pill.
  *
  * @param {{
  *   sessionCostEl?: HTMLElement | null,
@@ -71,11 +42,10 @@ export function createHeaderStatusBar({ sessionCostEl, t, onTotalsChange } = {})
   };
   /** @type {string | null} */
   let hydratedSessionFile = null;
-  let hasHydrated = false;
 
   function renderAggregate() {
     if (totals.cost > 0) {
-      costEl.textContent = translate("usage.costSub", { amount: `$${formatCost(totals.cost)}` });
+      costEl.textContent = translate("usage.costSub", { amount: formatUsd(totals.cost, 4) });
       costEl.classList.add("visible");
     } else {
       costEl.replaceChildren();
@@ -91,7 +61,6 @@ export function createHeaderStatusBar({ sessionCostEl, t, onTotalsChange } = {})
     totals.cacheWrite = 0;
     totals.cost = 0;
     hydratedSessionFile = null;
-    hasHydrated = false;
     renderAggregate();
   }
 
@@ -115,7 +84,6 @@ export function createHeaderStatusBar({ sessionCostEl, t, onTotalsChange } = {})
     if (!sessionFile) return false;
     if (hydratedSessionFile && sessionFile !== hydratedSessionFile) return false;
     hydratedSessionFile = sessionFile;
-    hasHydrated = true;
     // `tokens: null` is the authoritative zero state for a session with no
     // assistant usage yet; it must not leave stale totals on screen.
     const input = finiteToken(tokens?.input);
@@ -132,33 +100,5 @@ export function createHeaderStatusBar({ sessionCostEl, t, onTotalsChange } = {})
     return true;
   }
 
-  /**
-   * @param {{
-   *   input?: unknown,
-   *   output?: unknown,
-   *   cacheRead?: unknown,
-   *   cacheWrite?: unknown,
-   *   cost?: { total?: unknown } | null,
-   * }} [usage]
-   * @param {{ sessionFile?: string | null }} [context]
-   */
-  function applyLiveUsage(
-    { input, output, cacheRead, cacheWrite, cost } = {},
-    { sessionFile } = {},
-  ) {
-    // Live usage is accepted only after the active session identity has been
-    // authoritatively hydrated. Unknown identities and the reset-to-hydration
-    // race are deliberately dropped; the caller requests a fresh hydration
-    // instead of risking cross-session or replay double-counting.
-    if (!sessionFile || !hasHydrated || sessionFile !== hydratedSessionFile) return false;
-    totals.input = sum(totals.input, finiteAmount(input));
-    totals.output = sum(totals.output, finiteAmount(output));
-    totals.cacheRead = sum(totals.cacheRead, finiteAmount(cacheRead));
-    totals.cacheWrite = sum(totals.cacheWrite, finiteAmount(cacheWrite));
-    totals.cost = sum(totals.cost, finiteAmount(cost?.total));
-    renderAggregate();
-    return true;
-  }
-
-  return { applyLiveUsage, hydrateSessionStats, reset };
+  return { hydrateSessionStats, reset };
 }

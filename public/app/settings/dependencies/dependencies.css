@@ -1,7 +1,6 @@
 /* ABOUTME: Layout for Settings → Dependencies. */
 /* ABOUTME: Uses the same row, badge, and button classes as the other settings pages. */
 
-.dependencies-header,
 .dependencies-actions,
 .dependencies-steps li {
   display: flex;

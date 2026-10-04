@@ -1,7 +1,14 @@
 // ABOUTME: Tests dialog escape stack.
 // ABOUTME: Includes "closes on Escape and reports ownership".
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { closeTop, createDialogEscape, dialogOwnsEscape, openDialog } from "./dialog.js";
+import {
+  closeTop,
+  confirmDialog,
+  createDialogEscape,
+  dialogOwnsEscape,
+  openDialog,
+  promptDialog,
+} from "./dialog.js";
 
 describe("dialog escape stack", () => {
   const unbinders = [];
@@ -104,5 +111,66 @@ describe("openDialog", () => {
     openDialog({ title: "Confirm", body: document.createElement("p"), onClose, container: root });
     root.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns focus to the opener and runs the primary action on Enter", () => {
+    const root = document.createElement("div");
+    root.id = "dialog-container";
+    document.body.append(root);
+    const opener = document.createElement("button");
+    opener.type = "button";
+    document.body.append(opener);
+    opener.focus();
+    const onPrimary = vi.fn();
+    const opened = openDialog({
+      title: "Confirm",
+      body: document.createElement("p"),
+      actions: [
+        { label: "Cancel", onClick: () => opened.close() },
+        { label: "OK", primary: true, onClick: onPrimary },
+      ],
+      container: root,
+    });
+    opened.element.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    expect(onPrimary).toHaveBeenCalledTimes(1);
+    opened.close();
+    expect(document.activeElement).toBe(opener);
+  });
+});
+
+describe("promptDialog", () => {
+  afterEach(() => {
+    document.body.innerHTML = "";
+  });
+
+  it("resolves the trimmed text or null on cancel", async () => {
+    const root = document.createElement("div");
+    root.id = "dialog-container";
+    document.body.append(root);
+    const pending = promptDialog({ title: "Name", value: "  draft  " });
+    const input = document.querySelector(".dialog-field input");
+    expect(input).toBeInstanceOf(HTMLInputElement);
+    expect(document.activeElement).toBe(input);
+    input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    await expect(pending).resolves.toBe("draft");
+
+    const cancelled = promptDialog({ title: "Name" });
+    document.querySelector(".dialog-actions .ui-button--secondary")?.click();
+    await expect(cancelled).resolves.toBeNull();
+  });
+});
+
+describe("confirmDialog", () => {
+  afterEach(() => {
+    document.body.innerHTML = "";
+  });
+
+  it("resolves true on the danger confirm", async () => {
+    const root = document.createElement("div");
+    root.id = "dialog-container";
+    document.body.append(root);
+    const pending = confirmDialog({ message: "Delete?", danger: true });
+    document.querySelector(".ui-button--danger")?.click();
+    await expect(pending).resolves.toBe(true);
   });
 });

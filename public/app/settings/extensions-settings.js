@@ -1,7 +1,7 @@
 // ABOUTME: Settings → Packages renders installed, recommended, browse, and resources.
 // ABOUTME: Package modules mount into the hosts this page creates.
 
-import { translateSubtree } from "../i18n/i18n.js";
+import { t, translateSubtree } from "../i18n/i18n.js";
 import { mountBundledExtensions } from "../packages/packages-bundled.js";
 import { el } from "../ui/dom.js";
 import { sectionTitle } from "../ui/settings-controls.js";
@@ -19,7 +19,7 @@ function tab(view, label, i18n, children) {
       "button",
       {
         type: "button",
-        class: view === "installed" ? "skills-page-tab active" : "skills-page-tab",
+        class: view === "installed" ? "ui-tab skills-page-tab active" : "ui-tab skills-page-tab",
         role: "tab",
         "aria-selected": view === "installed" ? "true" : "false",
       },
@@ -72,7 +72,10 @@ export function mountExtensionsSettings(root) {
   const heading = /** @type {HTMLElement} */ (el("h3", { text: "Packages" }));
   heading.dataset.i18n = "settings.packages.title";
   const badge = /** @type {HTMLElement} */ (
-    el("span", { class: "extensions-tab-badge", id: "extensions-missing-badge" })
+    el("span", {
+      class: "ui-badge ui-badge--accent extensions-tab-badge",
+      id: "extensions-missing-badge",
+    })
   );
   badge.hidden = true;
   const recommendedLabel = /** @type {HTMLElement} */ (el("span", { text: "Recommended" }));
@@ -82,7 +85,7 @@ export function mountExtensionsSettings(root) {
       type: "text",
       id: "pkg-browse-search",
       class: "pkg-browse-search",
-      placeholder: "Search packages...",
+      placeholder: t("extensions.searchPackages"),
       autocomplete: "off",
       spellcheck: "false",
     })
@@ -158,12 +161,20 @@ export function mountExtensionsSettings(root) {
   root.replaceChildren(
     el("div", { class: "settings-header" }, [heading]),
     el("div", { class: "settings-body" }, [
-      el("div", { class: "skills-page-tabs", id: "extensions-tabs", role: "tablist" }, [
-        tab("installed", "Installed", "extensions.tabInstalled"),
-        tab("recommended", "Recommended", "extensions.tabRecommended", [recommendedLabel, badge]),
-        tab("marketplace", "Browse", "extensions.tabBrowse"),
-        tab("resources", "Resources", "settings.resources.title"),
-      ]),
+      el(
+        "div",
+        {
+          class: "ui-tabs ui-tabs--underline skills-page-tabs",
+          id: "extensions-tabs",
+          role: "tablist",
+        },
+        [
+          tab("installed", "Installed", "extensions.tabInstalled"),
+          tab("recommended", "Recommended", "extensions.tabRecommended", [recommendedLabel, badge]),
+          tab("marketplace", "Browse", "extensions.tabBrowse"),
+          tab("resources", "Resources", "settings.resources.title"),
+        ],
+      ),
       recommendedHost,
       el("div", { class: "settings-section", id: "pkg-manager-section" }, [
         el("div", { id: "pkg-bundled-host" }),

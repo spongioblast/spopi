@@ -6,11 +6,16 @@ import { chatChangedPaths } from "../chat/turn-block.js";
 import { insertSelection } from "../composer/composer-actions.js";
 import { t } from "../i18n/i18n.js";
 import { filePreviewRefs } from "../shell/chrome/file-preview.js";
+import { confirmDialog } from "../ui/dialog.js";
 import { el } from "../ui/dom.js";
 import { appKeybindings } from "../ui/keybindings.js";
 import { centerReviewOpen, setCenterReview } from "./center-mode.js";
 import { leaveLeadTab, setLeadTab } from "./lead-tab.js";
-import { formatReviewComment, mountReviewCommentDraft } from "./review/review-comments.js";
+import {
+  formatReviewComment,
+  formatReviewPackage,
+  mountReviewCommentDraft,
+} from "./review/review-comments.js";
 import { renderReviewView } from "./review/review-diff.js";
 import { buildDiff, diffFromPatch } from "./review/review-diff-model.js";
 import { renderReviewList } from "./review/review-list.js";
@@ -19,9 +24,9 @@ import { renderReviewList } from "./review/review-list.js";
  * Turn and session are Pi's changes and belong to the Review panel.
  * Git (the working tree) and commit are opened from the Git panel, which stays in the sidebar.
  * @typedef {"turn" | "session" | "git" | "commit"} ReviewScope
- * @typedef {{ path: string, status?: string, kind?: string, before?: string, after?: string, diff?: any }} ReviewFile
+ * @typedef {{ path: string, status?: string, kind?: string, before?: string, after?: string, add?: number, del?: number, diff?: any }} ReviewFile
  * @typedef {{ load: (scopeKey: string, options?: { extraPaths?: string[] }) => Promise<{ files?: ReviewFile[], unavailable?: string, label?: string, turn?: { latest?: boolean } }> }} ReviewSources
- * @typedef {{ run: (command: string) => unknown, has: (name: string) => boolean }} ReviewCommands
+ * @typedef {{ run: (command: string) => unknown, has: (name: string) => boolean, historyInstalled?: () => boolean }} ReviewCommands
  */
 
 /** @type {ReviewScope} */
@@ -32,13 +37,16 @@ let turnKey = "turn";
 let turnLatest = false;
 /** @type {string[]} */
 let turnPaths = [];
+/** The chat card's files. They stay when the history has no record of the project. */
+/** @type {ReviewFile[]} */
+let turnCardFiles = [];
 let turnTitle = "";
 let opened = false;
 /** @type {Record<ReviewScope, ReviewFile[]>} */
 const scopeFiles = { turn: [], session: [], git: [], commit: [] };
 /** @type {Record<ReviewScope, boolean>} */
 const scopeLoaded = { turn: false, session: false, git: false, commit: false };
-/** Why a scope has nothing to show: noHistory, turnGone, noGit, or loadFailed. */
+/** Why a scope has nothing to show: noHistory, turnGone, noGit, or loadFailed. notRecorded is noHistory with the package installed. */
 /** @type {Record<ReviewScope, string>} */
 const scopeUnavailable = { turn: "", session: "", git: "", commit: "" };
 /** The loader's name for each scope: "Turn 14", "This session", "Working tree", a commit. */
@@ -54,12 +62,33 @@ function isPiScope(which) {
 let sources = null;
 /** @type {null | ((message: string, options: { queue?: boolean }) => unknown)} */
 let reviewSend = null;
+/** @type {null | ((message: string) => unknown)} */
+let reviewPackageSend = null;
+/** @type {import("./review/review-drafts.js").ReviewDraftStore | null} */
+let reviewDrafts = null;
+/** @type {null | (() => string)} */
+let reviewWorkspaceId = null;
+let draftError = "";
 /** @type {ReviewCommands | null} */
 let commands = null;
 
 /** @param {typeof reviewSend} send */
 export function setReviewSend(send) {
   reviewSend = send;
+}
+
+/**
+ * @param {typeof reviewDrafts} store
+ * @param {() => string} [getWorkspaceId]
+ */
+export function setReviewDrafts(store, getWorkspaceId = () => "") {
+  reviewDrafts = store;
+  reviewWorkspaceId = getWorkspaceId;
+}
+
+/** @param {typeof reviewPackageSend} send */
+export function setReviewPackageSend(send) {
+  reviewPackageSend = send;
 }
 
 /**
@@ -93,7 +122,10 @@ async function loadScope(which, key = which) {
           : await sources.load(key);
     if (which === "turn" && key !== turnKey) return;
     if (which === "turn") turnLatest = loaded.turn?.latest === true;
-    scopeFiles[which] = loaded.files || [];
+    const keepCard = which === "turn" && loaded.unavailable === "noHistory" && turnCardFiles.length;
+    scopeFiles[which] = keepCard
+      ? turnCardFiles.map((file) => ({ ...file, kind: "notRecorded" }))
+      : loaded.files || [];
     scopeUnavailable[which] = loaded.unavailable || "";
     scopeLabel[which] = loaded.label || "";
   } catch {
@@ -107,7 +139,7 @@ async function loadScope(which, key = which) {
 /**
  * The chat's turn number names the turn; the history's own count restarts when it prunes.
  * Card paths outside the project are listed too, since the history only tracks the project.
- * @param {{ files?: { path?: string, before?: string, after?: string }[], userEntryId?: string, number?: number }} turn
+ * @param {{ files?: { path?: string, before?: string, after?: string, add?: number, del?: number }[], userEntryId?: string, number?: number }} turn
  */
 export function openTurnReview(turn) {
   turnKey = turn?.userEntryId ? `turn:${turn.userEntryId}` : "turn";
@@ -120,8 +152,11 @@ export function openTurnReview(turn) {
       path: file.path || "",
       before: file.before || "",
       after: file.after || "",
+      add: file.add || 0,
+      del: file.del || 0,
     })),
   });
+  turnCardFiles = scopeFiles.turn;
   if (scopeLoaded.turn) void loadScope("turn", turnKey);
 }
 
@@ -132,6 +167,7 @@ export function openReview(payload) {
   label = payload.label || t("review.title");
   scope = payload.scope || "turn";
   index = 0;
+  turnCardFiles = [];
   scopeFiles.turn = payload.files || [];
   scopeFiles.session = payload.sessionFiles || [];
   scopeFiles.git = payload.gitFiles || [];
@@ -169,7 +205,13 @@ function showReview() {
   setCenterReview(true);
   document.body.classList.add("review-open");
   if (!scopeLoaded[scope]) void loadScope(scope, scope === "turn" ? turnKey : scope);
+  void reviewDrafts?.useWorkspace(reviewWorkspaceId?.() || "");
   paintReview();
+  const pane = reviewPaneElement();
+  if (pane) {
+    pane.tabIndex = -1;
+    pane.focus();
+  }
   document.dispatchEvent(new CustomEvent("spopi-center-repaint"));
   // The shell shows the diff; on a narrow window that means the center drawer.
   document.dispatchEvent(
@@ -189,7 +231,7 @@ function stepAside() {
   document.dispatchEvent(new CustomEvent("spopi-center-repaint"));
 }
 
-function closeReview() {
+export function closeReview() {
   opened = false;
   setCenterReview(false);
   document.body.classList.remove("review-open");
@@ -294,6 +336,8 @@ export function paintReview() {
       del: totals.del,
       undoAvailable: undoAvailable(),
       emptyText: emptyText(),
+      draftCount: reviewDrafts?.list().length || 0,
+      draftError,
       file: shown,
     },
     {
@@ -316,9 +360,29 @@ export function paintReview() {
         if (!file) return;
         mountReviewCommentDraft(host, {
           t,
-          onAdd: (note) => sendReviewComment(file, hunk, note, false),
-          onSend: (note, queue) => sendReviewComment(file, hunk, note, queue),
+          onAddToReview: (note) => {
+            draftError = "";
+            void reviewDrafts?.add({ scope, path: file.path, hunk, note });
+          },
+          onSendNow: (note) => sendReviewComment(file, hunk, note),
+          onCancel: () => paintReview(),
         });
+      },
+      draftsFor: (hunk) =>
+        (reviewDrafts?.list() || []).filter(
+          (draft) =>
+            draft.scope === scope &&
+            draft.path === file?.path &&
+            draft.hunkHeader === (hunk.header || ""),
+        ),
+      onDeleteDraft: (id) => {
+        void reviewDrafts?.remove(id);
+      },
+      onSendReview: () => {
+        void sendReviewPackage();
+      },
+      onDiscardDrafts: () => {
+        void discardDrafts();
       },
       onChange: () => paintReview(),
     },
@@ -328,15 +392,26 @@ export function paintReview() {
 
 /** `/undo` rolls back the newest turn, so it is offered only while that turn or the session is shown. */
 function undoAvailable() {
-  if (!commands?.has("undo") || scopeUnavailable[scope]) return false;
+  if (!commands?.has("undo") || unavailableReason()) return false;
   if (scope === "session") return scopeLoaded.session;
   return scope === "turn" && turnLatest;
 }
 
-function emptyText() {
+/**
+ * The host cannot tell "not installed" from "installed, nothing recorded for this project yet";
+ * Pi's command list can, and it may arrive after the scope loaded.
+ */
+function unavailableReason() {
   const reason = scopeUnavailable[scope];
+  if (reason === "noHistory" && commands?.historyInstalled?.()) return "notRecorded";
+  return reason;
+}
+
+function emptyText() {
+  const reason = unavailableReason();
   if (reason === "noGit") return t("review.noGit");
   if (reason === "noHistory") return t("review.noHistory");
+  if (reason === "notRecorded") return t("review.notRecorded");
   if (reason === "turnGone") return t("review.turnGone");
   if (reason === "loadFailed") return t("review.loadFailed");
   if (scope === "git" || scope === "commit") return t("review.empty.git");
@@ -371,12 +446,13 @@ function firstChangedLine(diff) {
  */
 function presentFile(file) {
   const diff = fileDiff(file);
+  const totals = fileTotals(file);
   return {
     path: file.path,
     status: file.status || "M",
     kind: file.kind && file.kind !== "text" ? file.kind : diff.tooLarge ? "tooLarge" : "text",
-    add: diff.add,
-    del: diff.del,
+    add: totals.add,
+    del: totals.del,
     before: file.before || "",
     after: file.after || "",
     fromPatch: Boolean(file.diff),
@@ -405,20 +481,41 @@ function step(delta) {
  * @param {ReviewFile} file
  * @param {{ original?: string[], proposed?: string[] }} hunk
  * @param {string} note
- * @param {boolean} queue
  */
-function sendReviewComment(file, hunk, note, queue) {
+function sendReviewComment(file, hunk, note) {
   const text = formatReviewComment({
     path: file.path,
     original: hunk.original || [],
     proposed: hunk.proposed || [],
     note,
   });
-  if (reviewSend) {
-    void reviewSend(text, { queue });
+  if (reviewSend) void reviewSend(text, { queue: false });
+  else insertSelection({ path: file.path, text, startLine: 1, kind: "hunk" });
+  paintReview();
+}
+
+/** Send every draft as one prompt. A failure keeps the drafts. */
+async function sendReviewPackage() {
+  const list = reviewDrafts?.list() || [];
+  if (!list.length || !reviewPackageSend) return;
+  draftError = "";
+  try {
+    await reviewPackageSend(formatReviewPackage(list));
+  } catch {
+    draftError = t("review.drafts.sendFailed");
+    paintReview();
     return;
   }
-  insertSelection({ path: file.path, text, startLine: 1, kind: "hunk" });
+  await reviewDrafts?.clear();
+}
+
+async function discardDrafts() {
+  if (!reviewDrafts?.list().length) return;
+  const ok = await confirmDialog({
+    message: t("review.drafts.discardConfirm"),
+    danger: true,
+  });
+  if (ok) await reviewDrafts?.clear();
 }
 
 /**
@@ -450,7 +547,7 @@ function renderListInto(root, files, file) {
     root,
     {
       scopeKey: scope,
-      unavailable: scopeUnavailable[scope],
+      unavailable: unavailableReason(),
       selectedPath: file?.path || "",
       files: files.map((entry) => {
         const totals = fileTotals(entry);
@@ -497,14 +594,17 @@ function scopeTotals(files) {
  * @param {ReviewFile} entry
  */
 function fileTotals(entry) {
+  // Without a recorded baseline the chat card's counts are all there is.
+  if (entry.kind === "notRecorded") return { add: entry.add || 0, del: entry.del || 0 };
   const diff = fileDiff(entry);
   return { add: diff.add, del: diff.del };
 }
 
-document.addEventListener("spopi-review-git-file", (event) => {
+/** @param {Event} event */
+function onGitFileRequest(event) {
   const path = /** @type {CustomEvent} */ (event).detail?.path;
   void openGitFile(typeof path === "string" ? path : "");
-});
+}
 
 /**
  * @param {string} path
@@ -521,9 +621,10 @@ async function openGitFile(path) {
   paintReview();
 }
 
-document.addEventListener("spopi-review-commit-file", (event) => {
+/** @param {Event} event */
+function onCommitFileRequest(event) {
   openCommitFile(/** @type {CustomEvent} */ (event).detail || {});
-});
+}
 
 /**
  * One file of a commit, from the History tab. The patch is all the host sends.
@@ -547,12 +648,11 @@ export function openCommitFile(commit) {
   showReview();
 }
 
-document.addEventListener("spopi-show-review", () => {
+function onShowReviewRequest() {
   ensureReviewHosts(filePreviewRefs().panel?.parentElement);
   showPiReview();
-});
+}
 
-const reviewKeys = appKeybindings();
 /** @param {KeyboardEvent} event */
 const reviewKeysApply = (event) => {
   const target = event.target;
@@ -562,7 +662,12 @@ const reviewKeysApply = (event) => {
   ) {
     return false;
   }
-  return centerReviewOpen();
+  if (!centerReviewOpen()) return false;
+  const focus = document.activeElement;
+  return (
+    focus instanceof Element &&
+    Boolean(focus.closest(".spopi-review, #spopi-review, #spopi-review-list, .review-diff"))
+  );
 };
 
 /** @type {number} */
@@ -588,48 +693,65 @@ function moveHunk(delta) {
   }
 }
 
-reviewKeys.register({
-  id: "review.nextFile",
-  keys: "n",
-  labelKey: "review.next",
-  when: reviewKeysApply,
-  run: () => step(1),
-});
-reviewKeys.register({
-  id: "review.prevFile",
-  keys: "p",
-  labelKey: "review.prev",
-  when: reviewKeysApply,
-  run: () => step(-1),
-});
-reviewKeys.register({
-  id: "review.nextHunk",
-  keys: "j",
-  labelKey: "review.next",
-  when: reviewKeysApply,
-  run: () => moveHunk(1),
-});
-reviewKeys.register({
-  id: "review.prevHunk",
-  keys: "k",
-  labelKey: "review.prev",
-  when: reviewKeysApply,
-  run: () => moveHunk(-1),
-});
-reviewKeys.register({
-  id: "review.commentHunk",
-  keys: "c",
-  labelKey: "review.comment",
-  when: reviewKeysApply,
-  run: () => {
-    const button = reviewHunkElements()[hunkIndex]?.querySelector(".spopi-review-comment");
-    if (button instanceof HTMLElement) button.click();
-  },
-});
-reviewKeys.register({
-  id: "review.close",
-  keys: "Escape",
-  labelKey: "review.close",
-  when: reviewKeysApply,
-  run: () => closeReview(),
-});
+/**
+ * The Git panel, History, and phone tabs open Review through document events, and
+ * n/p/j/k/c/Escape step through it while it is open.
+ */
+export function mountReviewPane() {
+  document.addEventListener("spopi-review-git-file", onGitFileRequest);
+  document.addEventListener("spopi-review-commit-file", onCommitFileRequest);
+  document.addEventListener("spopi-show-review", onShowReviewRequest);
+  const reviewKeys = appKeybindings();
+  reviewKeys.register({
+    id: "review.nextFile",
+    keys: "n",
+    labelKey: "review.next",
+    when: reviewKeysApply,
+    run: () => step(1),
+  });
+  reviewKeys.register({
+    id: "review.prevFile",
+    keys: "p",
+    labelKey: "review.prev",
+    when: reviewKeysApply,
+    run: () => step(-1),
+  });
+  reviewKeys.register({
+    id: "review.nextHunk",
+    keys: "j",
+    labelKey: "review.next",
+    when: reviewKeysApply,
+    run: () => moveHunk(1),
+  });
+  reviewKeys.register({
+    id: "review.prevHunk",
+    keys: "k",
+    labelKey: "review.prev",
+    when: reviewKeysApply,
+    run: () => moveHunk(-1),
+  });
+  reviewKeys.register({
+    id: "review.commentHunk",
+    keys: "c",
+    labelKey: "review.comment",
+    when: reviewKeysApply,
+    run: () => {
+      const button = reviewHunkElements()[hunkIndex]?.querySelector(".spopi-review-comment");
+      if (button instanceof HTMLElement) button.click();
+    },
+  });
+  reviewKeys.register({
+    id: "review.close",
+    keys: "Escape",
+    labelKey: "review.close",
+    when: reviewKeysApply,
+    run: () => closeReview(),
+  });
+  return {
+    destroy() {
+      document.removeEventListener("spopi-review-git-file", onGitFileRequest);
+      document.removeEventListener("spopi-review-commit-file", onCommitFileRequest);
+      document.removeEventListener("spopi-show-review", onShowReviewRequest);
+    },
+  };
+}

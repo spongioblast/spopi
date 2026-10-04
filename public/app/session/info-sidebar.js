@@ -2,30 +2,30 @@
 // ABOUTME: A sequence guard drops a tree response that arrives after a session switch.
 
 import { toggleExclusiveSidePanel } from "../shell/exclusive-side-panel.js";
-import { createWorkspaceAppActions } from "./app-actions.js";
+import { copyText } from "../ui/clipboard.js";
 import { InfoPanel } from "./info-panel.js";
 import {
-  bindSessionTreeModel,
   consumeSummarizeNavigate,
   sessionTreeModel,
+  startSessionTreeModel,
 } from "./session-tree-host.js";
 
 /**
  * @param {object} options
  * @param {HTMLElement | null | undefined} options.infoSidebar
  * @param {HTMLElement | null | undefined} options.panel
+ * @param {ParentNode | null} options.messages the chat list a tree row scrolls to
  * @param {HTMLElement | null | undefined} options.infoClose
  * @param {HTMLElement | null | undefined} options.infoRefresh
  * @param {HTMLElement | null | undefined} options.infoSidebarToggle
  * @param {HTMLElement | null | undefined} options.fileSidebar
- * @param {{ listInstalledApps?: Function, openInApp?: Function } | null} options.control
  * @param {(key: string, params?: object) => string} options.t
  * @param {{
  *   workspaceInfo: (workspaceId: string) => Promise<{ info?: { path?: string } }>,
  * }} options.data
  * @param {{ request: (payload: object, target: object) => Promise<{ response?: { data?: { entries?: Array<object>, leafId?: string | null } } }> }} options.runtime
  * @param {() => { workspaceId: string, sessionId: string }} options.getTarget
- * @param {() => { lifecycle: string }} options.getStore
+ * @param {() => boolean} options.isWorking
  * @param {{ call: (method: string, params: object, opts?: { timeoutMs?: number }) => Promise<{ ok?: boolean, error?: string }> }} options.config
  * @param {() => Promise<void>} options.hydrateSnapshot
  * @param {() => void} options.syncSessionInfo
@@ -33,33 +33,41 @@ import {
 export function mountInfoSidebar({
   infoSidebar,
   panel,
+  messages,
   infoClose,
   infoRefresh,
   infoSidebarToggle,
   fileSidebar,
-  control,
   t,
   data,
   runtime,
   getTarget,
-  getStore,
+  isWorking,
   config,
   hydrateSnapshot,
   syncSessionInfo,
 }) {
   let infoTreeSeq = 0;
   let treeSubscribed = false;
-  const infoAppActions = createWorkspaceAppActions({
-    control,
-    getWorkspacePath: () => infoPanel?.workspacePath || "",
-  });
+  async function copyWorkspacePath() {
+    const path = infoPanel?.workspacePath || "";
+    if (!path) return "";
+    try {
+      await copyText(path);
+      return path;
+    } catch (err) {
+      console.error("[InfoPanel] Failed to copy workspace path:", err);
+      return "";
+    }
+  }
   const infoPanel = infoSidebar
     ? new InfoPanel({
         panel: /** @type {HTMLElement} */ (panel),
-        actions: infoAppActions,
+        messages,
+        actions: { copyWorkspacePath },
         t,
         onNavigateLeaf: (entryId) => navigateActiveTree(entryId),
-        isStreaming: () => getStore().lifecycle === "working",
+        isStreaming: isWorking,
       })
     : null;
 
@@ -84,7 +92,7 @@ export function mountInfoSidebar({
     syncSessionInfo();
     const treeModel =
       sessionTreeModel() ||
-      bindSessionTreeModel({
+      startSessionTreeModel({
         request: (cmd, next) => runtime.request(cmd, /** @type {object} */ (next || target)),
         getTarget,
       });
@@ -110,7 +118,7 @@ export function mountInfoSidebar({
    * @param {string} entryId
    */
   async function navigateActiveTree(entryId) {
-    if (!entryId || getStore().lifecycle === "working") return;
+    if (!entryId || isWorking()) return;
     // pi-workspace-history asks (conversation only / with files) before the
     // tree moves; the request has to outlive that dialog.
     const result = await config.call(

@@ -27,6 +27,7 @@ const CHECKS = [
   { name: "stylesheets", command: node, args: ["scripts/check-stylesheets.mjs"] },
   { name: "dead-exports", command: node, args: ["scripts/check-dead-exports.mjs"] },
   { name: "dom-ownership", command: node, args: ["scripts/check-dom-ownership.mjs"] },
+  { name: "export-verbs", command: node, args: ["scripts/check-export-verbs.mjs"] },
   { name: "permissions", command: node, args: ["scripts/check-tauri-permissions.js"] },
   { name: "types", command: node, args: ["scripts/check-types.mjs"] },
   { name: "rpc-coverage", command: node, args: ["scripts/check-rpc-coverage.mjs"] },

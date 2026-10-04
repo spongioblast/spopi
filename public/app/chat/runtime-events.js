@@ -7,12 +7,13 @@ import { phaseLabel } from "../metrics/metrics-overlay.js";
 import { noteExtensionError } from "../packages/extension-errors.js";
 import {
   applyTreeAppend,
-  bindSessionTreeModel,
   refreshSessionTree,
   sessionTreeModel,
+  startSessionTreeModel,
 } from "../session/session-tree-host.js";
 import { customMessageNote } from "./custom-message-note.js";
 import { liveLabel } from "./live-label.js";
+import { notifySettled } from "./on-next-settled.js";
 
 /**
  * @typedef {{
@@ -36,6 +37,8 @@ import { liveLabel } from "./live-label.js";
  *   aborted?: boolean,
  *   partialResult?: unknown,
  *   toolCallId?: string,
+ *   parentToolCallId?: string,
+ *   args?: unknown,
  *   method?: string,
  *   id?: string,
  *   level?: string,
@@ -130,9 +133,6 @@ import { liveLabel } from "./live-label.js";
  *   getCurrentModelContextWindow: () => unknown,
  *   getCurrentModelId: () => unknown,
  *   getCurrentModelProvider: () => unknown,
- *   setSessionCost: (cost: number) => void,
- *   getSessionTotalCost: () => number,
- *   headerStatusBar?: { applyLiveUsage?: (usage: unknown) => void },
  *   convNav: { notifyNewMessage: () => void },
  *   showProviderErrorIfNeeded: (event: RuntimeEventFrame) => void,
  *   getInfoSidebar: () => { classList: { contains: (name: string) => boolean } } | null | undefined,
@@ -150,6 +150,7 @@ import { liveLabel } from "./live-label.js";
  *     createToolCard: (card: Record<string, unknown>) => void,
  *     updateToolCard: (card: Record<string, unknown>) => void,
  *     finalizeToolCard: (toolCallId: unknown, result: unknown, isError: unknown) => void,
+ *     upsertNestedCall?: (parentId: string, call: Record<string, unknown>) => void,
  *   },
  *   filePreviewFollow: {
  *     onToolStart: (event: RuntimeEventFrame) => void,
@@ -189,6 +190,22 @@ function lensToolPayload(event) {
   const record = asRecord(result);
   if (record) return { ...record, isError: true };
   return { isError: true, message: typeof result === "string" ? result : "" };
+}
+
+/**
+ * A call a tool made (codemode). It is drawn on the parent card, not as its own card.
+ * @param {RuntimeEventHandlerCtx} ctx
+ * @param {RuntimeEventFrame} event
+ * @param {string} status
+ */
+function showNestedCall(ctx, event, status) {
+  ctx.toolRenderer.upsertNestedCall?.(String(event.parentToolCallId), {
+    id: String(event.toolCallId ?? ""),
+    name: String(event.toolName ?? ""),
+    status,
+    isError: Boolean(event.isError),
+    args: event.args,
+  });
 }
 
 /**
@@ -280,18 +297,28 @@ export function createDeferredRuntimeHandler() {
 /** @param {RuntimeEventHandlerCtx} ctx */
 export function createRuntimeEventHandler(ctx) {
   if (!sessionTreeModel() && ctx.runtime?.request && ctx.getTarget) {
-    bindSessionTreeModel({
+    startSessionTreeModel({
       request: (cmd, target) =>
         Promise.resolve(ctx.runtime.request(cmd, target ?? ctx.getTarget())),
       getTarget: () => ctx.getTarget(),
     });
   }
+  // Pi's assistant message_start arrives once the response opens, so TTFT is measured from
+  // turn_start (the model call going out) to the first message_update.
+  /** @type {number | null} */
+  let callSentAt = null;
+  /** @type {number | null} */
+  let firstTokenAt = null;
   /** @param {RuntimeEventFrame} event */
   return async function handleRuntimeEvent(event) {
     ctx.sessionRuntime?.dispatch?.({ type: "rpc", event });
     ctx.metricsOverlay.onRuntimeEvent(event);
     const target = ctx.getTarget();
     switch (event.type) {
+      case "turn_start":
+        callSentAt = Date.now();
+        firstTokenAt = null;
+        break;
       case "agent_start":
         ctx.setLastShownProviderError(null);
         ctx.assistantMessageStream.reset();
@@ -300,6 +327,7 @@ export function createRuntimeEventHandler(ctx) {
         ctx.setTurnWrittenPaths([]);
         break;
       case "agent_settled": {
+        notifySettled();
         ctx.workbench.live?.hide();
         ctx.settleForegroundAgent(event);
         const pending = ctx.getPendingForkSwitchCheck();
@@ -358,6 +386,7 @@ export function createRuntimeEventHandler(ctx) {
       }
       case "message_update": {
         const message = ctx.assistantMessageStream.update(event);
+        firstTokenAt ??= Date.now();
         const streaming = ctx.getStreaming();
         if (!streaming.element) startStreamingStep(ctx, message);
         else ctx.messageRenderer.updateStreamingMessage(streaming.element, message.content);
@@ -380,19 +409,23 @@ export function createRuntimeEventHandler(ctx) {
               durationMs,
             );
             ctx.contextUsage.setUsage(message.usage ?? null, ctx.getCurrentModelContextWindow());
-            ctx.setSessionCost(ctx.getSessionTotalCost() + (message.usage?.cost?.total ?? 0));
-            ctx.headerStatusBar?.applyLiveUsage?.(message.usage ?? null);
+            ctx.hydrateHeaderSessionStats();
             const stopReason = String(endMessage.stopReason || endMessage.stop_reason || "");
             const toolStep = /tool/i.test(stopReason);
             if (toolStep) ctx.liveTurn?.fold(/** @type {HTMLElement} */ (streaming.element));
             else ctx.liveTurn?.release(/** @type {HTMLElement} */ (streaming.element));
+            const ttftMs =
+              callSentAt != null && firstTokenAt != null ? firstTokenAt - callSentAt : undefined;
+            const decodeMs = firstTokenAt != null ? Date.now() - firstTokenAt : durationMs;
+            callSentAt = null;
+            firstTokenAt = null;
             if (!toolStep)
               ctx.workbench.noteTurnMeta?.(streaming.element, {
-                ttftMs: durationMs,
+                ttftMs,
                 outputTokens: message.usage?.output,
                 tokensPerSec:
-                  message.usage?.output && durationMs
-                    ? message.usage.output / (durationMs / 1000)
+                  message.usage?.output && decodeMs
+                    ? message.usage.output / (decodeMs / 1000)
                     : null,
                 model: ctx.getCurrentModelId(),
                 // Pi reports cached prompt tokens for every provider that has them.
@@ -423,11 +456,20 @@ export function createRuntimeEventHandler(ctx) {
         break;
       }
       case "tool_execution_start":
+        if (event.parentToolCallId) {
+          showNestedCall(ctx, event, "pending");
+          ctx.filePreviewFollow.onToolStart(event);
+          break;
+        }
         ctx.liveTurn?.step(toolStepLabel(event, ctx.t));
         ctx.toolRenderer.createToolCard({ ...event, status: "pending" });
         ctx.filePreviewFollow.onToolStart(event);
         break;
       case "tool_execution_update":
+        if (event.parentToolCallId) {
+          showNestedCall(ctx, event, "streaming");
+          break;
+        }
         ctx.toolRenderer.updateToolCard({
           ...event,
           status: "streaming",
@@ -435,6 +477,11 @@ export function createRuntimeEventHandler(ctx) {
         });
         break;
       case "tool_execution_end": {
+        if (event.parentToolCallId) {
+          showNestedCall(ctx, event, "done");
+          void ctx.filePreviewFollow.onToolEnd(event).catch(ctx.showError);
+          break;
+        }
         ctx.toolRenderer.finalizeToolCard(event.toolCallId, event.result, event.isError);
         const lensName = String(event.toolName || event.name || event.tool || "");
         if (lensName.startsWith("lens_")) {
@@ -479,7 +526,7 @@ export function createRuntimeEventHandler(ctx) {
       case "extension_error":
         noteExtensionError(event, ctx.getTarget());
         ctx.workbench.refreshPackageHealth?.(ctx.getTarget());
-        ctx.showError(new Error(event.error || "Extension failed"));
+        ctx.showError(new Error(event.error || t("chat.notice.extensionFailed")));
         break;
       case "session_bound":
         await ctx.adoptTarget({ ...ctx.getTarget(), sessionId: event.sessionId });

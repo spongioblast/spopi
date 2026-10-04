@@ -164,11 +164,7 @@ impl GitService {
             ("attached", Some(branch)) if !branch.is_empty() => branch,
             _ => return Err(PUSH_DETACHED_HEAD.into()),
         };
-        let remotes = String::from_utf8_lossy(&git(root, &["remote"])?)
-            .lines()
-            .map(|line| line.trim().to_owned())
-            .filter(|line| !line.is_empty())
-            .collect::<Vec<_>>();
+        let remotes = super::remote::remote_names(root)?;
         if remotes.is_empty() {
             return Err(PUSH_NO_REMOTE.into());
         }

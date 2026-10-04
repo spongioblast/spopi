@@ -1,7 +1,7 @@
 // ABOUTME: Handles package list, update check, install, and catalog host operations.
 // ABOUTME: The catalog is fetched here so the webview never opens the registry.
 
-use super::super::HostState;
+use super::super::{HostState, OpError};
 use serde_json::{json, Value};
 
 pub(crate) async fn dispatch(
@@ -9,7 +9,7 @@ pub(crate) async fn dispatch(
     request_id: &str,
     operation: &str,
     frame: &Value,
-) -> Result<Value, (&'static str, String)> {
+) -> Result<Value, OpError> {
     match operation {
         "list_pi_packages" => {
             let resolver = state.pi_launch.clone();
@@ -91,9 +91,9 @@ pub(crate) async fn dispatch(
                 "ok": true,
             }))
         }
-        _ => Err((
+        _ => Err(OpError::new(
             "host_operation_unimplemented",
-            "Host operation is not implemented on protocol v2".into(),
+            "Host operation is not implemented on protocol v2",
         )),
     }
 }

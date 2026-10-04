@@ -4,9 +4,8 @@
   display: flex;
   gap: var(--space-1);
   padding: var(--space-1);
-  /* The editor's monospace would otherwise reach the buttons; this is body's stack. */
-  font-family:
-    -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif;
+  /* The editor's monospace would otherwise reach the buttons. */
+  font-family: var(--font-sans);
   background: var(--sidebar-bg);
   border: 1px solid var(--border-hover);
   border-radius: var(--radius-sm);

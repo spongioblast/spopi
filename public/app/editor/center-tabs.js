@@ -1,6 +1,7 @@
 // ABOUTME: Session tree and Context as ext-tabs on the file preview tab bar.
 // ABOUTME: Same hook later hosts ctx.ui.custom() panels; never opens in chat.
 
+import { t } from "../i18n/i18n.js";
 import { registerSessionTree } from "../session/session-tree-host.js";
 import { mountSessionTree } from "../session/session-tree-tab.js";
 import { filePreviewRefs } from "../shell/chrome/file-preview.js";
@@ -35,7 +36,7 @@ function openCustomTab(id, label, node, { tabBar, preview } = {}) {
     const close = document.createElement("button");
     close.type = "button";
     close.className = "file-preview-tab-close";
-    close.title = "Close";
+    close.title = t("actions.close");
     close.textContent = "×";
     const tabEl = tab;
     close.addEventListener("click", (event) => {

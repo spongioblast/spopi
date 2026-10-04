@@ -2,6 +2,7 @@
 // ABOUTME: Only the user scrolling up unpins it; content growing under our own scroll does not.
 
 const BOTTOM_TOLERANCE = 24;
+const MAX_SETTLE_FRAMES = 10;
 
 /** @typedef {{ follow: () => void, force: () => void, readonly pinned: boolean }} ChatFollow */
 
@@ -48,14 +49,28 @@ function createFollower(container) {
     { passive: true },
   );
 
+  // History messages use content-visibility: auto, so the bottom is first an estimate. Drawing
+  // the messages it reveals moves it a frame later, so the jump repeats for a few frames.
+  /** @param {number} framesLeft */
+  const settle = (framesLeft) => {
+    requestAnimationFrame(() => {
+      if (!pinned) {
+        queued = false;
+        return;
+      }
+      if (container.scrollHeight - container.scrollTop - container.clientHeight > 1) {
+        container.scrollTop = container.scrollHeight;
+      }
+      pinnedTop = container.scrollTop;
+      if (framesLeft > 0) settle(framesLeft - 1);
+      else queued = false;
+    });
+  };
+
   const jump = () => {
     if (queued) return;
     queued = true;
-    requestAnimationFrame(() => {
-      queued = false;
-      container.scrollTop = container.scrollHeight;
-      pinnedTop = container.scrollTop;
-    });
+    settle(MAX_SETTLE_FRAMES);
   };
 
   return {

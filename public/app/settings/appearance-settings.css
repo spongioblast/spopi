@@ -1,46 +1,10 @@
 /* ABOUTME: Styles the Appearance page and the terminal preview controls. */
 /* ABOUTME: Colors come from the theme tokens, not from this file. */
-/* Appearance settings page: display-preference controls and the forced
-   preview-theme scopes. Layout follows the shared settings primitives; only
-   page-specific geometry lives here. */
+/* Appearance settings page: display-preference controls. Layout follows the
+   shared settings primitives; only page-specific geometry lives here. The
+   forced preview themes reuse the Dusk and Clean blocks in style-theme.css. */
 
 .settings-terminal-number {
   width: 96px;
   text-align: right;
-}
-
-/* Forced preview themes (Appearance page) scope-swap the SPOPI variables the
-   preview subtree consumes, so code editors and markdown previews render in
-   the canonical dark or light palette regardless of the active SPOPI theme.
-   System mode sets no attribute and inherits the theme. */
-[data-preview-theme="dark"] .file-preview-panel {
-  --bg-solid: #1a1a1a;
-  --bg-glass: rgba(255, 255, 255, 0.04);
-  --bg-glass-hover: rgba(255, 255, 255, 0.065);
-  --bg-glass-active: rgba(255, 255, 255, 0.095);
-  --bg-glass-strong: rgba(255, 255, 255, 0.055);
-  --bg-frosted: rgba(26, 26, 26, 0.88);
-  --text-primary: #e6e6e6;
-  --text-secondary: #a0a0a0;
-  --text-dim: #6e6e6e;
-  --text-ghost: rgba(255, 255, 255, 0.1);
-  --border: rgba(255, 255, 255, 0.075);
-  --border-hover: rgba(255, 255, 255, 0.12);
-  --border-bright: rgba(255, 255, 255, 0.17);
-}
-
-[data-preview-theme="light"] .file-preview-panel {
-  --bg-solid: #ffffff;
-  --bg-glass: rgba(0, 0, 0, 0.03);
-  --bg-glass-hover: rgba(0, 0, 0, 0.06);
-  --bg-glass-active: rgba(0, 0, 0, 0.09);
-  --bg-glass-strong: rgba(0, 0, 0, 0.04);
-  --bg-frosted: rgba(255, 255, 255, 0.82);
-  --text-primary: rgba(0, 0, 0, 0.88);
-  --text-secondary: rgba(0, 0, 0, 0.55);
-  --text-dim: rgba(0, 0, 0, 0.35);
-  --text-ghost: rgba(0, 0, 0, 0.12);
-  --border: rgba(0, 0, 0, 0.08);
-  --border-hover: rgba(0, 0, 0, 0.14);
-  --border-bright: rgba(0, 0, 0, 0.2);
 }

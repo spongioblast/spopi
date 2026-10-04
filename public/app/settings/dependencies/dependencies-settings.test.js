@@ -1,5 +1,5 @@
 // ABOUTME: Tests the Dependencies page against a fake host report.
-// ABOUTME: Covers Test all, a one-click npm install, and Linux copy commands.
+// ABOUTME: Covers Test all, a one-click npm install, the Linux download, and the nodejs.org link.
 
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -22,7 +22,7 @@ beforeEach(async () => {
 
 function report(overrides = {}) {
   return {
-    pi: { state: "ok", version: "0.87.1" },
+    pi: { state: "ok", version: "1.0.0" },
     agentBrowser: { state: "ok", version: "0.38.1", enabled: true },
     npm: { state: "ok", version: "10.0.0" },
     browser: { state: "ok", path: "C:/Chrome/chrome.exe", source: "detected" },
@@ -97,29 +97,67 @@ describe("dependencies page", () => {
     expect(page.textContent).toContain("Cancel");
   });
 
-  it("shows copyable Linux package commands", () => {
+  it("offers the Linux download as one click, with no sudo command", () => {
     const page = document.createElement("div");
+    const onJob = vi.fn();
     renderDependencies(
       page,
       report({
-        npm: {
-          state: "missing",
-          install: {
-            oneClick: false,
-            commands: ["sudo apt install -y nodejs npm"],
-            link: "https://nodejs.org/en/download",
-          },
-        },
+        npm: { state: "missing", install: { oneClick: true, method: "download" } },
       }),
       {
         preferences: { get: async () => undefined, set: async () => true },
         relaunch: null,
         platform: "Linux",
+        onJob,
       },
     );
-    expect(page.textContent).toContain("sudo apt install -y nodejs npm");
-    expect([...page.querySelectorAll("button")].some((node) => node.textContent === "Copy")).toBe(
-      true,
+    expect(page.textContent).not.toContain("sudo");
+    const button = [...page.querySelectorAll("button")].find((node) =>
+      node.textContent?.includes("Install Node.js"),
     );
+    button?.dispatchEvent(new MouseEvent("click"));
+    expect(onJob).toHaveBeenCalledWith("node", expect.any(HTMLElement));
+  });
+
+  it("says when the development browser runs without Chrome's sandbox", () => {
+    const page = document.createElement("div");
+    renderDependencies(
+      page,
+      report({
+        browser: { state: "ok", path: "/home/u/.agent-browser/chrome", noSandbox: true },
+      }),
+      { preferences: { get: async () => undefined, set: async () => true }, relaunch: null },
+    );
+    expect(page.textContent).toContain("--no-sandbox");
+    renderDependencies(page, report(), {
+      preferences: { get: async () => undefined, set: async () => true },
+      relaunch: null,
+    });
+    expect(page.textContent).not.toContain("--no-sandbox");
+  });
+
+  it("links to nodejs.org when nothing can install Node", () => {
+    const page = document.createElement("div");
+    const openExternal = vi.fn(async () => true);
+    renderDependencies(
+      page,
+      report({
+        npm: {
+          state: "missing",
+          install: { oneClick: false, link: "https://nodejs.org/en/download" },
+        },
+      }),
+      {
+        control: { openExternal },
+        preferences: { get: async () => undefined, set: async () => true },
+        relaunch: null,
+      },
+    );
+    const button = [...page.querySelectorAll("button")].find((node) =>
+      node.textContent?.includes("nodejs.org"),
+    );
+    button?.dispatchEvent(new MouseEvent("click"));
+    expect(openExternal).toHaveBeenCalledWith("https://nodejs.org/en/download");
   });
 });

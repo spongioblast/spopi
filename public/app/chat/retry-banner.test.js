@@ -15,6 +15,7 @@ describe("mountRetryBanner", () => {
     expect(root.hidden).toBe(false);
     expect(root.querySelectorAll(".retry-banner-message")).toHaveLength(1);
     expect(root.querySelector(".retry-banner-count")?.textContent).toBe("3 failures");
+    expect(root.querySelector(".retry-banner-abort")?.classList.contains("ui-button")).toBe(true);
     mountRetryBanner(root, { retry: null });
     expect(root.hidden).toBe(true);
     expect(root.childElementCount).toBe(0);

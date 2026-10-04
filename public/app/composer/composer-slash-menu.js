@@ -2,7 +2,7 @@
 // ABOUTME: Choosing an item inserts that command into the input.
 
 import { t } from "../i18n/i18n.js";
-import { sidebarChromeRefs } from "../shell/chrome/sidebar.js";
+import { openSettingsTab } from "../settings/settings-panel.js";
 import {
   commandGroup,
   commandIcon,
@@ -322,18 +322,7 @@ export function mountComposerSlashMenu({
         link.addEventListener("mousedown", (event) => event.preventDefault());
         link.addEventListener("click", () => {
           close();
-          const settingsBtn = sidebarChromeRefs().settingsBtn;
-          if (settingsBtn && "click" in settingsBtn && typeof settingsBtn.click === "function") {
-            settingsBtn.click();
-          }
-          const extensionsTab = document.querySelector('[data-settings-tab="extensions"]');
-          if (
-            extensionsTab &&
-            "click" in extensionsTab &&
-            typeof extensionsTab.click === "function"
-          ) {
-            extensionsTab.click();
-          }
+          openSettingsTab("extensions");
         });
         empty.append(link);
       }

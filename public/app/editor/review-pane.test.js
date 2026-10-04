@@ -4,19 +4,39 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { setFileActionDispatch } from "../chat/file-actions.js";
 import { setComposerInsert } from "../composer/composer-actions.js";
 import { centerReviewOpen } from "./center-mode.js";
+import { paintAdaptiveCenter } from "./center-paint.js";
 import { leadTab, leaveLeadTab } from "./lead-tab.js";
+import { createReviewDrafts } from "./review/review-drafts.js";
 import {
   ensureReviewHosts,
+  mountReviewPane,
   openCommitFile,
   openReview,
   openTurnReview,
+  paintReview,
   reviewListElement,
   reviewPaneElement,
   setReviewCommands,
+  setReviewDrafts,
+  setReviewPackageSend,
   setReviewSend,
   setReviewSources,
   showPiReview,
 } from "./review-pane.js";
+
+/** @param {string} text */
+function addDraft(text) {
+  reviewPaneElement()
+    ?.querySelector(".spopi-review-comment")
+    ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+  const note = /** @type {HTMLTextAreaElement} */ (
+    reviewPaneElement()?.querySelector(".review-comment-note")
+  );
+  note.value = text;
+  reviewPaneElement()
+    ?.querySelector("[data-i18n='review.comments.addToReview']")
+    ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+}
 
 const payload = {
   label: "Turn 14",
@@ -25,6 +45,8 @@ const payload = {
     { path: "b.js", before: "old\n", after: "new\n" },
   ],
 };
+
+mountReviewPane();
 
 describe("review pane", () => {
   beforeEach(() => {
@@ -37,9 +59,24 @@ describe("review pane", () => {
     document.body.append(sidebar, reviewSidebar, center);
     setReviewSources(null);
     setReviewSend(null);
+    setReviewDrafts(null);
+    setReviewPackageSend(null);
     setReviewCommands(null);
     ensureReviewHosts(center);
     openReview(payload);
+  });
+
+  it("keeps the diff's scroll position while a turn streams", () => {
+    paintAdaptiveCenter({ status: { phase: "working" }, transcript: { turns: [] } });
+    const body = reviewPaneElement()?.querySelector(".review-body");
+    expect(body).toBeTruthy();
+    if (body) body.dataset.scrollMark = "kept";
+    paintAdaptiveCenter({
+      status: { phase: "working" },
+      transcript: { turns: [{ text: "still thinking" }] },
+    });
+    expect(reviewPaneElement()?.querySelector(".review-body")).toBe(body);
+    expect(body?.dataset.scrollMark).toBe("kept");
   });
 
   it("shows one file and lists the changes in the Review panel, not Sessions", () => {
@@ -86,6 +123,22 @@ describe("review pane", () => {
     expect(reviewPaneElement()?.querySelector(".review-undo-turn")).toBeNull();
   });
 
+  it("keeps the chat card's files when the history has no record of the project", async () => {
+    setReviewCommands({ has: () => true, historyInstalled: () => true, run: vi.fn() });
+    setReviewSources({ load: async () => ({ files: [], unavailable: "noHistory" }) });
+    openTurnReview({
+      files: [{ path: "D:/proj/list_dir.py", add: 26, del: 0 }],
+      userEntryId: "u2",
+    });
+    await vi.waitFor(() =>
+      expect(reviewPaneElement()?.textContent).toContain("review.notice.notRecorded"),
+    );
+    const file = reviewPaneElement()?.querySelector(".review-file");
+    expect(file?.textContent).toContain("list_dir.py");
+    expect(file?.textContent).toContain("+26");
+    expect(reviewPaneElement()?.querySelector(".review-undo-turn")).toBeNull();
+  });
+
   it("offers no undo when pi-workspace-history is missing", () => {
     setReviewCommands({ has: () => false, run: vi.fn() });
     openReview(payload);
@@ -103,12 +156,12 @@ describe("review pane", () => {
     );
     note.value = "keep the old name";
     reviewPaneElement()
-      ?.querySelector("[data-i18n='review.comments.send']")
+      ?.querySelector("[data-i18n='review.comments.sendNow']")
       ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     expect(String(send.mock.calls[0][0])).toContain("keep the old name");
   });
 
-  it("adds a comment to the message box when nothing can send", () => {
+  it("sends now into the message box when nothing can send", () => {
     /** @type {Record<string, unknown>[]} */
     const inserted = [];
     setComposerInsert((detail) => inserted.push(detail));
@@ -116,9 +169,94 @@ describe("review pane", () => {
       ?.querySelector(".spopi-review-comment")
       ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     reviewPaneElement()
-      ?.querySelector(".review-comment-add")
+      ?.querySelector("[data-i18n='review.comments.sendNow']")
       ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     expect(String(inserted[0]?.text || "")).toContain("+");
+  });
+
+  it("keeps a hunk comment as a draft and does not send it", async () => {
+    const send = vi.fn();
+    const load = vi.fn(async () => []);
+    setReviewSend(send);
+    setReviewDrafts(
+      createReviewDrafts({
+        load,
+        save: async (_id, list) => list,
+        onChange: () => paintReview(),
+      }),
+      () => "proj",
+    );
+    openReview(payload);
+    await vi.waitFor(() => expect(load).toHaveBeenCalled());
+    await Promise.resolve();
+    reviewPaneElement()
+      ?.querySelector(".spopi-review-comment")
+      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    const note = /** @type {HTMLTextAreaElement} */ (
+      reviewPaneElement()?.querySelector(".review-comment-note")
+    );
+    note.value = "keep the old name";
+    reviewPaneElement()
+      ?.querySelector("[data-i18n='review.comments.addToReview']")
+      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    expect(send).not.toHaveBeenCalled();
+    expect(reviewPaneElement()?.querySelector(".review-draft-note")?.textContent).toContain(
+      "keep the old name",
+    );
+  });
+
+  it("sends every draft as one review and then clears them", async () => {
+    const sent = vi.fn(async () => {});
+    const load = vi.fn(async () => []);
+    setReviewDrafts(
+      createReviewDrafts({
+        load,
+        save: async (_id, list) => list,
+        onChange: () => paintReview(),
+      }),
+      () => "proj",
+    );
+    setReviewPackageSend(sent);
+    openReview(payload);
+    await vi.waitFor(() => expect(load).toHaveBeenCalled());
+    await Promise.resolve();
+    addDraft("first");
+    addDraft("second");
+    reviewPaneElement()
+      ?.querySelector(".review-drafts-send")
+      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await vi.waitFor(() => expect(sent).toHaveBeenCalledTimes(1));
+    expect(String(sent.mock.calls[0][0])).toContain("### 1.");
+    expect(String(sent.mock.calls[0][0])).toContain("### 2.");
+    expect(reviewPaneElement()?.querySelector(".review-draft-note")).toBeNull();
+  });
+
+  it("keeps the drafts when sending the review fails", async () => {
+    const load = vi.fn(async () => []);
+    setReviewDrafts(
+      createReviewDrafts({
+        load,
+        save: async (_id, list) => list,
+        onChange: () => paintReview(),
+      }),
+      () => "proj",
+    );
+    setReviewPackageSend(async () => {
+      throw new Error("down");
+    });
+    openReview(payload);
+    await vi.waitFor(() => expect(load).toHaveBeenCalled());
+    await Promise.resolve();
+    addDraft("still here");
+    reviewPaneElement()
+      ?.querySelector(".review-drafts-send")
+      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await vi.waitFor(() =>
+      expect(reviewPaneElement()?.querySelector(".review-draft-error")).not.toBeNull(),
+    );
+    expect(reviewPaneElement()?.querySelector(".review-draft-note")?.textContent).toContain(
+      "still here",
+    );
   });
 
   it("lists only Pi's scopes and loads the session from the sources", async () => {
@@ -134,6 +272,28 @@ describe("review pane", () => {
     scopes[1]?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     await vi.waitFor(() => expect(reviewPaneElement()?.textContent).toContain("session.js"));
     expect(load).toHaveBeenCalledWith("session", { extraPaths: [] });
+  });
+
+  it("asks to install pi-workspace-history only when Pi has not loaded it", async () => {
+    setReviewSources({ load: async () => ({ files: [], unavailable: "noHistory" }) });
+    let installed = false;
+    setReviewCommands({ has: () => false, historyInstalled: () => installed, run: vi.fn() });
+    const scopes = () => [...(reviewListElement()?.querySelectorAll(".review-scope button") || [])];
+    scopes()[1]?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await vi.waitFor(() => expect(reviewListElement()?.textContent).toContain("review.noHistory"));
+    const open = vi.fn();
+    document.addEventListener("spopi-open-settings", open);
+    reviewListElement()
+      ?.querySelector(".review-open-packages")
+      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    document.removeEventListener("spopi-open-settings", open);
+    expect(open.mock.calls[0]?.[0].detail).toEqual({ tab: "extensions" });
+
+    installed = true;
+    paintReview();
+    expect(reviewListElement()?.textContent).not.toContain("review.noHistory");
+    expect(reviewListElement()?.textContent).toContain("review.notRecorded");
+    expect(reviewListElement()?.querySelector(".review-open-packages")).toBeNull();
   });
 
   it("opens a Git change beside the Git panel, and the rail brings back Pi's turn", async () => {

@@ -12,9 +12,9 @@ WebView (vanilla JS)
   → embedded pi --mode rpc --extension spopi-bridge.mjs
 ```
 
-Product identity: binary `spopi.exe`, Tauri id `app.spopi.desktop`, app data `%APPDATA%\spopi\` + `spopi.sqlite3` (one folder: `data/app_paths.rs` `config_dir()`). A database left in Tauri's `%APPDATA%\app.spopi.desktop\` by an older build moves there on first start. `SPOPI_APP_DATA_DIR` overrides that folder (sqlite, the UI overlay, terminal state, and session UI profiles) so a scratch profile does not write the user's files. WebView2's cache and the log file stay in `%LOCALAPPDATA%\app.spopi.desktop\`, where Tauri keeps them.
+Product identity: binary `spopi.exe`, Tauri id `app.spopi.desktop`, app data `%APPDATA%\spopi\` + `spopi.sqlite3` (one folder: `data/app_paths.rs` `config_dir()`). A database left in Tauri's `%APPDATA%\app.spopi.desktop\` by an older build moves there on first start. `SPOPI_APP_DATA_DIR` overrides that folder (sqlite, the UI overlay, terminal state, and session UI profiles) so a scratch profile does not write the user's files. A scratch profile also skips the start-up sweep of unused dated projects. WebView2's cache and the log file stay in `%LOCALAPPDATA%\app.spopi.desktop\`, where Tauri keeps them.
 
-Installed layout: `resources/public` (UI), `resources/extensions` (bundled extension bundles, the permission extension's `.wasm`, spopi-verify's skills), `resources/pi` (Pi binary), `resources/agent-browser` (agent-browser binary), `resources/skills/spopi-customize`. Pi is fetched by `scripts/fetch-pi-binary.js` from `scripts/pi-version.json`. agent-browser is fetched by `scripts/fetch-agent-browser.js` from `scripts/agent-browser-version.json` (release assets of `vercel-labs/agent-browser`; Windows ARM uses the win32-x64 asset). The host finds each next to `public/`; a debug build falls back to the source tree. On Windows, a resources path with a space is mirrored whole to `%TEMP%\spopi-ext\<version>\` (or `C:\ProgramData\spopi\...` when `%TEMP%` has a space too) before it goes on Pi's command line. Pi config stays at `~/.pi/agent` (shared with the TUI) unless `PI_CODING_AGENT_DIR` points at another agent directory. Embedded Pi version is pinned in `scripts/pi-version.json` (currently **0.87.1**, the latest published `@earendil-works/pi-coding-agent`; do not fall back to an older minor).
+Installed layout: `resources/public` (UI), `resources/extensions` (bundled extension bundles, the permission extension's `.wasm`, spopi-verify's skills), `resources/pi` (Pi binary), `resources/agent-browser` (agent-browser binary), `resources/skills/spopi-customize`. Pi is fetched by `scripts/fetch-pi-binary.js` from `scripts/pi-version.json`. agent-browser is fetched by `scripts/fetch-agent-browser.js` from `scripts/agent-browser-version.json` (release assets of `vercel-labs/agent-browser`; Windows ARM uses the win32-x64 asset). The host finds each next to `public/`; a debug build falls back to the source tree. On Windows, a resources path with a space is mirrored whole to `%TEMP%\spopi-ext\<version>\` (or `C:\ProgramData\spopi\...` when `%TEMP%` has a space too) before it goes on Pi's command line. Pi config stays at `~/.pi/agent` (shared with the TUI) unless `PI_CODING_AGENT_DIR` points at another agent directory. Embedded Pi version is pinned in `scripts/pi-version.json` (currently **1.0.2**); `bun run bump:pi <version>` moves it, see `docs/PI_BUMP.md`. Do not fall back to an older minor.
 
 ## Transport
 
@@ -38,13 +38,14 @@ Pi sees the window through `spopi_screenshot` (user side: [`docs/FEATURES.md#pi-
 - The loopback listener stays on `127.0.0.1`. Phone access is a second listener, off by default, HTTPS only, bound to one chosen address, never `0.0.0.0`.
 - Phone TLS uses a certificate from the SPOPI local CA in `%APPDATA%\spopi\tls\` (`host/phone/cert.rs`), whichever interface is chosen; a Tailscale address is only listed first. The CA key does not leave that folder.
 - A phone pairs with a single-use code. The host stores only the SHA-256 of the device token. Tiers are Observe, Control, and Full. The router refuses anything the tier does not allow.
-- Phones see a UI only after Settings → Phone access accepts the effective fingerprint (shipped files plus the overlay). The phone listener sends a Content-Security-Policy, `nosniff`, and `no-referrer`. The loopback listener does not.
+- A paired phone gets the same effective UI as the desktop (shipped files plus the overlay). Its tier is enforced by the host, so a changed UI cannot widen what a phone may do. The phone listener sends a Content-Security-Policy, `nosniff`, `no-referrer`, and HSTS. The loopback listener does not.
 - Workspace file paths go through `host_data::safe_join`. Never concatenate user paths onto the workspace root.
+- `open_external` accepts only `http:`, `https:`, and `mailto:`. On Windows it opens through ShellExecute, never `cmd /C start`. Other schemes stay in the chat.
 - Frontend-writable preferences use the `ui.` prefix (`preference-gateway.js` → `get_preference` / `set_preference`).
 - Project-local Pi extensions load because the user picked the folder (`approve: true` on spawned pi).
 - `/api/ui/screenshot` is a loopback route like the rest; the phone listener has its own router without `/api` routes, so a phone cannot read the window through it.
 - Live debugging by the model is off unless `ui.modelLiveDebug` is true at startup. `platform/live_debug.rs` then picks one free loopback port for the process and every window builder gets the same WebView2 arguments (wry's defaults plus `--remote-debugging-port`), because WebView2 windows that share a data folder must use identical arguments. While it is on, any local process can drive SPOPI's windows; the setting text says so.
-- SQLite (`spopi.sqlite3`) is app state only: layout and `ui.*`. It is not a second session store. Session JSONL is owned by Pi under `~/.pi/agent/sessions`, or `$PI_CODING_AGENT_DIR/sessions` when that variable is set.
+- SQLite (`spopi.sqlite3`) is app state only: layout and `ui.*`. The Focus preset is `ui.layout.focus`. `sessionStorage` keeps only per-tab handoff values (client id, the project a window left, the instance-swap flag), never preferences. It is not a second session store. Session JSONL is owned by Pi under `~/.pi/agent/sessions`, or `$PI_CODING_AGENT_DIR/sessions` when that variable is set.
 
 ## Host boundary
 
@@ -53,16 +54,18 @@ The host does not grow a second agent. Two rules:
 - The main host binds loopback only. Phone access is the separate HTTPS listener in `host/phone`.
 - Read a live session through Pi RPC (`get_entries`, `get_tree`, `get_session_stats`) when that session's runtime is up. While a runtime is up, the bridge lists sessions through `SessionManager.list` / `listAll`. `data/session_format.rs` is the JSONL fallback for first paint, search, and cost when no runtime exists. If Pi moves sessions to sqlite, that file is the only fallback to replace.
 
+Host `/v2` operations return `host::op_error::OpError` and succeed with `host_ok`. Windows `\\?\` prefixes go through one helper, `data::paths::strip_verbatim_prefix`. File HTTP handlers run disk work in `spawn_blocking`.
+
 Pi's `protocol`, `server`, and `sqlite-node` packages are why this host stays a window over one `pi --mode rpc` process instead of a second session backend.
 
 ## Settings file
 
-The bridge writes `settings.json` while a runtime is up. Skill folders, package on/off, resource toggles, and cache warming go through Pi's `SettingsManager`. Thinking, queue, compaction, retry, and skill rules stay on `settings-io.ts`, which takes the same `settings.json.lock` directory (stale after 10 seconds) and is not a second settings API. The bridge resolves the agent folder only through Pi's `getAgentDir()`, so `PI_CODING_AGENT_DIR` is honored at call time. After a write, an idle Pi reloads; a busy Pi keeps the restart message. The raw configuration editor takes that lock and does not flush `SettingsManager` inside it.
+The bridge writes `settings.json` while a runtime is up. Every key Pi has a setter for goes through Pi's `SettingsManager` (`bridge/pi-settings.ts`), which throws when Pi could not read or write the file instead of skipping the save: skill rules, package and resource filters, cache warming, the global default thinking level, per-model thinking levels, global auto-compaction, auto-retry, `enabledModels`, and the steering and follow-up queue modes. `settings-io.ts` keeps only what Pi has no setter for: the project-scope thinking level and auto-compaction (Pi's setters write global settings only), `thinkingBudgets`, the provider rename (one atomic write across `modelThinkingLevels`, `enabledModels`, and `defaultProvider`), the raw configuration editor, and the non-settings files `models.json` and `pi-permission-system/config.json`. It takes the same `settings.json.lock` directory (stale after 10 seconds) and is not a second settings API. The bridge resolves the agent folder only through Pi's `getAgentDir()`, so `PI_CODING_AGENT_DIR` is honored at call time. After a write, an idle Pi reloads; a busy Pi keeps the restart message. The raw configuration editor takes that lock and does not flush `SettingsManager` inside it.
 Rust writes that file only when no Pi is running: creating a project and Keep chats take `data/settings_lock.rs` and write atomically. The host does not install skills or toggle packages. Picker visibility stays in `spopi-models.json`. Composer stars stay in Pi's `enabledModels`. Those two stores are separate on purpose.
 
 ## Pi process environment
 
-`pi/launch.rs` passes these to `pi --mode rpc` when they are set: `SPOPI_PUBLIC_DIR` (shipped UI), `SPOPI_UI_OVERLAY` (`<app data>/ui`), `SPOPI_SKILL_DIR` (bundled skills), `SPOPI_INSTALL_DIR` (the folder that holds the app), `SPOPI_HOST_ORIGIN` (the loopback host address), `SPOPI_CDP_PORT` (only when live debugging by the model is on), `SPOPI_AGENT_BROWSER` (`1` or `0` from `ui.agentBrowser.enabled`; unset means on), `AGENT_BROWSER_EXECUTABLE_PATH` when the user set it, and `PI_CODING_AGENT_DIR`. `SPOPI_SURF` is `1` only when `npm:surf-cli` is installed and enabled, and it is computed on every spawn. Pi's PATH is the user PATH with AppImage entries removed, then the bundled agent-browser directory first when `SPOPI_AGENT_BROWSER_DIR` is set, then the usual extra bins (on Windows that includes `%ProgramFiles%\nodejs`). The host sets the `SPOPI_*` values at startup, except `SPOPI_SURF`, which follows the package switch after a Pi restart. The permission recipes deny writes under the agent `extensions/` folder, `SPOPI_INSTALL_DIR`, `SPOPI_PUBLIC_DIR`, and `SPOPI_EXTENSIONS_MIRROR` (set only when the extensions run from the space-free copy). The host passes these as plain drive paths: an extended-length `\\?\C:\...` root turns into a `//?/C:/...` pattern that never matches a tool path. `get_permission_mode` writes Ask on first run and rewrites the current mode's recipe when one of today's root denies is missing. `PI_TIMING=1` and stderr logging are on only when the host runs with `SPOPI_PERF=1`.
+`pi/launch.rs` passes these to `pi --mode rpc` when they are set: `SPOPI_PUBLIC_DIR` (shipped UI), `SPOPI_UI_OVERLAY` (`<app data>/ui`), `SPOPI_SKILL_DIR` (bundled skills), `SPOPI_INSTALL_DIR` (the folder that holds the app), `SPOPI_HOST_ORIGIN` (the loopback host address), `SPOPI_CDP_PORT` (only when live debugging by the model is on), `SPOPI_AGENT_BROWSER` (`1` or `0` from `ui.agentBrowser.enabled`; unset means on), `AGENT_BROWSER_EXECUTABLE_PATH` when the user set it, and `PI_CODING_AGENT_DIR`. `SPOPI_SURF` is `1` only when `npm:surf-cli` is installed and enabled, and it is computed on every spawn. Pi's PATH is the user PATH with AppImage entries removed, then the bundled agent-browser directory first when `SPOPI_AGENT_BROWSER_DIR` is set, then the usual extra bins (on Windows that includes `%ProgramFiles%\nodejs`). The host sets the `SPOPI_*` values at startup, except `SPOPI_SURF`, which follows the package switch after a Pi restart. The permission recipes deny writes under the agent `extensions/` folder, `SPOPI_INSTALL_DIR`, `SPOPI_PUBLIC_DIR`, and `SPOPI_EXTENSIONS_MIRROR` (set only when the extensions run from the space-free copy). The host passes these as plain drive paths: an extended-length `\\?\C:\...` root turns into a `//?/C:/...` pattern that never matches a tool path. `get_permission_mode` writes Ask on first run and otherwise never writes: it returns `{ mode, stale, reasons }`, and a recipe that lacks one of today's root denies comes back stale. `PI_TIMING=1` and stderr logging are on only when the host runs with `SPOPI_PERF=1`.
 
 ## Module ownership
 
@@ -80,7 +83,7 @@ Rust writes that file only when no Pi is running: creating a project and Keep ch
 
 New frontend files: two `// ABOUTME:` lines, co-located `*.test.js`, CSS in a sibling file listed in `public/stylesheets.json`, strings via `t()` in every locale file under `public/locales/`.
 
-Split a module along a seam when a change touches that area. Moves are a content-free `git mv` (`refactor(move): …`). Rust areas live under `src-tauri/src/`: `host/`, `pi/`, `terminal/`, `git/`, `data/`, `packages/`, `platform/`, `metrics/`, and `editor/`. Dispatch lives in `src-tauri/src/host/server/ops/dispatch.rs`. Bundled extensions are `spopi-bridge`, `pi-permission-system`, `spopi-verify`, and `spopi-tool-output`.
+Split a module along a seam when a change touches that area. Moves are a content-free `git mv` (`refactor(move): …`). Rust areas live under `src-tauri/src/`: `host/`, `pi/`, `terminal/`, `git/`, `data/`, `packages/`, `platform/`, `metrics/`, `editor/`, and `dependencies/`. Dispatch lives in `src-tauri/src/host/server/ops/dispatch.rs`. Bundled extensions are `spopi-bridge`, `pi-permission-system`, `spopi-verify`, and `spopi-tool-output`.
 
 ## Adopted extensions (recommended, not bundled)
 
@@ -94,9 +97,9 @@ Installed into `~/.pi/agent` with `pi install npm:<pkg>` so the TUI sees the sam
 | Web | `pi-web-access` | Agent tool; Recommended card |
 | Context walk | `pi-context-view` | Context inspector source |
 | Agent search | `@ff-labs/pi-fff` | Agent tool; GUI search is ripgrep |
-| Worktree per session | `@pify/worktree` | `/worktree` in the slash menu; New worktree task |
+| Worktree per session | `@pify/worktree` | Optional, for `/worktree enter`. The sidebar creates, merges, and removes worktrees itself |
 
-Bundled (shipped as `--extension`): `spopi-bridge`, `@gotgenes/pi-permission-system`, `spopi-verify`, and `spopi-tool-output`. Ask, Auto-edit, and Full access are recipes in `~/.pi/agent/extensions/pi-permission-system/config.json`. The composer chip cycles them. The permission extension asks before risky actions. It is not a sandbox: Pi runs with the user's permissions. Protected roots stay on `path_write` deny in every recipe. Auto-edit's `bash` map allows `agent-browser` page commands and `open` on loopback URLs; the asks for other hosts, `eval`, and profile or CDP flags come after the allows, because the last matching pattern wins. Every mode denies `agent-browser upgrade*` and `*agent-browser* upgrade*`. `get_permission_mode` rewrites a recipe that is missing that deny. Auto-edit also allows the `spopi_screenshot` and `spopi_ui_copy` tools, and, when `SPOPI_CDP_PORT` is set, page commands with `--cdp <that port>` (not `open`, `back`, `forward`), followed again by the non-CDP asks. `get_permission_mode` rewrites an Auto-edit recipe whose tool allows or port no longer match. Permission `select` prompts dock on the approval bar.
+Bundled (shipped as `--extension`): `spopi-bridge`, `@gotgenes/pi-permission-system`, `spopi-verify`, and `spopi-tool-output`. Ask, Auto-edit, and Full access are recipes in `~/.pi/agent/extensions/pi-permission-system/config.json`. The composer chip cycles them. The permission extension asks before risky actions. It is not a sandbox: Pi runs with the user's permissions. Protected roots stay on `path_write` deny in every recipe. Auto-edit's `bash` map allows `agent-browser` page commands and `open` on loopback URLs; the asks for other hosts, `eval`, and profile or CDP flags come after the allows, because the last matching pattern wins. Every mode denies `agent-browser upgrade*` and `*agent-browser* upgrade*`. Auto-edit also allows the `spopi_screenshot` and `spopi_ui_copy` tools, and, when `SPOPI_CDP_PORT` is set, page commands with `--cdp <that port>` (not `open`, `back`, `forward`), followed again by the non-CDP asks. Reading the mode never rewrites the user's file. `get_permission_mode` reports a recipe as stale (`reasons`: `root-denies`, `skill-reads`, `upgrade-deny`, `full-bash`, `auto-edit`) when it lacks a root deny, the skill-read allow, or the upgrade deny, or when an Auto-edit recipe's tool allows or port no longer match. The composer posts one notice, and Settings → General → Guard shows an Update button that calls `set_permission_mode` with the same mode. Permission `select` prompts dock on the approval bar.
 
 ## Verify gate
 
@@ -158,9 +161,11 @@ Every `host_request` op. Data-plane reads are WS `type: "data_request"` (not `ho
 | `install_pi_package` | `dispatch_host_operation` | `control-gateway.installPiPackage` |
 | `remove_pi_package` | `dispatch_host_operation` | `control-gateway.removePiPackage` |
 | `update_pi_package` | `dispatch_host_operation` | `control-gateway.updatePiPackage` |
-| `list_installed_apps` | `dispatch_host_operation` | `control-gateway.listInstalledApps` |
+| `list_mcp_servers` | `dispatch_host_operation` | `control-gateway.listMcpServers` |
+| `add_mcp_server` | `dispatch_host_operation` | `control-gateway.addMcpServer` |
+| `remove_mcp_server` | `dispatch_host_operation` | `control-gateway.removeMcpServer` |
 | `list_local_addresses` | `dispatch_host_operation` | `control-gateway.listLocalAddresses` |
-| `open_in_app` | `dispatch_host_operation` | `control-gateway.openInApp` |
+| `open_path` | `dispatch_host_operation` | `control-gateway.openPath` |
 | `reveal_path` | `dispatch_host_operation` | `control-gateway.revealPath` |
 | `open_external` | `dispatch_host_operation` | `control-gateway.openExternal` |
 | `shadow_history_files` | `dispatch_host_operation` | `control-gateway.shadowHistoryFiles` |
@@ -178,6 +183,13 @@ Every `host_request` op. Data-plane reads are WS `type: "data_request"` (not `ho
 | `pick_skill_folder` | `dispatch_host_operation` | `control-gateway.pickSkillFolder` |
 | `session_ui_profile_load` | `dispatch_host_operation` | `control-gateway.loadSessionUiProfile` |
 | `session_ui_profile_save` | `dispatch_host_operation` | `control-gateway.saveSessionUiProfile` |
+| `review_drafts_load` | `dispatch_host_operation` | `control-gateway.loadReviewDrafts` |
+| `review_drafts_save` | `dispatch_host_operation` | `control-gateway.saveReviewDrafts` |
+| `git_identity_get` | `dispatch_host_operation` | `control-gateway.getGitIdentity` |
+| `git_identity_set` | `dispatch_host_operation` | `control-gateway.setGitIdentity` |
+| `create_worktree` | `dispatch_host_operation` | `control-gateway.createWorktree` |
+| `merge_worktree` | `dispatch_host_operation` | `control-gateway.mergeWorktree` |
+| `remove_worktree` | `dispatch_host_operation` | `control-gateway.removeWorktree` |
 | `restart_runtime` | `dispatch_host_operation` | `control-gateway.restartRuntime` |
 | `engine_scrape` | `http::engine::dispatch_extra` | `control-gateway.engineScrape` |
 | `check_dependencies` | `dispatch_host_operation` | `control-gateway.checkDependencies` |
@@ -190,7 +202,11 @@ Every `host_request` op. Data-plane reads are WS `type: "data_request"` (not `ho
 
 Data-request ops (`data-gateway.js`): `list_files`, `list_sessions`, `list_all_sessions`, `list_launcher_sessions`, `search_sessions`, `cost_dashboard`, `workspace_info`, `read_session_messages`.
 
+Review drafts live in `review-drafts.json` in the app data folder, one list per project path (`review_draft_store.rs`). Review still never writes project files. A git worktree is a normal workspace. SPOPI writes no Pi settings into it, and reads which checkout it belongs to from its `.git` file.
+
 `scripts/check-host-ops.mjs` cross-checks this table against the operation arms in `src-tauri/src/host/server/ops/dispatch.rs` and the gateways.
+
+The MCP ops run the bundled `pi mcp` CLI and are desktop-only. A successful add or remove fans out `mcp_config_changed`. Bridge ops in `extensions/bridge/project-trust-handlers.ts`: `get_mcp_project_trust`, `trust_project_in_pi` (only `ProjectTrustStore.set`), and `mcp_config_changed` (`scheduleReload`). SPOPI does not write `mcp.json`, `mcp-auth.json`, or `trust.json`.
 
 ## HTTP routes (files / git)
 

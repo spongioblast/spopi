@@ -125,15 +125,4 @@ describe("approval bar", () => {
     expect(finish).toHaveBeenCalledWith({ cancelled: true });
     stop();
   });
-
-  it("asks for a phone tier and sends that tier with allow", () => {
-    const root = document.createElement("div");
-    const onAnswer = vi.fn();
-    mountApprovalBar(root, { kind: "phone_claim", title: "Pixel · 100.64.0.2" }, { onAnswer });
-    const select = root.querySelector("select");
-    expect(select).toBeTruthy();
-    if (select) select.value = "full";
-    root.querySelector("button")?.click();
-    expect(onAnswer).toHaveBeenCalledWith({ confirmed: true, value: "full" });
-  });
 });

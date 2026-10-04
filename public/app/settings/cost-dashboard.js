@@ -103,7 +103,7 @@ function renderShell(container) {
       <section id="cost-dash-section">
         <div class="cost-dash-topbar">
           <div class="cost-dash-topbar-actions">
-            <div class="cost-dash-quick-range" role="group" aria-label="Quick range">
+            <div class="cost-dash-quick-range" role="group" aria-label="${escapeHtml(t("costDashboard.quickRange"))}">
               <button type="button" class="cost-dash-range-chip" data-range-chip="7d">7d</button>
               <button type="button" class="cost-dash-range-chip" data-range-chip="30d">30d</button>
               <button type="button" class="cost-dash-range-chip" data-range-chip="90d">90d</button>

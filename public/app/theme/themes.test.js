@@ -6,10 +6,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   applyTheme,
-  bindThemePreferences,
   getCurrentTheme,
   hydrateThemePreference,
   schemeOf,
+  setThemePreferences,
   withViewTransition,
 } from "./themes.js";
 
@@ -63,7 +63,7 @@ describe("applyTheme", () => {
     await hydrateThemePreference(preferences);
     expect(document.documentElement.getAttribute("data-theme")).toBe("midnight");
     expect(preferences.set).toHaveBeenCalledWith("ui.theme", "midnight");
-    bindThemePreferences(null);
+    setThemePreferences(null);
   });
 
   it("accepts an optional click origin without throwing when no transition API exists", () => {

@@ -71,6 +71,9 @@ import { createGitRefreshHooks } from "./git-refresh-hooks.js";
  *   onError?: ((error: unknown) => void) | null,
  *   onSnapshot?: ((snapshot: unknown) => void) | null,
  *   callConfig?: ((op: string, params: Record<string, unknown>) => unknown) | null,
+ *   getProjectPath?: (() => Promise<string>) | null,
+ *   onRepositoryFound?: (() => void) | null,
+ *   identity?: import("./git-commit-identity.js").GitIdentityService | null,
  * }} MountGitPanelOptions
  */
 
@@ -112,6 +115,9 @@ export function mountGitPanel({
   onError,
   onSnapshot,
   callConfig,
+  getProjectPath,
+  onRepositoryFound,
+  identity,
 } = {}) {
   const files = fileSidebarRefs();
   const closeBtn = files.close;
@@ -182,15 +188,19 @@ export function mountGitPanel({
   const handleFrame = (frame) => {
     if (!frame?.type) return;
     const normalized = { ...frame };
-    client.resolveResponse(normalized);
+    const awaited = client.resolveResponse(normalized);
     if (normalized.type === "git_status") {
       if (normalized.gitUnavailable) {
         panel.setGitMissing(true);
         onSnapshot?.(null);
         return;
       }
+      // A folder that just became a repository (Initialize, or git init
+      // elsewhere): the header pill and the sidebar's git state are stale.
+      const becameRepo = panel.notGitRepo;
       panel.setSnapshot(/** @type {GitSnapshot | null | undefined} */ (normalized.snapshot));
       onSnapshot?.(normalized.snapshot);
+      if (becameRepo) onRepositoryFound?.();
     } else if (normalized.type === "git_log") panel.historyPanel?.applyLog(normalized);
     else if (normalized.type === "git_log_detail") panel.historyPanel?.applyLogDetail(normalized);
     else if (normalized.type === "git_commit_diff") {
@@ -295,7 +305,7 @@ export function mountGitPanel({
         normalized.requestId === panel.pendingCommitRequestId
       ) {
         panel.applyCommitFailure(normalized.error);
-      } else {
+      } else if (!awaited) {
         panel.applyRemoteError(normalized.error);
       }
     }
@@ -320,6 +330,7 @@ export function mountGitPanel({
       latestCommitDiffRequest = requestId;
       latestCommitDiffDescriptor = /** @type {GitEntry | null} */ (descriptor || null);
     },
+    identity,
   });
 
   /** @type {"files" | "git"} */
@@ -350,6 +361,9 @@ export function mountGitPanel({
     applyChrome();
     if (showGit) {
       panel.refresh();
+      void getProjectPath?.()
+        .then((projectPath) => panel.setProjectPath(projectPath))
+        .catch(() => {});
       hooks.setGitVisible(true);
     } else {
       hooks.setGitVisible(false);

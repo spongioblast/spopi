@@ -76,6 +76,35 @@
         if (mode) document.documentElement.dataset.previewTheme = mode;
       })();
     </script>
+    <!-- Import map: redirects browser-only package specifiers to the
+         same-origin ESM vendor bundles produced by scripts/build-frontend.js.
+         Vitest resolves these imports from node_modules directly. It must come
+         before the modulepreload links the host inserts above style.css:
+         Firefox ignores an import map that follows a module load or preload. -->
+    <script type="importmap">
+      {
+        "imports": {
+          "@codemirror/state": "./vendor/codemirror.js",
+          "@codemirror/view": "./vendor/codemirror.js",
+          "@codemirror/commands": "./vendor/codemirror.js",
+          "@codemirror/language": "./vendor/codemirror.js",
+          "@codemirror/search": "./vendor/codemirror.js",
+          "@codemirror/theme-one-dark": "./vendor/codemirror.js",
+          "@codemirror/lang-javascript": "./vendor/codemirror.js",
+          "@codemirror/lang-json": "./vendor/codemirror.js",
+          "@codemirror/lang-markdown": "./vendor/codemirror.js",
+          "@codemirror/lang-python": "./vendor/codemirror.js",
+          "@codemirror/lang-rust": "./vendor/codemirror.js",
+          "@codemirror/lang-yaml": "./vendor/codemirror.js",
+          "@codemirror/lang-css": "./vendor/codemirror.js",
+          "@codemirror/lang-html": "./vendor/codemirror.js",
+          "@codemirror/legacy-modes/mode/r": "./vendor/codemirror.js",
+          "@codemirror/legacy-modes/mode/shell": "./vendor/codemirror.js",
+          "@tauri-apps/plugin-notification": "./vendor/tauri-notification.js",
+          "pdfjs-dist/legacy/build/pdf.mjs": "./vendor/pdf.js"
+        }
+      }
+    </script>
     <link rel="stylesheet" href="style-theme.css" />
     <link rel="stylesheet" href="design-system.css" />
     <link rel="stylesheet" href="style.css" />
@@ -171,6 +200,8 @@
 
         <div class="settings-tab" data-settings-panel="models">
         </div>
+        <div class="settings-tab" data-settings-panel="mcp">
+        </div>
         <div class="settings-tab" data-settings-panel="configuration">
         </div>
         <div class="settings-tab" data-settings-panel="customizations">
@@ -185,33 +216,6 @@
     <div id="dialog-container" class="hidden"></div>
 
     <!-- Scripts -->
-    <!-- Import map: redirects browser-only package specifiers to the
-             same-origin ESM vendor bundles produced by scripts/build-frontend.js.
-             Vitest resolves these imports from node_modules directly. -->
-    <script type="importmap">
-      {
-        "imports": {
-          "@codemirror/state": "./vendor/codemirror.js",
-          "@codemirror/view": "./vendor/codemirror.js",
-          "@codemirror/commands": "./vendor/codemirror.js",
-          "@codemirror/language": "./vendor/codemirror.js",
-          "@codemirror/search": "./vendor/codemirror.js",
-          "@codemirror/theme-one-dark": "./vendor/codemirror.js",
-          "@codemirror/lang-javascript": "./vendor/codemirror.js",
-          "@codemirror/lang-json": "./vendor/codemirror.js",
-          "@codemirror/lang-markdown": "./vendor/codemirror.js",
-          "@codemirror/lang-python": "./vendor/codemirror.js",
-          "@codemirror/lang-rust": "./vendor/codemirror.js",
-          "@codemirror/lang-yaml": "./vendor/codemirror.js",
-          "@codemirror/lang-css": "./vendor/codemirror.js",
-          "@codemirror/lang-html": "./vendor/codemirror.js",
-          "@codemirror/legacy-modes/mode/r": "./vendor/codemirror.js",
-          "@codemirror/legacy-modes/mode/shell": "./vendor/codemirror.js",
-          "@tauri-apps/plugin-notification": "./vendor/tauri-notification.js",
-          "pdfjs-dist/legacy/build/pdf.mjs": "./vendor/pdf.js"
-        }
-      }
-    </script>
     <script type="module" src="bootstrap-entry.js"></script>
     <!-- The UI overlay's entry point. Empty unless the user has one, and empty
          in safe mode. Root-absolute like user.css so it skips the versioned

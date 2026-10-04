@@ -68,7 +68,6 @@ describe("CJK font distribution", () => {
     expect(pkg.scripts.prebuild).toContain("fetch:cjk-font");
 
     expect(read("src-tauri/tauri.conf.json")).toContain("fetch:cjk-font");
-    expect(read("scripts/release-macos-dmg.sh")).toContain("fetch-cjk-font.js");
     expect(read(".github/workflows/release.yml")).toContain("cjk-font-version.json");
     expect(read(".gitignore")).toContain(".cache/cjk-fonts/");
     expect(read(".gitignore")).not.toContain("public/fonts/cjk/");
@@ -88,10 +87,12 @@ describe("CJK font distribution", () => {
     expect(flat).toContain(".message.user .message-content");
     expect(flat).toContain(".file-markdown-preview");
 
-    // body keeps its own system stack and is NOT given the CJK face
+    // body keeps the system stack and is NOT given the CJK face
     const bodyBlock = (css.match(/body\s*\{[^}]*font-family[^}]*\}/) || [""])[0];
-    expect(bodyBlock).toContain("-apple-system");
+    expect(bodyBlock).toContain("var(--font-sans)");
     expect(bodyBlock).not.toContain("SPOPI CJK");
+    const sans = read("public/style-theme.css").replace(/\s+/g, " ");
+    expect(sans).toMatch(/--font-sans: -apple-system, [^;]*"Segoe UI"[^;]*sans-serif;/);
 
     // SPOPI CJK is first for CJK; unicode-range makes ASCII fall through to
     // the unchanged system stack. Extract this exact rule to guard ordering.
@@ -100,9 +101,6 @@ describe("CJK font distribution", () => {
     ) || [""])[0];
     expect(contentBlock).toContain('"SPOPI CJK"');
     expect(contentBlock).toContain(".message.user .message-content");
-    expect(contentBlock.indexOf('"SPOPI CJK"')).toBeLessThan(contentBlock.indexOf("-apple-system"));
-    expect(flat).toContain(
-      '"SPOPI CJK", -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue"',
-    );
+    expect(contentBlock).toContain('font-family: "SPOPI CJK", var(--font-sans);');
   });
 });

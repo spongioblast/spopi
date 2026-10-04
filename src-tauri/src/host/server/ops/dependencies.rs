@@ -1,7 +1,7 @@
 // ABOUTME: Host operations that test and install npm, the browser, and Surf.
 // ABOUTME: Phone clients are refused; these run only on the desktop.
 
-use super::super::HostState;
+use super::super::{HostState, OpError};
 use crate::dependencies::agent_browser::{enabled_from_pref, PREF};
 use crate::dependencies::browsers::{detect_browsers, spawn_extensions_page};
 use crate::dependencies::check::check_dependencies;
@@ -18,7 +18,7 @@ pub(crate) async fn dispatch(
     request_id: &str,
     operation: &str,
     frame: &Value,
-) -> Result<Value, (&'static str, String)> {
+) -> Result<Value, OpError> {
     match operation {
         "check_dependencies" => {
             let quick = frame.get("quick").and_then(Value::as_bool).unwrap_or(false);
@@ -88,7 +88,7 @@ pub(crate) async fn dispatch(
             .await
             .map_err(|error| ("surf_extension_path_failed", error))?;
             if !captured.status_ok {
-                return Err((
+                return Err(OpError::new(
                     "surf_extension_path_failed",
                     tail(&captured.stderr, &captured.stdout),
                 ));
@@ -101,7 +101,7 @@ pub(crate) async fn dispatch(
                 .unwrap_or("")
                 .to_string();
             if !Path::new(&path).is_dir() {
-                return Err((
+                return Err(OpError::new(
                     "surf_extension_path_failed",
                     format!("Surf extension folder was not found: {path}"),
                 ));
@@ -120,9 +120,9 @@ pub(crate) async fn dispatch(
                 .map(str::trim)
                 .unwrap_or("");
             if !valid_extension_id(extension_id) {
-                return Err((
+                return Err(OpError::new(
                     "invalid_extension_id",
-                    "An extension ID is 32 letters from a to p".into(),
+                    "An extension ID is 32 letters from a to p",
                 ));
             }
             let browser = frame
@@ -131,7 +131,10 @@ pub(crate) async fn dispatch(
                 .map(str::trim)
                 .unwrap_or("");
             if !allowed_connect_browser(browser) {
-                return Err(("unknown_browser", "That browser is not supported".into()));
+                return Err(OpError::new(
+                    "unknown_browser",
+                    "That browser is not supported",
+                ));
             }
             let cli = surf_program()?;
             let captured = run_capture(
@@ -164,7 +167,10 @@ pub(crate) async fn dispatch(
                 .unwrap_or("");
             let browsers = detect_browsers();
             let Some(browser) = browsers.iter().find(|browser| browser.id == id) else {
-                return Err(("unknown_browser", "That browser is not installed".into()));
+                return Err(OpError::new(
+                    "unknown_browser",
+                    "That browser is not installed",
+                ));
             };
             spawn_extensions_page(browser)
                 .map_err(|error| ("open_browser_extensions_failed", error))?;
@@ -175,22 +181,19 @@ pub(crate) async fn dispatch(
                 "ok": true,
             }))
         }
-        _ => Err((
+        _ => Err(OpError::new(
             "host_operation_unimplemented",
-            "Host operation is not implemented on protocol v2".into(),
+            "Host operation is not implemented on protocol v2",
         )),
     }
 }
 
-fn job_kind(frame: &Value) -> Result<JobKind, (&'static str, String)> {
+fn job_kind(frame: &Value) -> Result<JobKind, OpError> {
     frame
         .get("kind")
         .and_then(Value::as_str)
         .and_then(JobKind::parse)
-        .ok_or((
-            "invalid_request",
-            "kind must be browser, node, or surf".into(),
-        ))
+        .ok_or_else(|| OpError::new("invalid_request", "kind must be browser, node, or surf"))
 }
 
 fn agent_browser_enabled(state: &HostState) -> bool {
@@ -204,12 +207,10 @@ fn agent_browser_enabled(state: &HostState) -> bool {
     enabled_from_pref(saved.as_ref())
 }
 
-fn surf_program() -> Result<std::path::PathBuf, (&'static str, String)> {
-    let dir = pi_agent_dir().ok_or((
-        "surf_not_installed",
-        "Pi's agent folder was not found".to_string(),
-    ))?;
-    surf_cli(&dir).ok_or(("surf_not_installed", "Surf is not installed".to_string()))
+fn surf_program() -> Result<std::path::PathBuf, OpError> {
+    let dir = pi_agent_dir()
+        .ok_or_else(|| OpError::new("surf_not_installed", "Pi's agent folder was not found"))?;
+    surf_cli(&dir).ok_or_else(|| OpError::new("surf_not_installed", "Surf is not installed"))
 }
 
 fn tail(stderr: &str, stdout: &str) -> String {

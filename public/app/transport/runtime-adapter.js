@@ -1,7 +1,7 @@
 // ABOUTME: Opens the host WebSocket and sends the desktop hello.
 // ABOUTME: The URL is the page host plus /v2/ws.
 
-import { answerPhoneClaim } from "../pair/phone-claim.js";
+import { answerPhoneClaim, closePhoneClaim } from "../pair/phone-claim.js";
 import { resyncSessionTree } from "../session/session-tree-host.js";
 import { applyCapabilities } from "../shell/capabilities.js";
 
@@ -36,6 +36,8 @@ export class HostRuntimeAdapter {
   /** @type {Array<() => void>} */
   #readyWaiters = [];
   #reconnectAttempts = 0;
+  /** The host run this window last connected to; a different one means SPOPI restarted. */
+  #hostId = "";
   /** @type {number} */
   #reconnectBaseDelayMs;
   /** @type {number} */
@@ -139,10 +141,20 @@ export class HostRuntimeAdapter {
         this.#connected = true;
         const resumed = this.#reconnectAttempts > 0;
         this.#reconnectAttempts = 0;
+        const hostId = typeof frame.hostId === "string" ? frame.hostId : "";
+        const restarted = Boolean(this.#hostId && hostId && hostId !== this.#hostId);
+        if (hostId) this.#hostId = hostId;
         for (const target of this.#subscriptions.values()) this.#sendSubscription(target);
         for (const listener of this.#connectionListeners) listener(true);
         for (const resolve of this.#readyWaiters.splice(0)) resolve();
-        if (resumed) void resyncSessionTree();
+        if (resumed) {
+          void resyncSessionTree();
+          if (typeof document !== "undefined") {
+            document.dispatchEvent(
+              new CustomEvent("spopi-host-reconnected", { detail: { restarted } }),
+            );
+          }
+        }
         return;
       }
       if (frame.type === "runtime_subscribed") return;
@@ -155,8 +167,17 @@ export class HostRuntimeAdapter {
         void answerPhoneClaim(frame);
         return;
       }
+      if (frame.type === "phone_claim_settled") {
+        closePhoneClaim(frame);
+        document.dispatchEvent(new CustomEvent("spopi-phone-claim-settled"));
+        return;
+      }
       if (frame.type === "ui_reload") {
         for (const listener of this.#uiListeners) listener(frame);
+        return;
+      }
+      if (frame.type === "mcp_config_changed") {
+        document.dispatchEvent(new CustomEvent("spopi-pi-config-changed"));
         return;
       }
       this.#receive(frame);

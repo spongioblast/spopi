@@ -7,6 +7,7 @@ import { requestLocateFolder } from "../session/workspace-actions.js";
 import { headerChromeRefs } from "../shell/chrome/chat.js";
 import { composerChromeRefs } from "../shell/chrome/composer.js";
 import { filePreviewRefs } from "../shell/chrome/file-preview.js";
+import { sidebarChromeRefs } from "../shell/chrome/sidebar.js";
 import { paintBreadcrumb } from "../shell/header-breadcrumb.js";
 import {
   ensureSubagentHost,
@@ -22,13 +23,22 @@ import { ensureReviewHosts, paintReview, reviewPaneElement } from "./review-pane
 /** @type {CenterState} */
 let lastState = null;
 
-document.addEventListener("spopi-center-repaint", () => paintAdaptiveCenter(lastState));
+/**
+ * Review and subagent views ask for a repaint with `spopi-center-repaint`; they
+ * cannot import this module, which imports them.
+ */
+export function mountCenterRepaint() {
+  const repaint = () => paintAdaptiveCenter(lastState);
+  document.addEventListener("spopi-center-repaint", repaint);
+  return { destroy: () => document.removeEventListener("spopi-center-repaint", repaint) };
+}
 
 /**
  * @param {CenterState} state
  */
 export function paintAdaptiveCenter(state) {
   lastState = state;
+  const previous = document.body.dataset.centerMode;
   const preview = filePreviewRefs().panel;
   const fileOpen = Boolean(preview && !preview.classList.contains("collapsed"));
   const phase = state?.status?.phase;
@@ -44,7 +54,9 @@ export function paintAdaptiveCenter(state) {
   ensureSubagentHost(preview?.parentElement);
   const review = reviewPaneElement();
   if (review instanceof HTMLElement) review.classList.toggle("is-visible", mode === "review");
-  if (mode === "review") paintReview();
+  // A running turn repaints the center on every token. Rebuilding the diff each
+  // time throws its scroll position back to the top.
+  if (mode === "review" && previous !== "review") paintReview();
   const subagent = subagentPaneElement();
   if (subagent instanceof HTMLElement) subagent.classList.toggle("is-visible", mode === "subagent");
   if (mode === "subagent") paintSubagent();
@@ -57,6 +69,7 @@ export function paintAdaptiveCenter(state) {
   }
   const header = headerChromeRefs();
   paintBreadcrumb({
+    header: header.header,
     project: textOf(header.workspaceIndicator),
     branch: textOf(header.gitBranch),
     session: state?.session?.title || "",
@@ -85,6 +98,10 @@ const LOCAL_MODELS = [
 ];
 const PROBE_INTERVAL_MS = 30_000;
 
+export function isLoopbackPage(hostname = globalThis.location?.hostname || "") {
+  return hostname === "127.0.0.1" || hostname === "localhost";
+}
+
 /** @type {string[]} */
 let localModelsUp = [];
 /** @type {Promise<void> | null} */
@@ -97,6 +114,8 @@ let probedAt = 0;
  * @param {HTMLElement} home
  */
 async function probeLocalModels(home) {
+  // On a phone 127.0.0.1 is the phone itself, and its CSP refuses the request anyway.
+  if (!isLoopbackPage()) return;
   if (probeInFlight || Date.now() - probedAt < PROBE_INTERVAL_MS) return;
   probeInFlight = (async () => {
     /** @type {string[]} */
@@ -163,22 +182,26 @@ function column(labelKey, rows) {
 function actionRow() {
   const row = document.createElement("div");
   row.className = "spopi-home-actions";
+  /** @param {"newSessionBtn" | "openFolderBtn"} ref */
+  const clickSidebar = (ref) => () => {
+    const target = sidebarChromeRefs()[ref];
+    if (target instanceof HTMLElement) target.click();
+  };
   row.append(
-    actionButton("new-session-btn", "home.newSession", false, undefined, "home.newSessionHint"),
-    actionButton("open-folder-btn", "home.openFolder", false, undefined, "home.openFolderHint"),
-    actionButton("", "home.worktree", false, openWorktree, "home.worktreeHint"),
+    actionButton("home.newSession", false, clickSidebar("newSessionBtn"), "home.newSessionHint"),
+    actionButton("home.openFolder", false, clickSidebar("openFolderBtn"), "home.openFolderHint"),
+    actionButton("home.worktree", false, openWorktree, "home.worktreeHint"),
   );
   return row;
 }
 
 /**
- * @param {string} id
  * @param {string} labelKey
  * @param {boolean} [disabled]
  * @param {(() => void) | undefined} [onClick]
  * @param {string} [hintKey]
  */
-function actionButton(id, labelKey, disabled = false, onClick, hintKey) {
+function actionButton(labelKey, disabled = false, onClick, hintKey) {
   const button = document.createElement("button");
   button.type = "button";
   button.className = "ui-button ui-button--secondary ui-button--sm spopi-home-action";
@@ -190,12 +213,6 @@ function actionButton(id, labelKey, disabled = false, onClick, hintKey) {
   }
   button.disabled = disabled;
   if (onClick) button.addEventListener("click", onClick);
-  else if (id) {
-    button.addEventListener("click", () => {
-      const target = document.getElementById(id);
-      if (target && "click" in target) target.click();
-    });
-  }
   return button;
 }
 
@@ -225,12 +242,12 @@ function paintMissing(home) {
   body.textContent = t("workspace.missing.body");
   const actions = document.createElement("div");
   actions.className = "spopi-home-actions";
-  const remove = actionButton("", "workspace.missing.remove", false, () => {
+  const remove = actionButton("workspace.missing.remove", false, () => {
     Promise.resolve(record?.onRemove?.()).catch((error) => record?.onError?.(error));
   });
   remove.classList.remove("ui-button--secondary");
   remove.classList.add("ui-button--danger");
-  const locate = actionButton("", "workspace.missing.locate", false, () => {
+  const locate = actionButton("workspace.missing.locate", false, () => {
     void requestLocateFolder(path, (error) => record?.onError?.(error));
   });
   actions.append(remove, locate);

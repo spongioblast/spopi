@@ -173,7 +173,10 @@ pub fn shadow_history_files_at(
         return Ok(empty_record());
     }
     let Some(git_dir) = matched_git else {
-        return Err("workspace-history repo.git has no HEAD".into());
+        return Ok(ShadowHistoryRecord {
+            meta: matched_meta,
+            ..empty_record()
+        });
     };
     if !git_dir.join("HEAD").is_file() {
         return Err("workspace-history repo.git has no HEAD".into());
@@ -274,35 +277,21 @@ fn normalize_existing(path: &Path) -> String {
         .to_string()
 }
 
+/// Only the chat's own repo counts. A chat that has not edited anything yet has
+/// none, and another session's repo would show its changes under this chat.
+/// The id is a folder name, so `..`, separators, and anything else outside the
+/// session id alphabet would reach another chat's repo.
 fn find_git_dir(sessions: &Path, session_id: &str) -> Option<PathBuf> {
-    let preferred = sessions.join(session_id).join("repo.git");
-    if session_id.is_empty() {
-        return first_git(sessions);
+    let safe = !session_id.is_empty()
+        && session_id.len() <= 128
+        && session_id
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || byte == b'-' || byte == b'_');
+    if !safe {
+        return None;
     }
-    if preferred.join("HEAD").is_file() {
-        return Some(preferred);
-    }
-    if preferred.is_dir() {
-        return Some(preferred);
-    }
-    first_git(sessions)
-}
-
-fn first_git(sessions: &Path) -> Option<PathBuf> {
-    let entries = fs::read_dir(sessions).ok()?.flatten().collect::<Vec<_>>();
-    for entry in &entries {
-        let git_dir = entry.path().join("repo.git");
-        if git_dir.join("HEAD").is_file() {
-            return Some(git_dir);
-        }
-    }
-    for entry in &entries {
-        let git_dir = entry.path().join("repo.git");
-        if git_dir.is_dir() {
-            return Some(git_dir);
-        }
-    }
-    None
+    let git_dir = sessions.join(session_id).join("repo.git");
+    git_dir.is_dir().then_some(git_dir)
 }
 
 fn root_commit(git_dir: &Path) -> Option<String> {
@@ -568,6 +557,11 @@ mod tests {
             assert_eq!(paths, ["a.txt", "b.txt"], "scope {scope}");
         }
         let git_dir = find_git_dir(&ws_dir.join("sessions"), "sess").unwrap();
+        let nested = ws_dir.join("sessions").join("sess").join("x");
+        fs::create_dir_all(nested.join("repo.git")).unwrap();
+        for escape in ["../sessions/sess", "sess/x", "sess\\x", "..", "."] {
+            assert!(find_git_dir(&ws_dir.join("sessions"), escape).is_none(), "{escape}");
+        }
         assert_eq!(
             turn_range(&git_dir, "turn:u1"),
             Some((before.clone(), after.clone()))
@@ -592,6 +586,44 @@ mod tests {
                 latest: true,
             })
         );
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn a_chat_without_its_own_repo_never_reads_another_sessions() {
+        let root = temp("other");
+        let workspace = root.join("project");
+        let work = root.join("work");
+        fs::create_dir_all(&workspace).unwrap();
+        fs::create_dir_all(&work).unwrap();
+        let ws_dir = root.join("storage").join("workspaces").join("abc");
+        let other = ws_dir.join("sessions").join("other").join("repo.git");
+        fs::create_dir_all(other.parent().unwrap()).unwrap();
+        let real = workspace.canonicalize().unwrap();
+        let meta = serde_json::json!({ "realpath": real, "cwd": real });
+        fs::write(
+            ws_dir.join("meta.json"),
+            serde_json::to_string(&meta).unwrap(),
+        )
+        .unwrap();
+        git(&other, &work, &["init", "-q"]);
+        fs::write(work.join("a.txt"), "one\n").unwrap();
+        git(&other, &work, &["add", "-A"]);
+        git(&other, &work, &["commit", "-q", "-m", "other"]);
+
+        let storage = root.join("storage");
+        for session in ["new", ""] {
+            for scope in ["turn", "session"] {
+                let record = shadow_history_files_at(&storage, &workspace, session, scope).unwrap();
+                assert!(
+                    record.empty && record.files.is_empty(),
+                    "{session:?} {scope}"
+                );
+                assert!(record.meta.is_some(), "{session:?} {scope}");
+            }
+            let pair = matched_git(&storage, &workspace, session).unwrap();
+            assert!(pair.is_none(), "{session:?}");
+        }
         let _ = fs::remove_dir_all(root);
     }
 

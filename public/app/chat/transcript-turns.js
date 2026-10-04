@@ -18,7 +18,7 @@ import { toolLineCounts } from "./turn-files.js";
  *   work: { durationMs: number, steps: TurnStep[], open: boolean },
  *   answerId: string | null,
  *   files: TurnFile[],
- *   notices: { kind: string, text?: string, status?: string }[]
+ *   notices: { kind: string, text?: string, status?: string, attempt?: number, seconds?: number, source?: string }[]
  * }} Turn
  */
 

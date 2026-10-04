@@ -2,11 +2,8 @@
 // ABOUTME: Includes "the top button creates a project, then a session in it".
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { onSessionCreated } from "./session-created-action.js";
-import {
-  errorFromHostBody,
-  mountNewSessionButton,
-  requestNewChatInCurrentProject,
-} from "./workspace-actions.js";
+import { SessionSidebar } from "./session-sidebar.js";
+import { errorFromHostBody, mountNewSessionButton } from "./workspace-actions.js";
 
 describe("workspace actions", () => {
   it("keeps the host error code when the body is an object", () => {
@@ -60,15 +57,16 @@ describe("workspace actions", () => {
   });
 
   it("Mod+N's action clicks the + of the open project's row", () => {
-    document.body.innerHTML = `
+    const list = document.createElement("div");
+    list.innerHTML = `
       <div class="project-group"><button class="project-new-chat-btn" id="other"></button></div>
       <div class="project-group current-project"><button class="project-new-chat-btn" id="open"></button></div>
     `;
     const clicked = [];
-    for (const button of document.querySelectorAll(".project-new-chat-btn")) {
+    for (const button of list.querySelectorAll(".project-new-chat-btn")) {
       button.addEventListener("click", () => clicked.push(button.id));
     }
-    requestNewChatInCurrentProject();
+    SessionSidebar.prototype.newChatInCurrentProject.call({ container: list });
     expect(clicked).toEqual(["open"]);
   });
 });

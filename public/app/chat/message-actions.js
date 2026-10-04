@@ -1,4 +1,4 @@
-// ABOUTME: Fork and edit on a user message are session-store actions.
+// ABOUTME: Fork and edit on a user message are chat actions.
 // ABOUTME: The message element stays on the action so the entry id can be resolved.
 
 /** @type {(action: { type: string, entryId?: string | null, text?: string, messageEl?: Element | null }) => void} */

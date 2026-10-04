@@ -31,7 +31,7 @@ pub(crate) fn index_html(
     if inject_manifest {
         html = html.replacen(
             "</head>",
-            "<link rel=\"manifest\" href=\"/manifest.webmanifest\" />\n</head>",
+            "<link rel=\"manifest\" href=\"/manifest.webmanifest\" crossorigin=\"use-credentials\" />\n</head>",
             1,
         );
     }
@@ -200,7 +200,7 @@ fn fingerprint_static_dir(static_dir: &Path, overlay_dir: Option<&Path>) -> Stri
         }
     }
     if let Some(overlay) = overlay_dir {
-        for (path, digest) in crate::host::phone::hash_tree(overlay) {
+        for (path, digest) in super::ui_fingerprint::hash_tree(overlay) {
             hasher.update(path.as_bytes());
             hasher.update(digest.as_bytes());
         }

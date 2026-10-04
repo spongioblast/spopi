@@ -17,6 +17,7 @@ import { mountCustomizationsSettings } from "./customizations-settings.js";
 import { mountDependenciesSettings } from "./dependencies/dependencies-settings.js";
 import { extensionsSettingsRefs, mountExtensionsSettings } from "./extensions-settings.js";
 import { generalSettingsRefs, mountGeneralSettings } from "./general-settings.js";
+import { mountMcpSettings } from "./mcp/mcp-settings.js";
 import { mountModelsSettings } from "./models-settings.js";
 import { mountPhoneSettings } from "./phone-settings.js";
 import { mountTerminalSettings } from "./terminal-settings.js";
@@ -69,6 +70,8 @@ import { mountUsageSettings, usageSettingsRefs } from "./usage-settings.js";
  *     pickSkillFolder: (workspaceId?: string | null) => Promise<{ path: string | null }>,
  *     openExternal?: (url: string) => Promise<unknown>,
     checkDependencies?: (options?: { quick?: boolean }) => Promise<{ npm?: { state?: string } }>,
+ *     getGitIdentity?: (workspaceId?: string) => Promise<unknown>,
+ *     setGitIdentity?: (identity: Record<string, unknown>) => Promise<unknown>,
  *   } | null,
  *   preferences?: unknown,
  *   terminal?: unknown,
@@ -82,6 +85,8 @@ import { mountUsageSettings, usageSettingsRefs } from "./usage-settings.js";
  *   onRestarted?: unknown,
  *   onThinkingLevelChanged?: unknown,
  *   onCommandsReloaded?: (() => void | Promise<void>) | null,
+ *   closeSettings?: () => void,
+ *   workbench?: unknown,
  * }} SettingsPanelOptions
  *
  * @typedef {{
@@ -101,6 +106,7 @@ export const SETTINGS_TABS = Object.freeze([
   { key: "dependencies", labelKey: "settings.dependencies.title" },
   { key: "usage", labelKey: "settings.usage" },
   { key: "models", labelKey: "settings.models.title" },
+  { key: "mcp", labelKey: "settings.mcp.title" },
   { key: "configuration", labelKey: "settings.configuration" },
   { key: "customizations", labelKey: "settings.customizations.title" },
   { key: "phone", labelKey: "settings.phone.title" },
@@ -115,6 +121,7 @@ const OWNED_PAGES = Object.freeze([
   ["dependencies", /** @type {SettingsPageMount} */ (mountDependenciesSettings)],
   ["usage", /** @type {SettingsPageMount} */ (mountUsageSettings)],
   ["models", /** @type {SettingsPageMount} */ (mountModelsSettings)],
+  ["mcp", /** @type {SettingsPageMount} */ (mountMcpSettings)],
   ["configuration", /** @type {SettingsPageMount} */ (mountConfigurationSettings)],
   ["customizations", /** @type {SettingsPageMount} */ (mountCustomizationsSettings)],
   ["phone", /** @type {SettingsPageMount} */ (mountPhoneSettings)],
@@ -168,6 +175,19 @@ function pageDeps(key, options) {
   if (key === "terminal") return { preferences: options.preferences, terminal: options.terminal };
   if (key === "appearance" || key === "general") return options;
   if (key === "configuration") return { configGateway: options.configGateway };
+  if (key === "mcp") {
+    return {
+      control: options.control,
+      configGateway: options.configGateway,
+      runtime: options.runtime,
+      getTarget: options.getTarget,
+      getWorkspaceId: options.getWorkspaceId,
+      notify: options.notify,
+      closeSettings: options.closeSettings,
+      workbench: options.workbench,
+      terminal: options.terminal,
+    };
+  }
   if (key === "models") {
     return {
       configGateway: options.configGateway,
@@ -178,15 +198,32 @@ function pageDeps(key, options) {
   }
   return undefined;
 }
+/** @type {HTMLElement | null} */
+let mountedPanel = null;
+
+/** @type {((tabKey: string) => void) | null} */
+let openMountedPanel = null;
+
+/** Whether the settings overlay is showing. Other modules ask here instead of reading its node. */
+export function isSettingsOpen() {
+  return Boolean(mountedPanel && !mountedPanel.classList.contains("hidden"));
+}
+
+/** @param {string} tabKey */
+export function openSettingsTab(tabKey) {
+  openMountedPanel?.(tabKey);
+}
+
 /**
+ * @param {HTMLElement} panel
  * @param {SettingsPanelOptions} [options]
  * @returns {Record<string, OwnedSettingsPage>}
  */
-function mountOwnedSettingsPages(options = {}) {
+function mountOwnedSettingsPages(panel, options = {}) {
   /** @type {Record<string, OwnedSettingsPage>} */
   const handles = {};
   for (const [key, mount] of OWNED_PAGES) {
-    const root = document.querySelector(`[data-settings-panel="${key}"]`);
+    const root = panel.querySelector(`[data-settings-panel="${key}"]`);
     if (!(root && root.childElementCount === 0)) continue;
     handles[key] = mount(root, pageDeps(key, options));
   }
@@ -226,6 +263,7 @@ function mountOwnedSettingsPages(options = {}) {
  *   onRestarted?: unknown,
  *   onThinkingLevelChanged?: unknown,
  *   onCommandsReloaded?: (() => void | Promise<void>) | null,
+ *   workbench?: unknown,
  * }} [options]
  */
 export function mountSettingsPanel({
@@ -244,20 +282,26 @@ export function mountSettingsPanel({
   onRestarted,
   onThinkingLevelChanged,
   onCommandsReloaded,
+  workbench,
 } = {}) {
+  // index.html holds the settings overlay; this module is its only reader.
   const panel = document.getElementById("settings-panel");
   const shellButtons = sidebarChromeRefs(document);
   const headerButtons = headerChromeRefs(document);
   const openBtn = shellButtons.settingsBtn;
-  const closeBtn = document.getElementById("settings-close");
   const overlay = document.getElementById("settings-overlay");
   const extensionsBtn = shellButtons.extensionsBtn;
   const skillsBtn = shellButtons.skillsBtn;
   if (!panel || !openBtn) return;
   const settingsPanel = panel;
+  mountedPanel = settingsPanel;
+  openMountedPanel = (tabKey) => openSettings(tabKey);
+  const closeBtn = settingsPanel.querySelector("#settings-close");
   ensureSettingsNav(settingsPanel);
   ensureSettingsFrame(settingsPanel);
-  const ownedPages = mountOwnedSettingsPages({
+  /** @param {string} key */
+  const pageRoot = (key) => settingsPanel.querySelector(`[data-settings-panel="${key}"]`);
+  const ownedPages = mountOwnedSettingsPages(settingsPanel, {
     preferences,
     terminal,
     configGateway,
@@ -268,13 +312,15 @@ export function mountSettingsPanel({
     getTarget,
     onThinkingLevelChanged,
     control,
+    notify,
+    getWorkspaceId,
+    workbench,
+    closeSettings: () => closeSettings(),
   });
   const pages = {
-    general: generalSettingsRefs(document.querySelector('[data-settings-panel="general"]')),
-    extensions: extensionsSettingsRefs(
-      document.querySelector('[data-settings-panel="extensions"]'),
-    ),
-    usage: usageSettingsRefs(document.querySelector('[data-settings-panel="usage"]')),
+    general: generalSettingsRefs(pageRoot("general")),
+    extensions: extensionsSettingsRefs(pageRoot("extensions")),
+    usage: usageSettingsRefs(pageRoot("usage")),
   };
 
   const resourceDialogHeader = document.createElement("header");
@@ -289,8 +335,8 @@ export function mountSettingsPanel({
   resourceDialogHeader.append(resourceDialogTitle, resourceDialogClose);
   settingsPanel.prepend(resourceDialogHeader);
 
-  const navItems = Array.from(document.querySelectorAll(".settings-nav-item"));
-  const tabs = Array.from(document.querySelectorAll(".settings-tab"));
+  const navItems = Array.from(settingsPanel.querySelectorAll(".settings-nav-item"));
+  const tabs = Array.from(settingsPanel.querySelectorAll(".settings-tab"));
   const validTabKeys = new Set(
     navItems.flatMap((item) => {
       if (!("dataset" in item)) return [];
@@ -514,7 +560,9 @@ export function mountSettingsPanel({
     if (target === "dependencies") void ownedPages.dependencies?.reload?.();
     if (target === "configuration") loadConfiguration();
     if (target === "models") loadModels();
+    if (target === "mcp") void ownedPages.mcp?.reload?.();
     if (target === "customizations") void ownedPages.customizations?.refresh?.();
+    if (target === "phone") void ownedPages.phone?.refresh?.();
   }
 
   async function loadPiVersion() {
@@ -526,7 +574,7 @@ export function mountSettingsPanel({
       const response = await fetch("/health");
       const health = /** @type {{ piVersion?: string }} */ (await response.json());
       clearLoadingPlaceholder(piVersionValue);
-      piVersionValue.textContent = health?.piVersion || "Unavailable";
+      piVersionValue.textContent = health?.piVersion || t("sessionInfo.unavailable");
     } catch {
       clearLoadingPlaceholder(piVersionValue);
       piVersionValue.textContent = t("sidebar.unavailable");
@@ -539,7 +587,7 @@ export function mountSettingsPanel({
       const tauri = /** @type {TauriGlobal} */ (globalThis);
       const version = await tauri.__TAURI__?.app?.getVersion?.();
       clearLoadingPlaceholder(appVersionValue);
-      appVersionValue.textContent = version ? `v${version}` : "Unavailable";
+      appVersionValue.textContent = version ? `v${version}` : t("sessionInfo.unavailable");
     } catch {
       clearLoadingPlaceholder(appVersionValue);
       appVersionValue.textContent = t("sidebar.unavailable");
@@ -698,6 +746,11 @@ export function mountSettingsPanel({
     requestCloseSettings();
   });
   window.addEventListener("hashchange", restoreFromHash);
+  document.addEventListener("spopi-open-phone", () => openSettings("phone"));
+  document.addEventListener("spopi-open-settings", (event) => {
+    const tab = /** @type {CustomEvent<{ tab?: string }>} */ (event).detail?.tab;
+    openSettings(tab || "general");
+  });
   restoreFromHash();
 
   return { openSettings, closeSettings, thinkingControl };

@@ -34,7 +34,7 @@
 
 .pkg-bundled-name {
   font-size: var(--font-size-md);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   color: var(--text-primary);
 }
 
@@ -132,7 +132,7 @@
 .pkg-manager-group-header {
   margin: var(--space-3) var(--space-2) var(--space-1);
   font-size: var(--font-size-xs);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   letter-spacing: 0.06em;
   color: var(--text-muted);
 }
@@ -177,7 +177,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: var(--font-size-sm);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   color: var(--text-primary);
 }
 
@@ -220,13 +220,6 @@
 
 .pkg-manager-update-badge {
   flex-shrink: 0;
-  padding: 0 var(--space-1-5);
-  font-size: var(--font-size-xs);
-  font-weight: 600;
-  line-height: 1.6;
-  color: var(--accent-text);
-  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
-  border-radius: var(--radius-pill);
 }
 
 /* ── Detail pane ──────────────────────────────────────────────────── */
@@ -259,7 +252,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: var(--font-size-lg);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   color: var(--text-primary);
 }
 
@@ -284,7 +277,7 @@
   flex-shrink: 0;
   padding: 0 var(--space-1-5);
   font-size: var(--font-size-xs);
-  line-height: 1.6;
+  line-height: var(--line-height-code);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   border: 1px solid var(--border);
@@ -310,7 +303,7 @@
 .pkg-manager-description {
   margin: var(--space-3) 0 0;
   font-size: var(--font-size-md);
-  line-height: 1.5;
+  line-height: var(--line-height-relaxed);
   color: var(--text-secondary);
 }
 
@@ -365,7 +358,7 @@
   margin-top: var(--space-5);
   margin-bottom: var(--space-1-5);
   font-size: var(--font-size-xs);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-muted);
@@ -404,44 +397,7 @@
   color: var(--text-muted);
 }
 
-/* ── Enable switch and danger button ──────────────────────────────── */
-
-.pkg-manager-toggle {
-  appearance: none;
-  position: relative;
-  width: 30px;
-  height: 17px;
-  flex-shrink: 0;
-  border: none;
-  border-radius: var(--radius-pill);
-  background: var(--border-hover);
-  cursor: pointer;
-  transition: background var(--duration) var(--ease);
-}
-
-.pkg-manager-toggle.is-on {
-  background: var(--accent);
-}
-
-.pkg-manager-toggle.is-loading {
-  opacity: 0.6;
-  cursor: progress;
-}
-
-.pkg-manager-toggle-knob {
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 13px;
-  height: 13px;
-  border-radius: 50%;
-  background: var(--text-primary);
-  transition: transform var(--duration) var(--ease);
-}
-
-.pkg-manager-toggle.is-on .pkg-manager-toggle-knob {
-  transform: translateX(13px);
-}
+/* ── Danger button ──────────────────────────────── */
 
 .pkg-manager-btn.is-danger {
   color: var(--danger);

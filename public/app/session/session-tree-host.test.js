@@ -3,9 +3,9 @@
 
 import { describe, expect, it } from "vitest";
 import {
-  bindSessionTreeModel,
   branchMessages,
   createSessionTreeModel,
+  startSessionTreeModel,
 } from "./session-tree-host.js";
 
 const user = {
@@ -42,7 +42,7 @@ function scripted(steps) {
 
 describe("session tree model", () => {
   it("loads get_tree and returns the active branch", async () => {
-    const model = bindSessionTreeModel({
+    const model = startSessionTreeModel({
       request: scripted([{ cmd: { type: "get_tree" }, data: { tree: [user], leafId: "a1" } }]),
       getTarget: () => ({ sessionId: "s" }),
     });

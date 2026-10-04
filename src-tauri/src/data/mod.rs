@@ -15,6 +15,7 @@ mod files;
 pub(crate) mod metadata_store;
 pub(crate) mod paths;
 pub(crate) mod projects_folder;
+pub(crate) mod review_draft_store;
 mod search;
 pub(crate) mod session_dirs;
 mod session_format;
@@ -49,6 +50,9 @@ pub struct WorkspaceInfo {
     pub repository: String,
     /// Current branch name (empty string in detached HEAD).
     pub branch: String,
+    /// Main checkout, when this folder is a linked git worktree.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub worktree_of: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -154,6 +158,9 @@ pub struct SessionSummary {
     /// Last user-message timestamp when available; falls back to the session
     /// header timestamp, then filesystem mtime for legacy/incomplete files.
     pub activity_at_ms: u128,
+    /// Main checkout, when this session's folder is a linked git worktree.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub worktree_of: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -394,6 +401,7 @@ pub(crate) fn empty_workspace_git(path: String) -> WorkspaceInfo {
         is_git: false,
         repository: String::new(),
         branch: String::new(),
+        worktree_of: None,
     }
 }
 
@@ -578,6 +586,8 @@ impl HostDataPlane {
             is_git: true,
             repository,
             branch,
+            worktree_of: crate::git::worktree_link::main_checkout_of(root)
+                .map(|main| main.to_string_lossy().into_owned()),
         })
     }
 }

@@ -1,5 +1,5 @@
 // ABOUTME: Tests MessageRenderer streaming markdown preview.
-// ABOUTME: Includes "renders markdown live during streaming updates".
+// ABOUTME: Covers public/app/ui/message-renderer.js with its footer, thinking, markup, and search helpers.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { setMessageActionDispatch } from "../chat/message-actions.js";
 import { createI18n, setLocale } from "../i18n/i18n.js";
@@ -427,21 +427,6 @@ describe("MessageRenderer message toolbar timestamps", () => {
     expect(formatMessageTime("not-a-number")).toBe("");
     expect(formatMessageTime(NaN)).toBe("");
     expect(formatMessageTime(1e20)).toBe("");
-  });
-
-  it("formats a response duration as seconds, or minutes+seconds past a minute", async () => {
-    const { formatDurationLabel } = await import("./message-renderer.js");
-    expect(formatDurationLabel(320)).toBe("0.3s");
-    expect(formatDurationLabel(3200)).toBe("3.2s");
-    expect(formatDurationLabel(65_400)).toBe("1m 05s");
-  });
-
-  it("returns an empty duration label for missing or invalid durations", async () => {
-    const { formatDurationLabel } = await import("./message-renderer.js");
-    expect(formatDurationLabel(null)).toBe("");
-    expect(formatDurationLabel(undefined)).toBe("");
-    expect(formatDurationLabel(-5)).toBe("");
-    expect(formatDurationLabel(Number.NaN)).toBe("");
   });
 
   it("orders the user footer slots copy before time, with tree actions leading", () => {

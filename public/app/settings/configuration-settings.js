@@ -2,10 +2,11 @@
 // ABOUTME: The host config gateway loads and saves those files when the tab opens.
 
 import { onLocaleChange, t, translateSubtree } from "../i18n/i18n.js";
+import { copyText } from "../ui/clipboard.js";
 import { el } from "../ui/dom.js";
 import { createIcon } from "../ui/icons.js";
 import { applyLoadingPlaceholder, clearLoadingPlaceholder } from "../ui/loading-placeholder.js";
-import { sectionTitle } from "../ui/settings-controls.js";
+import { settingsCard } from "../ui/settings-controls.js";
 import {
   clearSettingsSaveMessage,
   setSettingsSaveButtonSaving,
@@ -106,8 +107,8 @@ function editorSection({
           class:
             "ui-icon-button ui-icon-button--xs ui-icon-button--ghost settings-config-path-copy",
           id: copyId,
-          title: "Copy path",
-          "aria-label": "Copy path",
+          title: t("settings.copyConfigPath"),
+          "aria-label": t("settings.copyConfigPath"),
         },
         [createIcon("copy", { size: 14 })],
       )
@@ -144,7 +145,7 @@ function editorSection({
   );
   save.dataset.i18n = "shell.save";
   /** @type {Array<Node>} */
-  const children = [sectionTitle(title, { i18n: titleKey })];
+  const children = [];
   if (help) {
     const helpNode = /** @type {HTMLElement} */ (el("p", { class: "settings-help", text: help }));
     helpNode.dataset.i18n = helpKey;
@@ -162,7 +163,7 @@ function editorSection({
     ]),
   );
   return {
-    section: el("div", { class: "settings-section" }, children),
+    section: settingsCard(title, titleKey, children),
     path,
     copy,
     textarea,
@@ -427,7 +428,7 @@ export function mountSettingsConfig({ configGateway, refs } = {}) {
       if (!path) return;
       const defaultLabel = t("settings.copyConfigPath");
       try {
-        await navigator.clipboard?.writeText(path);
+        await copyText(path);
         pathCopyBtn.title = t("settings.configPathCopied");
         pathCopyBtn.setAttribute("aria-label", t("settings.configPathCopied"));
       } catch {

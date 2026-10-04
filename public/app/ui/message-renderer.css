@@ -18,24 +18,25 @@
 /* Welcome */
 .welcome {
   text-align: center;
-  margin-top: 120px;
+  margin-top: clamp(var(--space-12), 15vh, 120px);
   animation: fadeIn 0.5s var(--ease);
 }
 
 .welcome-icon {
   font-size: var(--font-size-2xl);
   opacity: 0.25;
+  /* design-token-ignore: the welcome glyph is drawn hairline, below the text weights */
   font-weight: 200;
 }
 
 .welcome p {
-  margin-bottom: 4px;
+  margin-bottom: var(--space-1);
   font-size: var(--font-size-lg);
 }
 
 .welcome .hint {
   font-size: var(--font-size-md);
-  font-weight: 400;
+  font-weight: var(--font-weight-normal);
 }
 
 .shortcuts-hint {
@@ -109,18 +110,17 @@
   align-self: flex-start;
 }
 
-/* Timestamp + duration + cost share one styling: same font size, colour, tabular numerals. */
+/* Timestamp, duration, and cost are readable metadata, not empty-field hints. */
 .message-time,
 .message-duration,
 .message-usage {
   font-size: var(--font-size-sm);
-  color: var(--text-placeholder);
+  color: var(--text-secondary);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 .message-usage {
   display: inline-block;
-  opacity: 0.5;
 }
 
 /* User toolbar is always visible: no hover gating, keyboard
@@ -133,7 +133,7 @@
   word-wrap: break-word;
   overflow-wrap: anywhere;
   font-size: var(--chat-font-size, var(--font-size-md));
-  line-height: 1.6;
+  line-height: var(--line-height-code);
 }
 
 /* User bubble */
@@ -155,7 +155,7 @@
 .message.user .message-content blockquote {
   border-left: 2px solid currentColor;
   padding-left: var(--space-2);
-  margin: 4px 0;
+  margin: var(--space-1) 0;
   opacity: 0.75;
   font-style: italic;
 }
@@ -188,7 +188,7 @@
   border: 0;
   border-radius: var(--radius-sm);
   background: transparent;
-  color: var(--text-placeholder);
+  color: var(--text-secondary);
   cursor: pointer;
   font: inherit;
   font-size: var(--font-size-sm);
@@ -229,18 +229,18 @@
 }
 .message.assistant .message-content ul,
 .message.assistant .message-content ol {
-  margin: 6px 0;
+  margin: var(--space-1-5) 0;
   padding-left: var(--space-5);
 }
 .message.assistant .message-content li {
-  margin-bottom: 3px;
+  margin-bottom: var(--space-1);
 }
 
 .message.assistant .message-content h1,
 .message.assistant .message-content h2,
 .message.assistant .message-content h3 {
   margin: var(--space-3) 0 var(--space-1);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   letter-spacing: -0.02em;
 }
 
@@ -260,13 +260,13 @@
 .message.assistant .message-content hr {
   border: none;
   border-top: 1px solid var(--border);
-  margin: 12px 0;
+  margin: var(--space-3) 0;
 }
 
 .message.assistant .message-content blockquote {
   border-left: 2px solid var(--accent);
   padding-left: var(--space-3);
-  margin: 8px 0;
+  margin: var(--space-2) 0;
   font-style: italic;
 }
 
@@ -297,7 +297,7 @@
   background: var(--thinking-bg);
   border: 1px solid var(--border);
   padding: 0;
-  margin: 2px 0;
+  margin: var(--space-0-5) 0;
   border-radius: var(--radius);
   font-size: var(--font-size-md);
   overflow: hidden;
@@ -325,6 +325,12 @@ body[data-show-thinking="off"] .process-details-group.thinking-only {
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
   padding: var(--space-2) var(--space-3);
   cursor: pointer;
   user-select: none;
@@ -334,6 +340,11 @@ body[data-show-thinking="off"] .process-details-group.thinking-only {
 
 .thinking-toggle:hover {
   background: var(--bg-glass-hover);
+}
+
+.thinking-toggle:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-glow);
 }
 
 .thinking-label {
@@ -379,7 +390,7 @@ body[data-show-thinking="off"] .process-details-group.thinking-only {
   overscroll-behavior: contain;
   /* design-token-ignore: one step under chat prose, not a spacing step */
   font-size: calc(var(--chat-font-size, var(--font-size-md)) - 1px);
-  line-height: 1.5;
+  line-height: var(--line-height-relaxed);
 }
 
 .thinking-content.expanded {
@@ -392,7 +403,7 @@ body[data-show-thinking="off"] .process-details-group.thinking-only {
 
 .process-details-group {
   flex-shrink: 0;
-  margin: 2px 0;
+  margin: var(--space-0-5) 0;
 }
 
 .process-details-toggle {
@@ -456,7 +467,7 @@ body[data-show-thinking="off"] .process-details-group.thinking-only {
 .process-details-check {
   display: none;
   align-items: center;
-  color: var(--success, #22c55e);
+  color: var(--success);
   flex-shrink: 0;
 }
 
@@ -593,14 +604,14 @@ body[data-show-thinking="off"] .process-details-group.thinking-only {
 
 /* Error / system messages */
 .error-message {
-  background: rgba(248, 113, 113, 0.06);
-  border: 1px solid rgba(248, 113, 113, 0.15);
+  background: color-mix(in srgb, var(--error) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--error) 15%, transparent);
   border-radius: var(--radius);
   padding: var(--space-2) var(--space-4);
-  margin: 6px 0;
+  margin: var(--space-1-5) 0;
   color: var(--error);
   font-size: var(--font-size-md);
-  line-height: 1.5;
+  line-height: var(--line-height-relaxed);
   backdrop-filter: blur(8px);
 }
 
@@ -608,7 +619,7 @@ body[data-show-thinking="off"] .process-details-group.thinking-only {
   text-align: center;
   padding: var(--space-2) var(--space-4);
   font-size: var(--font-size-sm);
-  line-height: 1.5;
+  line-height: var(--line-height-relaxed);
   white-space: pre-line;
 }
 
@@ -625,7 +636,7 @@ mark[data-search-highlight="true"] {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-1-5);
-  margin-bottom: 6px;
+  margin-bottom: var(--space-1-5);
 }
 
 .message-image {

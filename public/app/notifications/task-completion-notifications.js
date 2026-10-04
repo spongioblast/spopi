@@ -165,3 +165,37 @@ export function createTaskCompletionNotifications({
 
   return { handleRuntimeFrame };
 }
+
+/**
+ * Completion notices for this window, titled by the session's name or first message.
+ * @param {{
+ *   getSessions: () => Array<{ id?: string, workspaceId?: string, name?: string, firstMessage?: string | null }>,
+ *   t: (key: string) => string,
+ * }} deps
+ */
+export function createSessionTaskNotifications({ getSessions, t }) {
+  const invoke = /** @type {{ core?: { invoke?: unknown } }} */ (globalThis).core?.invoke;
+  const send = createNativeTaskNotificationSender({
+    invoke:
+      typeof invoke === "function"
+        ? /** @type {(command: string, args: Record<string, unknown>) => Promise<unknown>} */ (
+            invoke
+          )
+        : undefined,
+  });
+  return createTaskCompletionNotifications({
+    resolveTask: (target) => {
+      const { sessionId, workspaceId } = describeTarget(target);
+      const found = getSessions().find(
+        (session) => session.id === sessionId && session.workspaceId === workspaceId,
+      );
+      return found ? { name: found.name, firstMessage: found.firstMessage ?? undefined } : null;
+    },
+    title: (task, error) =>
+      task?.name ||
+      task?.firstMessage ||
+      (error ? t("settings.taskFailedTitle") : t("settings.taskCompleteTitle")),
+    body: (_task, error) => error || t("settings.taskCompleteMessage"),
+    showNotification: /** @type {(notification: unknown) => unknown} */ (send),
+  });
+}

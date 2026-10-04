@@ -6,9 +6,12 @@ mod ai_snapshot;
 mod commit;
 mod dispatch;
 mod history;
+pub(crate) mod identity;
 mod parse;
 mod remote;
 mod status;
+mod worktree;
+pub(crate) mod worktree_link;
 
 pub(crate) use dispatch::dispatch;
 pub(crate) use parse::*;
@@ -48,6 +51,8 @@ const MAX_STDOUT_BYTES: usize = 4 * 1024 * 1024;
 const MAX_STDERR_BYTES: usize = 64 * 1024;
 const GIT_READ_DEADLINE: Duration = Duration::from_secs(10);
 const GIT_WRITE_DEADLINE: Duration = Duration::from_secs(30);
+/// `worktree add` checks out a full tree, so it cannot share the 30s write cap.
+const GIT_WORKTREE_DEADLINE: Duration = Duration::from_secs(600);
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -58,6 +63,8 @@ pub struct GitStatusSnapshot {
     pub index_tree_oid: Option<String>,
     pub branch: Option<String>,
     pub upstream: Option<String>,
+    /// Remote names only; the toolbar offers Add remote or Publish from these.
+    pub remotes: Vec<String>,
     pub ahead: Option<u64>,
     pub behind: Option<u64>,
     pub change_stats: GitChangeStats,

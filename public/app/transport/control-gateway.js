@@ -20,7 +20,7 @@ import { createRequestIds } from "./request-id.js";
  * @typedef {{
  *   type?: string,
  *   requestId?: string,
- *   error?: { message?: string } | null,
+ *   error?: { message?: string, code?: string } | null,
  *   packages?: unknown[],
  *   stale?: boolean,
  *   cachedAt?: number,
@@ -34,6 +34,7 @@ import { createRequestIds } from "./request-id.js";
  *   deleted?: unknown[],
  *   errors?: unknown[],
  *   profile?: unknown,
+ *   drafts?: unknown,
  *   changed?: unknown,
  *   value?: unknown,
  *   removed?: unknown,
@@ -44,6 +45,10 @@ import { createRequestIds } from "./request-id.js";
  *   cancelled?: boolean,
  *   path?: string,
  *   projectPath?: string,
+ *   merged?: boolean,
+ *   into?: string,
+ *   conflicts?: string[],
+ *   primaryPath?: string,
  *   foreign?: number,
  *   recordedAt?: string,
  *   recordedExists?: boolean,
@@ -54,7 +59,16 @@ import { createRequestIds } from "./request-id.js";
  *   moved?: number,
  *   ok?: boolean,
  *   lines?: string[],
+ *   list?: unknown,
+ *   identity?: GitIdentityReport,
  * }} HostFrame
+ * @typedef {{ name: string, email: string }} GitIdentity
+ * @typedef {{
+ *   name: string,
+ *   email: string,
+ *   global: GitIdentity,
+ *   repository: GitIdentity | null,
+ * }} GitIdentityReport
  * @typedef {{
  *   resolve: (frame: HostFrame) => void,
  *   reject: (error: unknown) => void,
@@ -151,6 +165,31 @@ export class HostControlGateway {
    */
   async updatePiPackage(source = "") {
     await this.request("update_pi_package", { source });
+  }
+
+  /**
+   * @param {{ workspaceId: string }} options
+   */
+  async listMcpServers({ workspaceId }) {
+    const frame = await this.request("list_mcp_servers", { workspaceId });
+    return { list: frame?.list ?? { servers: [], errors: [] } };
+  }
+
+  /**
+   * @param {Record<string, unknown>} spec
+   * @param {{ workspaceId: string }} options
+   */
+  async addMcpServer(spec, { workspaceId }) {
+    await this.request("add_mcp_server", { workspaceId, spec });
+  }
+
+  /**
+   * @param {string} name
+   * @param {string} scope
+   * @param {{ workspaceId: string }} options
+   */
+  async removeMcpServer(name, scope, { workspaceId }) {
+    await this.request("remove_mcp_server", { workspaceId, name, scope });
   }
 
   /**
@@ -290,22 +329,18 @@ export class HostControlGateway {
     return Array.isArray(frame?.hidden) ? frame.hidden : [];
   }
 
-  async listInstalledApps() {
-    const frame = await this.request("list_installed_apps");
-    return Array.isArray(frame?.apps) ? frame.apps : [];
-  }
-
+  /** @returns {Promise<unknown[]>} `{ ip, name, kind }` per address, best first. */
   async listLocalAddresses() {
     const frame = await this.request("list_local_addresses");
-    return Array.isArray(frame?.addresses) ? frame.addresses.map(String) : [];
+    return Array.isArray(frame?.addresses) ? frame.addresses : [];
   }
 
   /**
+   * Open a file or folder with the desktop's default app.
    * @param {string} path
-   * @param {{ appName?: string | null, command?: string | null }} [options]
    */
-  async openInApp(path, { appName = null, command = null } = {}) {
-    await this.request("open_in_app", { path, appName, command });
+  async openPath(path) {
+    await this.request("open_path", { path });
   }
 
   /**
@@ -365,6 +400,72 @@ export class HostControlGateway {
       ...profile,
     });
     return frame?.profile ?? profile;
+  }
+
+  /**
+   * Review comment drafts for the open project. An unknown project is an empty list.
+   * @param {string} workspaceId
+   * @returns {Promise<unknown[]>}
+   */
+  async loadReviewDrafts(workspaceId) {
+    const frame = await this.request("review_drafts_load", { workspaceId });
+    return Array.isArray(frame?.drafts) ? frame.drafts : [];
+  }
+
+  /**
+   * @param {string} workspaceId
+   * @param {unknown[]} drafts
+   * @returns {Promise<unknown[]>}
+   */
+  async saveReviewDrafts(workspaceId, drafts) {
+    const frame = await this.request("review_drafts_save", { workspaceId, drafts });
+    return Array.isArray(frame?.drafts) ? frame.drafts : drafts;
+  }
+
+  /**
+   * The name and email Git records with commits, read from Git's own config.
+   * Without a workspace it is the computer-wide value.
+   * @param {string} [workspaceId]
+   * @returns {Promise<GitIdentityReport | null>}
+   */
+  async getGitIdentity(workspaceId = "") {
+    const frame = await this.request("git_identity_get", { workspaceId });
+    return frame?.identity ?? null;
+  }
+
+  /**
+   * @param {{ workspaceId?: string, name: string, email: string, scope: "global" | "repository" }} identity
+   * @returns {Promise<GitIdentityReport | null>}
+   */
+  async setGitIdentity({ workspaceId = "", name, email, scope }) {
+    const frame = await this.request("git_identity_set", { workspaceId, name, email, scope });
+    return frame?.identity ?? null;
+  }
+
+  /**
+   * @param {string} projectPath
+   * @param {string} branch
+   * @returns {Promise<{ projectPath?: string }>}
+   */
+  async createWorktree(projectPath, branch) {
+    return this.request("create_worktree", { projectPath, branch });
+  }
+
+  /**
+   * @param {string} projectPath
+   * @returns {Promise<{ merged?: boolean, into?: string, conflicts?: string[] }>}
+   */
+  async mergeWorktree(projectPath) {
+    return this.request("merge_worktree", { projectPath });
+  }
+
+  /**
+   * @param {string} projectPath
+   * @param {{ force?: boolean }} [options]
+   * @returns {Promise<{ primaryPath?: string }>}
+   */
+  async removeWorktree(projectPath, { force = false } = {}) {
+    return this.request("remove_worktree", { projectPath, force });
   }
 
   /**
@@ -431,8 +532,13 @@ export class HostControlGateway {
     const pending = this.#pending.get(frame?.requestId);
     if (!pending || pending.generation !== this.#generation) return;
     this.#pending.delete(frame.requestId);
-    if (frame.error) pending.reject(new Error(frame.error.message ?? String(frame.error)));
-    else pending.resolve(frame);
+    if (frame.error) {
+      const error = new Error(frame.error.message ?? String(frame.error));
+      if (typeof frame.error.code === "string") {
+        Object.assign(error, { code: frame.error.code });
+      }
+      pending.reject(error);
+    } else pending.resolve(frame);
   }
 
   #disconnect() {

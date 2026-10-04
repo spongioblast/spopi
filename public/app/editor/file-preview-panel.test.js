@@ -392,6 +392,41 @@ describe("FilePreviewPanel", () => {
     p.destroy();
   });
 
+  test("opening another file marks that tab active", async () => {
+    const p = createPanel();
+    await p.openFile("/test/workspace/a.js");
+    await p.openFile("/test/workspace/b.js");
+    const tabs = [...tabBar.querySelectorAll(".file-preview-tab")];
+    expect(tabs.map((tab) => tab.classList.contains("active"))).toEqual([false, true]);
+    expect(tabs[1].getAttribute("aria-selected")).toBe("true");
+    await p.openFile("/test/workspace/a.js");
+    const again = [...tabBar.querySelectorAll(".file-preview-tab")];
+    expect(again.map((tab) => tab.classList.contains("active"))).toEqual([true, false]);
+    p.destroy();
+  });
+
+  test("scrolls a tab opened past the strip's edge into view", async () => {
+    const rect = (left, right) => () => /** @type {DOMRect} */ ({ left, right });
+    const original = HTMLElement.prototype.getBoundingClientRect;
+    HTMLElement.prototype.getBoundingClientRect = function () {
+      if (this === tabBar) return rect(0, 300)();
+      if (this.dataset?.tabId) {
+        const index = [...tabBar.children].indexOf(this);
+        return rect(index * 200 - tabBar.scrollLeft, (index + 1) * 200 - tabBar.scrollLeft)();
+      }
+      return original.call(this);
+    };
+    try {
+      const p = createPanel();
+      await p.openFile("/test/workspace/a.js");
+      await p.openFile("/test/workspace/b.js");
+      expect(tabBar.scrollLeft).toBe(100);
+      p.destroy();
+    } finally {
+      HTMLElement.prototype.getBoundingClientRect = original;
+    }
+  });
+
   test("uses the server-discovered Python command in dependency guidance", async () => {
     global.fetch = vi.fn(() =>
       Promise.resolve({
@@ -648,14 +683,29 @@ describe("FilePreviewPanel", () => {
     p.destroy();
   });
 
+  test("Delete closes the focused tab", async () => {
+    const p = createPanel();
+    await p.openFile("/test/workspace/a.js");
+    await p.openFile("/test/workspace/b.js");
+    tabBar
+      .querySelector('[data-tab-id="file:/test/workspace/a.js"]')
+      ?.dispatchEvent(new KeyboardEvent("keydown", { key: "Delete", bubbles: true }));
+    await vi.waitFor(() => expect(p.state.getTab("file:/test/workspace/a.js")).toBeFalsy());
+    expect(p.state.getTab("file:/test/workspace/b.js")).toBeTruthy();
+    p.destroy();
+  });
+
   test("tabs and splitter expose keyboard interactions", async () => {
     const p = createPanel();
     await p.openFile("/test/workspace/a.js");
     await p.openFile("/test/workspace/b.js");
     const firstTab = tabBar.querySelector('[data-tab-id="file:/test/workspace/a.js"]');
+    const secondTab = tabBar.querySelector('[data-tab-id="file:/test/workspace/b.js"]');
 
     expect(firstTab?.getAttribute("role")).toBe("tab");
-    expect(firstTab?.getAttribute("tabindex")).toBe("0");
+    expect(firstTab?.getAttribute("tabindex")).toBe("-1");
+    expect(secondTab?.getAttribute("tabindex")).toBe("0");
+    expect(firstTab?.querySelector("button")).toBeNull();
     firstTab?.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
     await Promise.resolve();
     expect(p.state.getActiveTab()?.filePath).toBe("/test/workspace/a.js");

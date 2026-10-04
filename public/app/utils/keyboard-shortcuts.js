@@ -2,12 +2,13 @@
 // ABOUTME: Editor-only shortcuts stay with the editor.
 
 import { cycleGuard } from "../composer/guard-chip.js";
-import { requestNewChatInCurrentProject, requestNewProject } from "../session/workspace-actions.js";
+import { requestNewProject } from "../session/workspace-actions.js";
+import { isSettingsOpen } from "../settings/settings-panel.js";
 import { composerChromeRefs } from "../shell/chrome/composer.js";
 import { overlayChromeRefs } from "../shell/overlay-chrome.js";
 import { closeTop, dialogOwnsEscape } from "../ui/dialog.js";
 import { showKeybindingHelp } from "../ui/keybinding-help.js";
-import { appKeybindings, installKeybindingListener } from "../ui/keybindings.js";
+import { appKeybindings, listenForKeybindings } from "../ui/keybindings.js";
 
 /** @type {(() => void) | null} */
 let cycleModel = null;
@@ -33,18 +34,13 @@ function isVisible(element) {
   return Boolean(element && !element.classList.contains("hidden"));
 }
 
+/** Modals register with the dialog stack, so only non-modal surfaces are listed here. */
 function overlayOwnsEscape() {
   return (
     dialogOwnsEscape() ||
-    isVisible(document.getElementById("settings-panel")) ||
+    isSettingsOpen() ||
     isVisible(composerChromeRefs().modelMenu) ||
-    isVisible(overlayChromeRefs().dialog) ||
-    document.querySelector(".image-lightbox.open") ||
-    document.querySelector(".ui-overlay") ||
-    document.querySelector(".oauth-login-dialog-backdrop") ||
-    document.querySelector(".git-commit-dialog-overlay") ||
-    document.querySelector(".file-preview-dialog-overlay") ||
-    document.querySelector(".models-json-dialog-backdrop:not(.hidden)")
+    isVisible(overlayChromeRefs().dialog)
   );
 }
 
@@ -57,9 +53,10 @@ function overlayOwnsEscape() {
  *   } | null,
  *   abort: () => void,
  *   isWorking: () => boolean,
+ *   newChat: () => void,
  * }} options
  */
-export function mountAppKeyboardShortcuts({ input, abort, isWorking }) {
+export function mountAppKeyboardShortcuts({ input, abort, isWorking, newChat }) {
   const keys = appKeybindings();
   keys.register({
     id: "abort",
@@ -105,7 +102,7 @@ export function mountAppKeyboardShortcuts({ input, abort, isWorking }) {
     keys: "Mod+N",
     labelKey: "keybindings.newSession",
     when: () => !isEditableElement(document.activeElement),
-    run: () => requestNewChatInCurrentProject(),
+    run: () => newChat(),
   });
   keys.register({
     id: "new-project",
@@ -121,6 +118,6 @@ export function mountAppKeyboardShortcuts({ input, abort, isWorking }) {
     when: () => !isEditableElement(document.activeElement),
     run: () => showKeybindingHelp(),
   });
-  installKeybindingListener();
+  listenForKeybindings();
   return { destroy() {} };
 }

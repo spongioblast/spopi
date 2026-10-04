@@ -2,6 +2,7 @@
 // ABOUTME: Includes "recognizes slash queries at the start of the composer".
 import { JSDOM } from "jsdom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { openSettingsTab } from "../settings/settings-panel.js";
 import {
   activeSlashQuery,
   mountComposerSlashMenu,
@@ -11,6 +12,8 @@ import {
 import { mountComposerSubmitHandling } from "./composer-submit.js";
 import { buildCommandCatalog } from "./slash-commands.js";
 import { standardBuiltIns } from "./slash-sources.js";
+
+vi.mock("../settings/settings-panel.js", () => ({ openSettingsTab: vi.fn() }));
 
 describe("composer slash menu", () => {
   let dom;
@@ -404,16 +407,6 @@ describe("composer slash menu", () => {
   });
 
   it("offers Settings when Pi has no commands", async () => {
-    const settings = document.createElement("button");
-    settings.id = "settings-btn";
-    const opened = vi.fn();
-    settings.addEventListener("click", opened);
-    const tab = document.createElement("button");
-    tab.dataset.settingsTab = "extensions";
-    const openedTab = vi.fn();
-    tab.addEventListener("click", openedTab);
-    document.body.append(settings, tab);
-
     const controller = mountComposerSlashMenu({
       input,
       container: menu,
@@ -427,8 +420,7 @@ describe("composer slash menu", () => {
     const link = menu.querySelector(".skill-slash-empty-link");
     expect(link.textContent).toBe("composer.slashMenu.installExtensions");
     link.click();
-    expect(opened).toHaveBeenCalled();
-    expect(openedTab).toHaveBeenCalled();
+    expect(openSettingsTab).toHaveBeenCalledWith("extensions");
     expect(menu.classList.contains("hidden")).toBe(true);
   });
 

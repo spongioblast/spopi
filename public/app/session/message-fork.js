@@ -60,7 +60,7 @@ function prefill(input, composerAutoResize, text) {
 /**
  * @param {object} options
  * @param {Element} options.messagesElement
- * @param {() => { lifecycle?: string }} options.getStore
+ * @param {() => boolean} options.isWorking
  * @param {() => RuntimeTarget & { sessionId?: string }} options.getTarget
  * @param {RuntimeClient} options.runtime
  * @param {() => string} options.randomId
@@ -76,7 +76,7 @@ function prefill(input, composerAutoResize, text) {
  */
 export function mountMessageForkHandler({
   messagesElement,
-  getStore,
+  isWorking,
   getTarget,
   runtime,
   randomId,
@@ -93,7 +93,7 @@ export function mountMessageForkHandler({
   const invalid = () =>
     showError(new Error(t("errors.treeNavigateFailed", { error: "Invalid entry ID for forking" })));
   const busy = () => {
-    if (getStore().lifecycle !== "working") return false;
+    if (!isWorking()) return false;
     showError(new Error(t("infoPanel.actionWhileStreaming")));
     return true;
   };

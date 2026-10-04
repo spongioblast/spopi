@@ -1,5 +1,5 @@
 // ABOUTME: Each mode writes its pi-permission-system recipe, including path denies.
-// ABOUTME: Tests permission-recipes.ts; an empty config reads as Ask.
+// ABOUTME: Tests permission-recipes.ts; an empty config reads as Ask, a stale one is reported.
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -15,6 +15,7 @@ import {
   protectedRoots,
   rootDeniesMissing,
   skillReadsAsk,
+  staleReasons,
   upgradeDenied,
 } from "./permission-recipes";
 
@@ -222,24 +223,43 @@ describe("permission recipes", () => {
     ).toBe("allow");
   });
 
-  it("rewrites a recipe whose protected roots never matched", async () => {
+  it("reports a recipe whose protected roots never matched, and the same mode repairs it", async () => {
     mkdirSync(dirname(permissionConfigPath()), { recursive: true });
-    writeFileSync(
-      permissionConfigPath(),
-      JSON.stringify({
-        permission: { "*": "allow", bash: { "*": "allow" }, path: { "//?/D:/SPOPI": "deny" } },
-      }),
-    );
+    const stale = JSON.stringify({
+      permission: { "*": "allow", bash: { "*": "allow" }, path: { "//?/D:/SPOPI": "deny" } },
+    });
+    writeFileSync(permissionConfigPath(), stale);
     const roots = protectedRoots();
     expect(
       rootDeniesMissing(JSON.parse(readFileSync(permissionConfigPath(), "utf8")).permission, roots),
     ).toBe(true);
-    await handlers.get_permission_mode({ ui: { setStatus: vi.fn() } }, {});
+    const ctx = { ui: { setStatus: vi.fn() } };
+    const read = await handlers.get_permission_mode(ctx, {});
+    expect(read).toMatchObject({ data: { mode: "full", stale: true } });
+    expect((read as { data: { reasons: string[] } }).data.reasons).toContain("root-denies");
+    expect(readFileSync(permissionConfigPath(), "utf8")).toBe(stale);
+    await handlers.set_permission_mode(ctx, { mode: "full" });
     const path = writtenPermission().path_write as Record<string, string>;
     expect(path["D:/SPOPI"]).toBe("deny");
     expect(path["//?/D:/SPOPI"]).toBeUndefined();
     expect(writtenPermission().path).toBeUndefined();
     expect(writtenPermission()["*"]).toBe("allow");
+  });
+
+  it("allows codemode and read-only MCP resource tools in auto-edit only", () => {
+    const names = [
+      "codemode",
+      "tool_search",
+      "list_mcp_resources",
+      "list_mcp_resource_templates",
+      "read_mcp_resource",
+    ];
+    const auto = permissionRecipe("auto-edit", []).permission;
+    const ask = permissionRecipe("ask", []).permission;
+    for (const name of names) {
+      expect(auto[name]).toBe("allow");
+      expect(ask[name]).toBeUndefined();
+    }
   });
 
   it("puts write denies for protected roots in every mode", () => {
@@ -291,7 +311,7 @@ describe("permission recipes", () => {
     }
   });
 
-  it("rewrites a recipe that still asks for skill reads and keeps its mode", async () => {
+  it("reports a recipe that still asks for skill reads and keeps its mode", async () => {
     mkdirSync(dirname(permissionConfigPath()), { recursive: true });
     const { permission } = permissionRecipe("full", protectedRoots());
     const older = { ...permission, skill: undefined };
@@ -301,17 +321,20 @@ describe("permission recipes", () => {
     );
     await expect(
       handlers.get_permission_mode({ ui: { setStatus: vi.fn() } }, {}),
-    ).resolves.toMatchObject({ data: { mode: "full" } });
+    ).resolves.toMatchObject({ data: { mode: "full", stale: true, reasons: ["skill-reads"] } });
+    expect(writtenPermission().skill).toBeUndefined();
+    await handlers.set_permission_mode({ ui: { setStatus: vi.fn() } }, { mode: "full" });
     expect(writtenPermission().skill).toEqual({ "*": "allow" });
     expect(writtenPermission()["*"]).toBe("allow");
   });
 
-  it("rewrites the older recipe that denied reads of protected roots", async () => {
+  it("repairs the older recipe that denied reads of protected roots", async () => {
     mkdirSync(dirname(permissionConfigPath()), { recursive: true });
     const older = { "*": "ask", path: { "*": "ask", "D:/SPOPI": "deny", "D:/SPOPI/*": "deny" } };
     writeFileSync(permissionConfigPath(), JSON.stringify({ permission: older }));
     expect(rootDeniesMissing(older, protectedRoots())).toBe(true);
-    await handlers.get_permission_mode({ ui: { setStatus: vi.fn() } }, {});
+    expect(staleReasons("ask", older)).toContain("root-denies");
+    await handlers.set_permission_mode({ ui: { setStatus: vi.fn() } }, { mode: "ask" });
     expect(writtenPermission().path).toEqual({ "*": "ask" });
     expect((writtenPermission().path_write as Record<string, string>)["D:/SPOPI/*"]).toBe("deny");
     expect(rootDeniesMissing(writtenPermission(), protectedRoots())).toBe(false);
@@ -345,8 +368,15 @@ describe("permission recipes", () => {
 
     const withoutScreenshot = { ...auto, spopi_screenshot: undefined };
     writeFileSync(permissionConfigPath(), JSON.stringify({ permission: withoutScreenshot }));
-    await handlers.get_permission_mode(ctx, {});
+    await expect(handlers.get_permission_mode(ctx, {})).resolves.toMatchObject({
+      data: { mode: "auto-edit", stale: true, reasons: ["auto-edit"] },
+    });
+    expect(writtenPermission().spopi_screenshot).toBeUndefined();
+    await handlers.set_permission_mode(ctx, { mode: "auto-edit" });
     expect(writtenPermission().spopi_screenshot).toBe("allow");
+    await expect(handlers.get_permission_mode(ctx, {})).resolves.toMatchObject({
+      data: { stale: false, reasons: [] },
+    });
 
     await handlers.set_permission_mode(ctx, { mode: "full" });
     expect(writtenPermission()["*"]).toBe("allow");
@@ -361,7 +391,10 @@ describe("permission recipes", () => {
       permissionConfigPath(),
       JSON.stringify({ permission: { "*": "allow", path: { "D:/SPOPI": "deny" } } }),
     );
-    await handlers.get_permission_mode(ctx, {});
+    const read = (await handlers.get_permission_mode(ctx, {})) as { data: { reasons: string[] } };
+    expect(read.data.reasons).toContain("full-bash");
+    expect(writtenPermission().bash).toBeUndefined();
+    await handlers.set_permission_mode(ctx, { mode: "full" });
     expect((writtenPermission().bash as Record<string, string>)["*"]).toBe("allow");
     await expect(handlers.set_permission_mode(ctx, { mode: "plan" })).resolves.toMatchObject({
       ok: false,

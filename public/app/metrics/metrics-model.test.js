@@ -203,6 +203,16 @@ describe("metrics model", () => {
       1800,
     );
 
+    model.onRuntimeEvent(
+      {
+        type: "tool_execution_start",
+        toolCallId: "a/1",
+        toolName: "mcp__echo__echo",
+        parentToolCallId: "a",
+        args: { text: "hi" },
+      },
+      1760,
+    );
     const snapshot = model.snapshot(2000);
     expect(snapshot.tools.map((tool) => tool.id)).toEqual(["b", "a"]);
     expect(snapshot.tools[1]).toMatchObject({ status: "ok", durationMs: 450, outputChars: 5 });

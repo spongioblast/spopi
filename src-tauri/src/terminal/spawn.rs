@@ -153,6 +153,16 @@ impl TerminalManager {
         super::recover_lock(&self.inner.outputs)
             .entry(terminal_id.clone())
             .or_insert_with(|| TerminalOutputStore::new(TerminalLimits::default()));
+        #[cfg(windows)]
+        {
+            let manager = self.clone();
+            let owner = owner.clone();
+            let workspace_root = workspace_root.clone();
+            let terminal_id = terminal_id.clone();
+            std::thread::spawn(move || {
+                watch_exit(manager, owner, workspace_root, terminal_id, generation);
+            });
+        }
         let manager = self.clone();
         std::thread::spawn(move || {
             run_reader(
@@ -260,11 +270,7 @@ fn run_reader(
             }
             lt.child.take()
         });
-    let exit_code = child.and_then(|mut c| {
-        c.wait()
-            .ok()
-            .map(|status| if status.success() { 0 } else { -1 })
-    });
+    let exit_code = child.and_then(|mut c| c.wait().ok().map(|status| exit_code_of(&status)));
     // The child has exited; release the live handle only when it still belongs
     // to this reader generation. A replacement generation remains untouched.
     {
@@ -276,6 +282,76 @@ fn run_reader(
             live.remove(&terminal_id);
         }
     }
+    report_exit(
+        &manager,
+        owner,
+        workspace_root,
+        terminal_id,
+        generation,
+        exit_code,
+    );
+}
+
+fn exit_code_of(status: &portable_pty::ExitStatus) -> i32 {
+    if status.success() {
+        0
+    } else {
+        -1
+    }
+}
+
+/// ConPTY keeps the output pipe open after the shell exits, so the reader never
+/// sees EOF on its own. Dropping the live handle closes the pseudoconsole,
+/// which ends the reader; the exit is reported here with the real status.
+#[cfg(windows)]
+fn watch_exit(
+    manager: TerminalManager,
+    owner: OwnerId,
+    workspace_root: PathBuf,
+    terminal_id: String,
+    generation: u64,
+) {
+    loop {
+        std::thread::sleep(std::time::Duration::from_millis(250));
+        let (exited, code) = {
+            let mut live = super::recover_lock(&manager.inner.live);
+            let Some(terminal) = live
+                .get_mut(&terminal_id)
+                .filter(|terminal| terminal.generation == generation)
+            else {
+                return;
+            };
+            let Some(child) = terminal.child.as_mut() else {
+                return;
+            };
+            match child.try_wait() {
+                Ok(Some(status)) => (live.remove(&terminal_id), exit_code_of(&status)),
+                Ok(None) => continue,
+                Err(_) => return,
+            }
+        };
+        drop(exited);
+        report_exit(
+            &manager,
+            owner,
+            workspace_root,
+            terminal_id,
+            generation,
+            Some(code),
+        );
+        return;
+    }
+}
+
+/// Only the still-running generation publishes an exit, once.
+fn report_exit(
+    manager: &TerminalManager,
+    owner: OwnerId,
+    workspace_root: PathBuf,
+    terminal_id: String,
+    generation: u64,
+    exit_code: Option<i32>,
+) {
     let key = TerminalKey {
         owner: owner.clone(),
         workspace_root: workspace_root.clone(),

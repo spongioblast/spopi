@@ -17,7 +17,7 @@ describe("createDockHost", () => {
     terminal.append(plus);
     document.body.append(pane, terminal);
 
-    const dock = createDockHost(pane, { initialTab: "terminal" });
+    const dock = createDockHost(pane, { initialTab: "terminal", terminal });
     expect(dock.dataset.terminalTheme).toBe("system");
     expect(dock.querySelector(".spopi-dock-tabs")?.getAttribute("role")).toBe("tablist");
     const terminalTab = dock.querySelector("#spopi-dock-tab-terminal");

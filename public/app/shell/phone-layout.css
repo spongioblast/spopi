@@ -1,0 +1,132 @@
+/* ABOUTME: Phone layout below 600 px: one region at a time, the tab bar, and the More sheet. */
+/* ABOUTME: phone-tabs.js sets data-phone-region and --tabbar-h; the desktop grid is in shell.css. */
+
+.phone-tabs {
+  display: none;
+}
+
+body[data-layout="phone"] .app-layout.spopi-shell {
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+  box-sizing: border-box;
+  /* design-token-ignore: the fixed tab bar's measured height; without it the bar covers the composer */
+  padding-bottom: var(--tabbar-h, 0px);
+}
+
+body[data-layout="phone"] .app-layout.spopi-shell .workspace-content {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+body[data-layout="phone"] .app-layout.spopi-shell .spopi-rail,
+body[data-layout="phone"] .app-layout.spopi-shell .spopi-sidebar-resizer,
+body[data-layout="phone"] .app-layout.spopi-shell .spopi-chat-resizer,
+body[data-layout="phone"] .app-layout.spopi-shell .pane-center,
+body[data-layout="phone"] .app-layout.spopi-shell .spopi-sidebar-stack {
+  display: none;
+}
+
+body[data-layout="phone"] .phone-tabs {
+  display: flex;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3) max(var(--space-2), env(safe-area-inset-bottom));
+  background: var(--bg-solid);
+  border-top: 1px solid var(--border);
+}
+
+body[data-layout="phone"] .phone-tabs button {
+  flex: 1;
+  min-height: var(--control-height-lg);
+}
+
+body[data-layout="phone"] .phone-tabs button.on {
+  color: var(--text-primary);
+  background: var(--bg-active);
+}
+
+body[data-layout="phone"] #open-in-terminal-btn,
+body[data-layout="phone"] #toggle-dock,
+body[data-layout="phone"] #toggle-chat {
+  display: none;
+}
+
+body[data-layout="phone"] .notification-stack {
+  top: auto;
+  bottom: calc(var(--tabbar-h, 0px) + var(--space-2));
+}
+
+.phone-more-sheet {
+  display: none;
+}
+
+body[data-layout="phone"] .phone-more-sheet {
+  display: flex;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: var(--tabbar-h, 0px);
+  z-index: 32;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background: var(--bg-solid);
+  border-top: 1px solid var(--border);
+  /* design-token-ignore: the sheet height follows the viewport */
+  max-height: 70vh;
+  overflow: auto;
+}
+
+.phone-more-item {
+  min-height: var(--control-height-lg);
+  justify-content: flex-start;
+  text-align: left;
+}
+
+body[data-layout="phone"][data-phone-region="sessions"]
+  .app-layout.spopi-shell
+  .spopi-sidebar-stack {
+  display: flex;
+  position: fixed;
+  inset: 0 0 var(--tabbar-h, 0px) 0;
+  z-index: 25;
+  background: var(--bg-base);
+}
+
+body[data-layout="phone"][data-phone-region="changes"] .app-layout.spopi-shell .pane-center {
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: var(--tabbar-h, 0px);
+  left: 0;
+  width: 100%;
+  z-index: 25;
+  padding-top: 0;
+  background: var(--bg-base);
+}
+
+body[data-layout="phone"][data-phone-region="changes"] #spopi-review {
+  display: flex;
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+body[data-layout="phone"][data-phone-region="sessions"] .main,
+body[data-layout="phone"][data-phone-region="changes"] .main {
+  display: none;
+}
+
+body[data-layout="phone"] #dialog-container .dialog {
+  width: 100%;
+  height: 100%;
+  max-height: 100dvh;
+  margin: 0;
+  border-radius: 0;
+}

@@ -121,12 +121,12 @@ export function mountExtensionsPanel(
 
   if (!firstRunDismissed && missing.length) {
     const card = document.createElement("section");
-    card.className = "extensions-first-run";
+    card.className = "extensions-first-run ui-card";
     const copy = document.createElement("p");
     copy.textContent = t("recommended.firstRun") || "SPOPI features need these packages.";
     const install = document.createElement("button");
     install.type = "button";
-    install.className = "ui-button ui-button--sm";
+    install.className = "ui-button ui-button--primary ui-button--sm";
     const batchActive = Boolean(progress && installing.length);
     const shownDone = progress
       ? Math.min(progress.total, progress.done + (installing.length ? 1 : 0))
@@ -152,7 +152,10 @@ export function mountExtensionsPanel(
     dismiss.className = "ui-button ui-button--sm";
     dismiss.textContent = t("recommended.dismiss") || "Dismiss";
     dismiss.addEventListener("click", () => onDismissFirstRun?.(FIRST_RUN_KEY));
-    card.append(copy, install, dismiss);
+    const actions = document.createElement("div");
+    actions.className = "settings-intro-actions";
+    actions.append(install, dismiss);
+    card.append(copy, actions);
     rec.appendChild(card);
   }
 

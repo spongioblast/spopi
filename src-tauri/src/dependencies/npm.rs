@@ -21,8 +21,6 @@ pub struct NpmInstallOffer {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub method: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub commands: Option<Vec<String>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub link: Option<String>,
 }
 
@@ -83,40 +81,26 @@ pub fn npm_install_offer() -> NpmInstallOffer {
     let brew = cfg!(target_os = "macos")
         && (Path::new("/opt/homebrew/bin/brew").is_file()
             || Path::new("/usr/local/bin/brew").is_file());
-    npm_install_offer_for(std::env::consts::OS, winget, brew)
+    npm_install_offer_for(std::env::consts::OS, std::env::consts::ARCH, winget, brew)
 }
 
-pub fn npm_install_offer_for(os: &str, winget: bool, brew: bool) -> NpmInstallOffer {
-    if os == "windows" && winget {
-        return NpmInstallOffer {
-            one_click: true,
-            method: Some("winget".into()),
-            commands: None,
-            link: None,
-        };
-    }
-    if os == "macos" && brew {
-        return NpmInstallOffer {
-            one_click: true,
-            method: Some("brew".into()),
-            commands: None,
-            link: None,
-        };
-    }
-    let commands = if os == "linux" {
-        Some(vec![
-            "sudo apt install -y nodejs npm".into(),
-            "sudo dnf install -y nodejs npm".into(),
-            "sudo pacman -S nodejs npm".into(),
-        ])
+/// winget, then Homebrew, then the nodejs.org download (no sudo), then only a link.
+pub fn npm_install_offer_for(os: &str, arch: &str, winget: bool, brew: bool) -> NpmInstallOffer {
+    let method = if os == "windows" && winget {
+        Some("winget")
+    } else if os == "macos" && brew {
+        Some("brew")
+    } else if os != "windows" && super::node_download::platform_suffix(os, arch).is_some() {
+        Some("download")
     } else {
         None
     };
     NpmInstallOffer {
-        one_click: false,
-        method: None,
-        commands,
-        link: Some("https://nodejs.org/en/download".into()),
+        one_click: method.is_some(),
+        method: method.map(ToOwned::to_owned),
+        link: method
+            .is_none()
+            .then(|| "https://nodejs.org/en/download".to_string()),
     }
 }
 
@@ -214,17 +198,26 @@ mod tests {
 
     #[test]
     fn install_offer_matches_the_package_manager() {
-        let winget = npm_install_offer_for("windows", true, false);
+        let winget = npm_install_offer_for("windows", "x86_64", true, false);
         assert!(winget.one_click);
         assert_eq!(winget.method.as_deref(), Some("winget"));
-        let brew = npm_install_offer_for("macos", false, true);
+        let brew = npm_install_offer_for("macos", "aarch64", false, true);
         assert_eq!(brew.method.as_deref(), Some("brew"));
-        let linux = npm_install_offer_for("linux", false, false);
-        assert!(!linux.one_click);
-        assert_eq!(linux.commands.unwrap().len(), 3);
-        assert!(linux.link.unwrap().contains("nodejs.org"));
-        let plain = npm_install_offer_for("windows", false, false);
+        for (os, arch) in [
+            ("linux", "x86_64"),
+            ("linux", "aarch64"),
+            ("macos", "aarch64"),
+        ] {
+            let offer = npm_install_offer_for(os, arch, false, false);
+            assert!(offer.one_click, "{os} {arch}");
+            assert_eq!(offer.method.as_deref(), Some("download"));
+            assert!(offer.link.is_none());
+        }
+        let plain = npm_install_offer_for("windows", "x86_64", false, false);
         assert!(!plain.one_click);
         assert!(plain.link.is_some());
+        let unknown = npm_install_offer_for("linux", "riscv64", false, false);
+        assert!(!unknown.one_click);
+        assert!(unknown.link.is_some());
     }
 }

@@ -24,12 +24,33 @@ function mountDom() {
   `;
 }
 
+/** @param {Parameters<typeof createSpopiWorkbench>[0]} options */
+function startWorkbench(options) {
+  const node = (/** @type {string} */ selector) =>
+    /** @type {HTMLElement} */ (document.querySelector(selector));
+  return createSpopiWorkbench({
+    ...options,
+    chrome: {
+      layout: {
+        app: node(".app-layout"),
+        workspace: node(".workspace"),
+        content: node(".workspace-content"),
+        main: node(".main"),
+      },
+      inputArea: node(".input-area"),
+      headerRight: node(".header-right"),
+      status: document.querySelector(".status"),
+      terminal: null,
+    },
+  });
+}
+
 describe("createSpopiWorkbench contracts", () => {
   it("loads ui.layout without writing first-run into it", async () => {
     mountDom();
     const set = vi.fn().mockResolvedValue(undefined);
     const get = vi.fn(async (key) => (key === "ui.layout" ? { sidebarWidth: 240 } : null));
-    const workbench = createSpopiWorkbench({});
+    const workbench = startWorkbench({});
     workbench.attachPreferences({ get, set });
     await Promise.resolve();
     await Promise.resolve();
@@ -47,7 +68,7 @@ describe("createSpopiWorkbench contracts", () => {
         "afterbegin",
         `<div class="status"><span id="status-text">Connected</span></div>`,
       );
-    createSpopiWorkbench({});
+    startWorkbench({});
     const dock = document.getElementById("spopi-dock");
     dock.setTab("terminal");
     document.querySelector(".status").click();
@@ -64,7 +85,7 @@ describe("createSpopiWorkbench contracts", () => {
     const pending = new Promise((resolve) => {
       release = resolve;
     });
-    createSpopiWorkbench({
+    startWorkbench({
       getPackages: () => packages,
       installPackage: async (source) => {
         await pending;
@@ -87,7 +108,7 @@ describe("createSpopiWorkbench contracts", () => {
 
   it("keeps the install button and shows the host error when install fails", async () => {
     mountDom();
-    createSpopiWorkbench({
+    startWorkbench({
       getPackages: () => [],
       installPackage: async () => {
         throw new Error("npm is not installed");
@@ -107,7 +128,7 @@ describe("createSpopiWorkbench contracts", () => {
     mountDom();
     const installPackage = vi.fn();
     const sendPrompt = vi.fn();
-    createSpopiWorkbench({
+    startWorkbench({
       installPackage,
       sendPrompt,
       getPackages: () => [],
@@ -119,7 +140,7 @@ describe("createSpopiWorkbench contracts", () => {
   it("hides the first-run card after the dismissed key loads", async () => {
     mountDom();
     const get = vi.fn(async (key) => (key === FIRST_RUN_KEY ? true : null));
-    const workbench = createSpopiWorkbench({ getPackages: () => [] });
+    const workbench = startWorkbench({ getPackages: () => [] });
     expect(document.querySelector(".extensions-first-run")).toBeTruthy();
     workbench.attachPreferences({ get, set: vi.fn() });
     await Promise.resolve();
@@ -136,7 +157,7 @@ describe("createSpopiWorkbench contracts", () => {
       }
       return { ok: true };
     });
-    const workbench = createSpopiWorkbench({
+    const workbench = startWorkbench({
       sendPrompt,
       configCall,
       getModelInfo: () => ({
@@ -164,7 +185,7 @@ describe("createSpopiWorkbench contracts", () => {
     settingsBtn.addEventListener("click", click);
     document.body.append(settingsBtn);
     const onOpenSettings = vi.fn();
-    createSpopiWorkbench({ onOpenSettings });
+    startWorkbench({ onOpenSettings });
     document.querySelector('[data-action="extensions"]').click();
     expect(onOpenSettings).toHaveBeenCalledTimes(1);
     expect(onOpenSettings).toHaveBeenCalledWith("extensions");
@@ -173,7 +194,7 @@ describe("createSpopiWorkbench contracts", () => {
 
   it("setChangedFiles and updateDockStatus paint live surfaces", () => {
     mountDom();
-    const workbench = createSpopiWorkbench({
+    const workbench = startWorkbench({
       getPackages: () => [{ source: "npm:pi-workspace-history" }],
     });
     workbench.refreshPackages();
@@ -186,7 +207,7 @@ describe("createSpopiWorkbench contracts", () => {
 
   it("shows pi-lens-lsp in the Problems header instead of the dock strip", () => {
     mountDom();
-    createSpopiWorkbench({});
+    startWorkbench({});
     paintStatusFooter({ build: "running", "pi-lens-lsp": "LSP Inactive" });
     const strip = document.querySelector(".spopi-dock-statuses");
     expect(strip?.querySelector('[data-status-key="build"]')).not.toBeNull();

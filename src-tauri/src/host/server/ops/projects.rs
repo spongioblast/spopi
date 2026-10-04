@@ -1,7 +1,7 @@
 // ABOUTME: Project host ops: create, sweep, chat report, relink, keep chats, rename, close.
 // ABOUTME: Every op that moves files first stops the project's Pi processes and terminals.
 
-use super::super::HostState;
+use super::super::{HostState, OpError};
 use crate::data::metadata_store::MetadataStore;
 use crate::data::session_relocate::{
     foreign_chats, keep_chats_in_project, relink_chats, relocate_project, Relocation,
@@ -11,8 +11,6 @@ use crate::pi::runtime::PiRuntime;
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
-
-type OpError = (&'static str, String);
 
 pub(crate) async fn dispatch(
     state: &HostState,
@@ -81,7 +79,7 @@ pub(crate) async fn dispatch(
                 .ok_or(("invalid_name", "name is required".into()))?
                 .to_owned();
             if let Some(reason) = invalid_folder_name(&name) {
-                return Err(("invalid_name", reason.into()));
+                return Err(OpError::new("invalid_name", reason));
             }
             let agent = agent_dir()?;
             stop_terminals(state, &project);
@@ -113,9 +111,9 @@ pub(crate) async fn dispatch(
             json!({ "hidden": hidden })
         }
         _ => {
-            return Err((
+            return Err(OpError::new(
                 "host_operation_unimplemented",
-                "Host operation is not implemented on protocol v2".into(),
+                "Host operation is not implemented on protocol v2",
             ))
         }
     };
@@ -130,23 +128,23 @@ pub(crate) async fn dispatch(
     Ok(response)
 }
 
-async fn blocking<T: Send + 'static>(
+pub(super) async fn blocking<T: Send + 'static>(
     work: impl FnOnce() -> Result<T, String> + Send + 'static,
 ) -> Result<T, OpError> {
     tokio::task::spawn_blocking(work)
         .await
-        .map_err(|error| ("host_operation_failed", error.to_string()))?
-        .map_err(|message| ("project_operation_failed", message))
+        .map_err(|error| OpError::new("host_operation_failed", error.to_string()))?
+        .map_err(|message| OpError::new("project_operation_failed", message))
 }
 
-fn metadata(state: &HostState) -> Result<Arc<Mutex<MetadataStore>>, OpError> {
-    state.metadata.clone().ok_or((
-        "host_operation_failed",
-        "Preference store is not available".into(),
-    ))
+pub(super) fn metadata(state: &HostState) -> Result<Arc<Mutex<MetadataStore>>, OpError> {
+    state
+        .metadata
+        .clone()
+        .ok_or_else(|| OpError::new("host_operation_failed", "Preference store is not available"))
 }
 
-fn lock(
+pub(super) fn lock(
     metadata: &Mutex<MetadataStore>,
 ) -> Result<std::sync::MutexGuard<'_, MetadataStore>, String> {
     metadata
@@ -154,33 +152,35 @@ fn lock(
         .map_err(|_| "Preference store is busy".to_owned())
 }
 
-fn project_path_param(frame: &Value) -> Result<PathBuf, OpError> {
+pub(super) fn project_path_param(frame: &Value) -> Result<PathBuf, OpError> {
     frame
         .get("projectPath")
         .and_then(Value::as_str)
         .filter(|value| !value.is_empty())
         .map(PathBuf::from)
-        .ok_or(("invalid_project_path", "projectPath is required".into()))
+        .ok_or_else(|| OpError::new("invalid_project_path", "projectPath is required"))
 }
 
-fn agent_dir() -> Result<PathBuf, OpError> {
-    crate::pi::binary::pi_agent_dir().ok_or((
-        "host_operation_failed",
-        "Pi agent directory is not available".into(),
-    ))
+pub(super) fn agent_dir() -> Result<PathBuf, OpError> {
+    crate::pi::binary::pi_agent_dir().ok_or_else(|| {
+        OpError::new(
+            "host_operation_failed",
+            "Pi agent directory is not available",
+        )
+    })
 }
 
 fn relocation_json(report: &Relocation) -> Value {
     json!({ "moved": report.moved, "rewritten": report.rewritten, "failed": report.failed })
 }
 
-fn stop_terminals(state: &HostState, project: &Path) {
+pub(super) fn stop_terminals(state: &HostState, project: &Path) {
     state.terminal_manager.kill_workspace(project);
 }
 
 /// Stop the Pi processes running in this project, so its folder and chat
 /// files are free to move.
-fn stop_runtimes(
+pub(super) fn stop_runtimes(
     metadata: Option<&Arc<Mutex<MetadataStore>>>,
     runtimes: &PiRuntime,
     project: &Path,

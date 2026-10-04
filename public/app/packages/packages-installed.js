@@ -1,26 +1,24 @@
 // ABOUTME: Lists installed packages and can disable or remove one.
 // ABOUTME: Enable and disable go through Pi; install and remove stay on the host CLI.
 
-// Settings → Extensions → "Installed Packages" management.
-//
-// Owns the management layer that pi-web exposes but SPOPI's community browser
-// does not: a master-detail view over the installed packages — sidebar list
-// grouped by scope, and a detail pane with enable/disable, update, remove,
-// status fields, and the resolved extensions/skills/prompts/themes a package
-// contributes — plus an agent-reload action and a diagnostics/totals footer.
+// Settings → Extensions → "Installed Packages" management: the page state, the
+// package actions (enable/disable, update, update all, remove, agent reload), and
+// the update probe. The list and detail pane render in package-master-detail.js,
+// the toolbar in package-manager-toolbar.js.
 // Package operations run the embedded `pi` CLI on the Rust host via the
 // HostControlGateway (`host_request` frames); `listPiPackages` returns full
 // package objects including package-level metadata and a resolved `resources` list.
-//
-// This is a distinct concern from the community catalog browser
-// (package-browse.js), so it lives in its own module per the repo's
-// one-concern-per-file rule.
 
 import { t } from "../i18n/i18n.js";
 import { extensionsSettingsRefs } from "../settings/extensions-settings.js";
 import { confirmDialog } from "../ui/dialog.js";
 import { getPackageInstallFailure } from "./install-status.js";
+import { emptyNote, keyOf, message } from "./package-manager-parts.js";
+import { renderPackageToolbar, showPackageMessage } from "./package-manager-toolbar.js";
+import { renderPackageDetail, renderPackageList } from "./package-master-detail.js";
 import { noteInstalledPackages } from "./packages-bundled.js";
+
+export { notePackageHealth } from "./package-health.js";
 
 /**
  * @typedef {{
@@ -89,102 +87,12 @@ import { noteInstalledPackages } from "./packages-bundled.js";
  * @property {(() => void) | null | undefined} [onBrowseRevealed]
  */
 
-/** @type {ReadonlyArray<[keyof ResourceCounts, string, string]>} */
-const RESOURCE_GROUPS = [
-  ["extensions", "extensions.counts.extensionsOne", "extensions.counts.extensionsOther"],
-  ["skills", "extensions.counts.skillsOne", "extensions.counts.skillsOther"],
-  ["prompts", "extensions.counts.promptsOne", "extensions.counts.promptsOther"],
-  ["themes", "extensions.counts.themesOne", "extensions.counts.themesOther"],
-];
-
-/** @type {Record<string, string>} */
-const STATUS_KEYS = {
-  loaded: "extensions.statusLoaded",
-  installed: "extensions.statusInstalled",
-  disabled: "extensions.statusDisabled",
-  failed: "extensions.statusFailed",
-};
-
-/**
- * "1 extension · 2 skills"; zero counts are left out.
- * @param {Partial<ResourceCounts> | null | undefined} counts
- * @returns {string}
- */
-function countsText(counts) {
-  return RESOURCE_GROUPS.map(([key, one, other]) => {
-    const count = counts?.[key] ?? 0;
-    return count > 0 ? t(count === 1 ? one : other, { count }) : "";
-  })
-    .filter(Boolean)
-    .join(" · ");
-}
-
 /**
  * @param {{ source?: unknown } | null | undefined} pkg
  * @returns {string}
  */
 function sourceOf(pkg) {
   return typeof pkg?.source === "string" ? pkg.source : "";
-}
-
-/** @type {Array<{ name?: string, state?: string, error?: string }>} */
-let healthRows = [];
-
-/**
- * @param {unknown} rows
- */
-export function notePackageHealth(rows) {
-  healthRows = Array.isArray(rows) ? rows.filter((row) => row && typeof row === "object") : [];
-}
-
-/**
- * @param {{ packageName?: string | null, source?: string }} pkg
- */
-function healthFor(pkg) {
-  const names = [pkg.packageName, pkg.source, String(pkg.source || "").replace(/^npm:/, "")].filter(
-    (name) => typeof name === "string" && name,
-  );
-  return healthRows.find((row) => row.name && names.includes(row.name));
-}
-
-/**
- * Healthy is the normal case and needs no words; only a failed load is spelled out.
- * @param {ParentNode} parent
- * @param {{ packageName?: string | null, source?: string }} pkg
- */
-function appendHealthFailure(parent, pkg) {
-  const health = healthFor(pkg);
-  if (health?.state !== "failed") return;
-  const line = document.createElement("div");
-  line.className = "pkg-health-line";
-  line.dataset.health = health.state;
-  line.setAttribute("role", "alert");
-  line.textContent = t("extensions.healthFailed");
-  if (health.error) {
-    const detail = document.createElement("span");
-    detail.className = "pkg-health-error";
-    detail.textContent = ` ${health.error}`;
-    line.append(detail);
-  }
-  parent.append(line);
-}
-
-/**
- * The list dot shows one state: a failed load outranks loaded.
- * @param {ManagedPackage} pkg
- * @returns {string}
- */
-function displayStatus(pkg) {
-  if (pkg.status === "loaded" && healthFor(pkg)?.state === "failed") return "failed";
-  return pkg.status;
-}
-
-/**
- * @param {{ scope: string, source: string }} pkg
- * @returns {string}
- */
-function keyOf(pkg) {
-  return `${pkg.scope}\0${pkg.source}`;
 }
 
 // Normalize a user-typed install source: trim whitespace and unwrap a pasted
@@ -204,149 +112,6 @@ export function normalizeSource(raw) {
       .join(" ");
   }
   return value.trim();
-}
-
-/**
- * @param {unknown} path
- * @returns {string}
- */
-function shortenPath(path) {
-  if (!path) return "";
-  return String(path).replace(/^\/?(Users|home)\/[^/]+/, "~");
-}
-
-/**
- * @param {unknown} status
- * @returns {string}
- */
-function statusLabel(status) {
-  const key = STATUS_KEYS[String(status)];
-  return key ? t(key) : String(status || "");
-}
-
-/**
- * @param {string} status
- * @returns {HTMLSpanElement}
- */
-function statusDot(status) {
-  const dot = document.createElement("span");
-  dot.className = "pkg-manager-status-dot";
-  dot.dataset.status = status;
-  dot.title = statusLabel(status);
-  return dot;
-}
-
-/**
- * @param {ManagedPackage | null | undefined} pkg
- * @returns {string}
- */
-function installedPathLabel(pkg) {
-  return pkg?.installedPath ? shortenPath(pkg.installedPath) : t("extensions.notOnDisk");
-}
-
-/**
- * @param {ManagedPackage | null | undefined} pkg
- * @returns {string}
- */
-function resourceSummary(pkg) {
-  return countsText(pkg?.counts) || t("extensions.noResources");
-}
-
-/**
- * @param {unknown} scope
- * @returns {string}
- */
-function scopeLabel(scope) {
-  return scope === "project" ? t("extensions.scopeProject") : t("extensions.scopeGlobal");
-}
-
-/**
- * @param {string} label
- * @param {object} [options]
- * @param {boolean} [options.danger=false]
- * @param {boolean} [options.disabled=false]
- * @param {string} [options.title=""]
- * @returns {HTMLButtonElement}
- */
-function iconButton(label, { danger = false, disabled = false, title = "" } = {}) {
-  const btn = document.createElement("button");
-  btn.type = "button";
-  btn.className = "settings-value-btn pkg-manager-btn";
-  if (danger) btn.classList.add("is-danger");
-  btn.disabled = disabled;
-  btn.textContent = label;
-  if (title) btn.title = title;
-  return btn;
-}
-
-/**
- * @param {object} opts
- * @param {boolean} opts.enabled
- * @param {boolean} opts.loading
- * @param {() => void} opts.onToggle
- * @param {string} opts.label
- * @returns {HTMLButtonElement}
- */
-function makeToggle({ enabled, loading, onToggle, label }) {
-  const btn = document.createElement("button");
-  btn.type = "button";
-  btn.className = "pkg-manager-toggle";
-  btn.setAttribute("role", "switch");
-  btn.setAttribute("aria-checked", String(enabled));
-  btn.setAttribute("aria-label", label);
-  btn.title = label;
-  btn.addEventListener("click", onToggle);
-  const knob = document.createElement("span");
-  knob.className = "pkg-manager-toggle-knob";
-  btn.appendChild(knob);
-  updateToggle(btn, enabled, loading);
-  return btn;
-}
-
-/**
- * @param {HTMLButtonElement | null | undefined} btn
- * @param {boolean} enabled
- * @param {unknown} loading
- */
-function updateToggle(btn, enabled, loading) {
-  if (!btn) return;
-  btn.classList.toggle("is-on", enabled);
-  btn.classList.toggle("is-loading", Boolean(loading));
-  btn.setAttribute("aria-checked", String(enabled));
-  btn.disabled = Boolean(loading);
-}
-
-/**
- * @param {string} text
- * @param {object} [options]
- * @param {boolean} [options.isError=false]
- * @returns {HTMLDivElement}
- */
-function message(text, { isError = false } = {}) {
-  const el = document.createElement("div");
-  el.className = `pkg-manager-message${isError ? " is-error" : ""}`;
-  el.textContent = text;
-  return el;
-}
-
-/**
- * @param {string} label
- * @param {string | Node} value
- * @param {{ mono?: boolean }} [options]
- * @returns {HTMLDivElement}
- */
-function statusRow(label, value, { mono = false } = {}) {
-  const row = document.createElement("div");
-  row.className = "pkg-manager-status-row";
-  const labelEl = document.createElement("span");
-  labelEl.className = "pkg-manager-status-label";
-  labelEl.textContent = label;
-  const valueEl = document.createElement("span");
-  valueEl.className = mono ? "pkg-manager-status-value is-mono" : "pkg-manager-status-value";
-  if (typeof value === "string") valueEl.textContent = value;
-  else valueEl.appendChild(value);
-  row.append(labelEl, valueEl);
-  return row;
 }
 
 /**
@@ -567,8 +332,24 @@ export function mountPackageManager(deps) {
   function render() {
     noteInstalledPackages(packages);
     sectionEl?.classList.remove("hidden");
-    renderGroups();
-    renderDetail(packages.find((p) => keyOf(p) === selectedKey) || null);
+    renderPackageList(groupsEl, packages, {
+      selectedKey,
+      onSelect: (key) => {
+        selectedKey = key;
+        render();
+      },
+    });
+    if (detailEl) {
+      renderPackageDetail(detailEl, packages.find((p) => keyOf(p) === selectedKey) || null, {
+        busyKey: busyScope,
+        canManage,
+        updatingAll,
+        cwd,
+        onToggle: runToggle,
+        onUpdate: runUpdate,
+        onRemove: runRemove,
+      });
+    }
     renderToolbar();
     flashMessage();
     fitShell();
@@ -611,274 +392,21 @@ export function mountPackageManager(deps) {
     renderToolbar();
   }
 
-  /**
-   * @param {string} text
-   * @returns {HTMLDivElement}
-   */
-  function emptyNote(text) {
-    const el = document.createElement("div");
-    el.className = "settings-api-keys-empty";
-    el.textContent = text;
-    return el;
-  }
-
-  /**
-   * @param {string} text
-   * @param {boolean} [isError]
-   * @returns {HTMLSpanElement}
-   */
-  function noticeNote(text, isError = false) {
-    const el = document.createElement("span");
-    el.className = `pkg-manager-notice${isError ? " pkg-manager-notice-error" : ""}`;
-    el.setAttribute("role", "status");
-    el.textContent = text;
-    return el;
-  }
-
-  function renderGroups() {
-    groupsEl.innerHTML = "";
-    if (!packages.length) {
-      groupsEl.appendChild(emptyNote(t("extensions.noInstalled")));
-      return;
-    }
-    for (const scope of /** @type {const} */ (["global", "project"])) {
-      const scoped = packages.filter((pkg) => pkg.scope === scope);
-      if (!scoped.length) continue;
-      const header = document.createElement("div");
-      header.className = "pkg-manager-group-header";
-      header.textContent = scopeLabel(scope).toUpperCase();
-      groupsEl.appendChild(header);
-      for (const pkg of scoped) groupsEl.appendChild(renderSidebarRow(pkg));
-    }
-  }
-
-  /**
-   * @param {ManagedPackage} pkg
-   * @returns {HTMLButtonElement}
-   */
-  function renderSidebarRow(pkg) {
-    const key = keyOf(pkg);
-    const row = document.createElement("button");
-    row.type = "button";
-    row.className = `pkg-manager-sidebar-row${key === selectedKey ? " is-selected" : ""}`;
-    row.addEventListener("click", () => {
-      selectedKey = key;
-      render();
-    });
-
-    const status = displayStatus(pkg);
-    row.dataset.status = status;
-
-    const top = document.createElement("div");
-    top.className = "pkg-manager-row-top";
-    const name = document.createElement("span");
-    name.className = "pkg-manager-sidebar-name";
-    name.textContent = pkg.packageName || pkg.source;
-    name.title = pkg.packageName || pkg.source;
-    top.append(statusDot(status), name);
-    if (pkg.updateAvailable === true) top.appendChild(updateBadge());
-    row.appendChild(top);
-
-    const meta = document.createElement("div");
-    meta.className = "pkg-manager-sidebar-meta";
-    meta.textContent =
-      status === "failed"
-        ? t("extensions.healthFailed")
-        : [pkg.version ? `v${pkg.version}` : "", countsText(pkg.counts)]
-            .filter(Boolean)
-            .join(" · ");
-    row.appendChild(meta);
-
-    return row;
-  }
-
-  function updateBadge() {
-    const badge = document.createElement("span");
-    badge.className = "pkg-manager-update-badge";
-    badge.textContent = t("extensions.updateAvailable");
-    badge.title = t("extensions.updateAvailable");
-    badge.setAttribute("role", "status");
-    return badge;
-  }
-
-  /**
-   * @param {ManagedPackage | null} pkg
-   */
-  function renderDetail(pkg) {
-    if (!detailEl) return;
-    detailEl.innerHTML = "";
-    if (!pkg) return;
-    const key = keyOf(pkg);
-    const busy = busyScope === key;
-
-    const header = document.createElement("div");
-    header.className = "pkg-manager-detail-header";
-
-    const titleBlock = document.createElement("div");
-    titleBlock.className = "pkg-manager-title-block";
-    const title = document.createElement("div");
-    title.className = "pkg-manager-title";
-    title.textContent = pkg.packageName || pkg.source;
-    const subtitle = document.createElement("div");
-    subtitle.className = "pkg-manager-subtitle";
-    const sourceEl = document.createElement("span");
-    sourceEl.className = "pkg-manager-source";
-    sourceEl.textContent = pkg.source;
-    sourceEl.title = pkg.source;
-    const scopeTag = document.createElement("span");
-    scopeTag.className = "pkg-manager-scope";
-    scopeTag.textContent = scopeLabel(pkg.scope);
-    subtitle.append(sourceEl, scopeTag);
-    if (pkg.version) {
-      const version = document.createElement("span");
-      version.className = "pkg-manager-version";
-      version.textContent = `v${pkg.version}`;
-      subtitle.appendChild(version);
-    }
-    if (pkg.updateAvailable === true) subtitle.appendChild(updateBadge());
-    titleBlock.append(title, subtitle);
-
-    const controls = document.createElement("div");
-    controls.className = "pkg-manager-detail-controls";
-    const enable = document.createElement("label");
-    enable.className = "pkg-manager-enable";
-    const toggle = makeToggle({
-      enabled: !pkg.disabled,
-      loading: busy,
-      label: pkg.disabled ? t("extensions.enablePackage") : t("extensions.disablePackage"),
-      onToggle: () => runToggle(pkg, key),
-    });
-    const enableText = document.createElement("span");
-    enableText.textContent = pkg.disabled ? t("extensions.disabled") : t("extensions.enabled");
-    enable.append(toggle, enableText);
-
-    // The update probe decides whether an update actually exists; until it
-    // succeeds for this package (updateAvailable === true) the button stays off.
-    const updateBtn = iconButton(t("extensions.update"), {
-      disabled: busy || !canManage || pkg.updateAvailable !== true || updatingAll,
-      title: t("extensions.updateTip"),
-    });
-    updateBtn.addEventListener("click", () => runUpdate(pkg, key));
-    const removeBtn = iconButton(t("extensions.remove"), {
-      danger: true,
-      disabled: busy || !canManage,
-      title: t("extensions.removeTip"),
-    });
-    removeBtn.addEventListener("click", () => runRemove(pkg, key));
-    controls.append(enable, updateBtn, removeBtn);
-
-    header.append(titleBlock, controls);
-    detailEl.appendChild(header);
-
-    if (pkg.description) {
-      const description = document.createElement("p");
-      description.className = "pkg-manager-description";
-      description.textContent = pkg.description;
-      detailEl.appendChild(description);
-    }
-    appendHealthFailure(detailEl, pkg);
-
-    const status = displayStatus(pkg);
-    const statusValue = document.createElement("span");
-    statusValue.className = "pkg-manager-status-inline";
-    statusValue.append(statusDot(status), document.createTextNode(statusLabel(status)));
-    const statusGrid = document.createElement("div");
-    statusGrid.className = "pkg-manager-status-grid";
-    statusGrid.append(
-      statusRow(t("extensions.status"), statusValue),
-      statusRow(t("extensions.resources"), resourceSummary(pkg)),
-      statusRow(t("extensions.installPath"), installedPathLabel(pkg), { mono: true }),
-    );
-    if (cwd && pkg.scope === "project") {
-      statusGrid.appendChild(statusRow(t("extensions.cwd"), cwd, { mono: true }));
-    }
-    detailEl.appendChild(statusGrid);
-
-    const resolvedTitle = document.createElement("div");
-    resolvedTitle.className = "settings-section-title settings-section-title-small";
-    resolvedTitle.textContent = t("extensions.resolvedResources");
-    detailEl.appendChild(resolvedTitle);
-
-    const resourceList = document.createElement("div");
-    resourceList.className = "pkg-manager-resource-list";
-    if (!pkg.resources.length) {
-      resourceList.appendChild(emptyNote(t("extensions.noResources")));
-    } else {
-      for (const entry of pkg.resources) {
-        const row = document.createElement("div");
-        row.className = "pkg-manager-resource-row";
-        const name = document.createElement("span");
-        name.className = "pkg-manager-resource-name";
-        name.textContent = entry.name;
-        const path = document.createElement("span");
-        path.className = "pkg-manager-resource-path";
-        path.textContent = entry.relativePath;
-        row.append(name, path);
-        resourceList.appendChild(row);
-      }
-    }
-    detailEl.appendChild(resourceList);
-  }
-
   function renderToolbar() {
     if (!toolbarEl) return;
-    toolbarEl.innerHTML = "";
-    const summary = document.createElement("span");
-    summary.className = "pkg-manager-toolbar-summary";
-    if (packages.length) {
-      /** @type {ResourceCounts} */
-      const totals = { extensions: 0, skills: 0, prompts: 0, themes: 0 };
-      for (const pkg of packages) {
-        for (const [key] of RESOURCE_GROUPS) totals[key] += pkg.counts?.[key] ?? 0;
-      }
-      const count = packages.length;
-      summary.textContent = [
-        t(count === 1 ? "extensions.packagesOne" : "extensions.packagesOther", { count }),
-        countsText(totals),
-      ]
-        .filter(Boolean)
-        .join(" · ");
-    } else {
-      summary.textContent = t("extensions.noPackagesSummary");
-    }
-    // The update-check state rides on the summary line so nothing below moves when it
-    // appears or clears. Its own class keeps flashMessage from removing it.
-    if (checkingUpdates) {
-      summary.appendChild(noticeNote(t("extensions.checkingUpdates")));
-    } else if (checkNotice) {
-      summary.appendChild(noticeNote(checkNotice, !updatingAll));
-    }
-    toolbarEl.appendChild(summary);
-
-    const actions = document.createElement("span");
-    actions.className = "pkg-manager-toolbar-actions";
-    const refreshBtn = iconButton(t("extensions.refresh"), {
-      disabled: updatingAll || restarting,
-      title: t("extensions.refreshTip"),
+    renderPackageToolbar(toolbarEl, {
+      packages,
+      checkingUpdates,
+      checkNotice,
+      updatingAll,
+      restarting,
+      busyScope,
+      canManage,
+      updatable: updateCount(),
+      onRefresh: () => load(true),
+      onUpdateAll: () => void runUpdateAll(),
+      onRestart: runRestart,
     });
-    refreshBtn.addEventListener("click", () => load(true));
-    actions.appendChild(refreshBtn);
-    if (packages.length) {
-      const updatable = updateCount();
-      const updateAllLabel = updatable
-        ? t("extensions.updateAll", { count: updatable })
-        : t("extensions.updateAllNone");
-      const updateAllBtn = iconButton(updateAllLabel, {
-        disabled: updatingAll || restarting || busyScope !== null || !canManage || updatable === 0,
-        title: t("extensions.updateTip"),
-      });
-      updateAllBtn.id = "pkg-manager-update-all-btn";
-      updateAllBtn.addEventListener("click", () => void runUpdateAll());
-      actions.appendChild(updateAllBtn);
-      const reloadBtn = iconButton(t("extensions.reloadAgent"), {
-        disabled: busyScope !== null || restarting || !canManage,
-        title: t("extensions.reloadAgentTip"),
-      });
-      reloadBtn.id = "pkg-manager-reload-btn";
-      reloadBtn.addEventListener("click", runRestart);
-      actions.appendChild(reloadBtn);
-    }
-    toolbarEl.appendChild(actions);
   }
 
   // Update every package that reported an available update, one at a time so
@@ -1056,13 +584,7 @@ export function mountPackageManager(deps) {
   // Re-render last message/error under the toolbar.
   function flashMessage() {
     if (!toolbarEl) return;
-    const existing = toolbarEl.querySelector(".pkg-manager-message");
-    if (existing) existing.remove();
-    if (lastMessage) {
-      toolbarEl.appendChild(message(lastMessage));
-    } else if (lastError) {
-      toolbarEl.appendChild(message(lastError, { isError: true }));
-    }
+    showPackageMessage(toolbarEl, lastMessage, lastError);
   }
 
   return { load };

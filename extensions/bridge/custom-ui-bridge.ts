@@ -6,7 +6,7 @@ import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-a
 // pi's RPC-mode UI context implements `custom()` as `async () => undefined`: the
 // factory is never invoked and the caller's `done` callback never fires. An
 // extension that wraps the call in `new Promise(resolve => ctx.ui.custom(...))`
-// — pi-mcp-adapter's `/mcp` panel does exactly this — therefore blocks forever.
+// (a common pattern for package panels) therefore blocks forever.
 //
 // Every extension shares one mutable UI context object (ExtensionRunner exposes
 // it through a `get ui()` accessor), so replacing `custom` here makes the real
@@ -272,7 +272,7 @@ export function registerCustomUiBridge(pi: ExtensionAPI, options?: { enabled?: b
 
       // Cancelling goes through the component's own close key rather than
       // straight to `settle`. A component typically resolves its caller from
-      // inside that handler (pi-mcp-adapter's panel calls `done()` there), and
+      // inside that handler (panels call `done()` from their quit key), and
       // force-settling would leave the caller's own promise pending forever.
       const data = request.cancel ? ESCAPE : request.data;
       if (typeof data !== "string" || !data) return;

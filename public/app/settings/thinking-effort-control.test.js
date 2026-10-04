@@ -4,7 +4,8 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { mountAppChrome } from "../shell/app-chrome.js";
-import { mountGeneralSettings, mountThinkingEffortControl } from "./general-settings.js";
+import { mountGeneralSettings } from "./general-settings.js";
+import { mountThinkingEffortControl } from "./thinking-effort-control.js";
 
 describe("mountThinkingEffortControl", () => {
   let runtime;

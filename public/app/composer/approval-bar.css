@@ -30,7 +30,7 @@
 .approval-bar-title {
   min-width: 0;
   font-size: var(--font-size-sm);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
 }
 
 .approval-bar-tool {
@@ -130,10 +130,10 @@
   flex: none;
   height: var(--control-height-sm);
   padding: 0 var(--space-2);
-  border: 1px solid var(--border);
+  border: 1px solid transparent;
   border-radius: var(--radius-pill);
   background: transparent;
-  color: var(--text-secondary);
+  color: var(--text-muted);
   font: inherit;
   font-size: var(--font-size-sm);
   white-space: nowrap;
@@ -146,8 +146,8 @@
 }
 
 .composer-chip[data-mode="auto-edit"] {
-  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
-  color: var(--accent);
+  border-color: transparent;
+  color: var(--text-secondary);
 }
 
 .composer-chip[data-mode="full"] {
@@ -172,9 +172,9 @@
   -webkit-mask: radial-gradient(
     farthest-side,
     transparent calc(100% - 3px),
-    #000 calc(100% - 2.5px)
+    black calc(100% - 2.5px)
   );
-  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), black calc(100% - 2.5px));
 }
 
 .context-ring[data-level="warning"] {

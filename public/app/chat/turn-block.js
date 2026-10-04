@@ -68,7 +68,7 @@ export function mountTurnBlock(
         ])
       : null;
   const notices = (turn.notices || []).map((notice) =>
-    el("p", { class: "turn-block-notice", text: notice.text || notice.status || notice.kind }),
+    el("p", { class: "turn-block-notice", text: noticeText(notice, translate) }),
   );
   root.classList.add("turn-block");
   root.replaceChildren();
@@ -76,6 +76,32 @@ export function mountTurnBlock(
     if (node) root.append(node);
   }
   return { root };
+}
+
+/**
+ * @param {Turn["notices"][number]} notice
+ * @param {(key: string, params?: Record<string, unknown>) => string} t
+ */
+function noticeText(notice, t) {
+  if (notice.kind === "compaction") {
+    if (notice.status === "running") return t("chat.notice.compacting");
+    if (notice.status === "failed") {
+      return notice.text
+        ? t("chat.notice.compactionFailedWith", { error: notice.text })
+        : t("chat.notice.compactionFailed");
+    }
+    return t("chat.notice.compacted");
+  }
+  if (notice.kind === "summarization-retry") {
+    return notice.source
+      ? t("chat.notice.summaryRetrying", { source: notice.source })
+      : t("chat.notice.summaryRetryIn", {
+          attempt: notice.attempt ?? 1,
+          seconds: notice.seconds ?? 0,
+        });
+  }
+  if (notice.kind === "error") return notice.text || t("chat.notice.extensionFailed");
+  return notice.text || "";
 }
 
 /**

@@ -37,7 +37,7 @@ Find the file with `grep -n -i <word> ui-map.md` (the map beside this skill list
 
 ## Rules
 
-Vanilla JS modules. No build step. No new page globals besides `window.spopi`. Keep files small. Components create their own DOM and talk through the store. Colors come from the tokens in `style-theme.css`, never hardcoded; a rule that differs between light and dark themes keys on `:root[data-scheme="light"]`, not on theme ids.
+Vanilla JS modules. No build step. No new page globals besides `window.spopi`. Keep files small. Components create their own DOM and talk through the store. Colors come from the tokens in `style-theme.css`, never hardcoded; a rule that differs between light and dark themes keys on `:root[data-scheme="light"]`, not on theme ids. The terminal and the Usage charts paint on a canvas and read tokens, not CSS rules: set `--bg-solid`, `--text-primary`, and optionally `--ansi-*` and `--chart-1` … `--chart-6` on `:root`, or the terminal keeps the old background. Settings → Terminal can force a fixed dark or light terminal regardless of the theme.
 
 After a `user.css` change, the change appears without a reload. After any other overlay file, SPOPI shows a banner with a **Reload** button: ask the user to click it, then check with a screenshot. If the UI breaks, tell them to restart with `spopi.exe --safe`.
 

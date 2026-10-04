@@ -1,7 +1,8 @@
 // ABOUTME: Shows an extension dialog and parses its options.
 // ABOUTME: The answer is sent back to the waiting Pi request.
 
-import { openDialog } from "../ui/dialog.js";
+import { t } from "../i18n/i18n.js";
+import { getDialogRoot, openDialog } from "../ui/dialog.js";
 
 /**
  * @typedef {{
@@ -74,11 +75,7 @@ export function closeWhenResolved(request, finish) {
  * @param {Promise<unknown>} [options.dismissSignal]
  * @returns {Promise<DialogResult>}
  */
-export function showNativeDialog(
-  request,
-  container = document.getElementById("dialog-container"),
-  { dismissSignal } = {},
-) {
+export function showNativeDialog(request, container = getDialogRoot(), { dismissSignal } = {}) {
   return new Promise((resolve) => {
     const content = parseDialogContent(request);
     const body = document.createElement("div");
@@ -143,8 +140,8 @@ export function showNativeDialog(
     } else if (request.method === "confirm") {
       body.append(createMessage(request.message || ""));
       actions.push(
-        { label: "No", onClick: () => finish({ confirmed: false }) },
-        { label: "Yes", onClick: () => finish({ confirmed: true }) },
+        { label: t("dialogs.no"), onClick: () => finish({ confirmed: false }) },
+        { label: t("dialogs.yes"), onClick: () => finish({ confirmed: true }) },
       );
     } else {
       if (content.body) body.append(createMessage(content.body));
@@ -158,11 +155,11 @@ export function showNativeDialog(
       body.append(field);
       input = field;
       actions.push({
-        label: request.method === "editor" ? "Save" : "Submit",
+        label: request.method === "editor" ? t("dialogs.save") : t("dialogs.submit"),
         onClick: () => finish({ value: field.value }),
       });
     }
-    actions.push({ label: "Cancel", onClick: () => finish({ cancelled: true }) });
+    actions.push({ label: t("dialogs.cancel"), onClick: () => finish({ cancelled: true }) });
 
     handle = openDialog({
       container,

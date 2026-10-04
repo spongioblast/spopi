@@ -2,7 +2,7 @@
 /* ABOUTME: Message and composer rules live in their own stylesheets. */
 
 .app-layout.spopi-shell .workspace-content > .main {
-  min-width: min(380px, 100%);
+  min-width: min(280px, 100%);
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr) auto;
@@ -111,8 +111,7 @@
   flex-shrink: 1;
 }
 
-.app-layout.spopi-shell .main .composer-toolbar-actions > *,
-.app-layout.spopi-shell .main .composer-toolbar-meta > .thinking-tag {
+.app-layout.spopi-shell .main .composer-toolbar-actions > :not(.model-dropdown) {
   flex-shrink: 0;
 }
 
@@ -125,27 +124,13 @@
   font-size: var(--font-size-xs);
 }
 
-.app-layout.spopi-shell .main .composer-toolbar-meta > .thinking-tag {
-  height: 22px;
-  width: auto;
-  min-width: max-content;
-  max-width: none;
-  flex: 0 0 auto;
-  overflow: visible;
-  white-space: nowrap;
-  font-size: var(--font-size-xs);
-}
-
 .app-layout.spopi-shell .main .composer-toolbar-right {
   flex-shrink: 0;
 }
 
-.app-layout.spopi-shell .main .composer-toolbar-meta {
-  width: 100%;
-}
-
-.app-layout.spopi-shell .main .composer-toolbar-meta .model-dropdown {
-  flex: 0 1 auto;
+.app-layout.spopi-shell .main .composer-toolbar-actions .model-dropdown {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .app-layout.spopi-shell .main .model-dropdown-label {
@@ -178,9 +163,9 @@
   -webkit-mask: radial-gradient(
     farthest-side,
     transparent calc(100% - 2.5px),
-    #000 calc(100% - 2px)
+    black calc(100% - 2px)
   );
-  mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), black calc(100% - 2px));
 }
 
 .app-layout.spopi-shell .main #send-btn,

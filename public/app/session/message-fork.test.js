@@ -37,7 +37,7 @@ function mount({ forkText = "second prompt", lifecycle = "idle" } = {}) {
   };
   const deps = {
     messagesElement,
-    getStore: () => ({ lifecycle }),
+    isWorking: () => lifecycle === "working",
     getTarget: () => target,
     runtime,
     randomId: () => "key",

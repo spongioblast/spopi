@@ -61,6 +61,9 @@ describe("createModelsOAuthLoginDialog", () => {
     expect(document.querySelector('[data-action="oauth-open-browser"]')).not.toBeNull();
     expect(document.querySelector('[data-action="oauth-copy-code"]')).not.toBeNull();
     expect(document.querySelector(".oauth-login-dialog-countdown").textContent).toBe("60s");
+    expect(document.querySelector(".oauth-login-dialog-hint")?.textContent).toBe(
+      "settings.models.oauth.chatgptHint",
+    );
   });
 
   it("transitions to the connected state on complete and notifies the caller", async () => {

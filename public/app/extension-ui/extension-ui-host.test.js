@@ -144,6 +144,32 @@ describe("ExtensionUiHost", () => {
     expect(host.hasPending("a")).toBe(false);
   });
 
+  it("cancelForegroundWhere() leaves a dialog the test rejects alone", async () => {
+    const runtime = { request: vi.fn().mockResolvedValue({}) };
+    const host = new ExtensionUiHost({
+      runtime,
+      showInlinePrompt: (_request, { dismissSignal }) =>
+        new Promise((resolve) => {
+          dismissSignal.then(() => resolve({ cancelled: true }));
+        }),
+    });
+    host.setForegroundSession("a");
+    const handled = host.handle(targetA, {
+      type: "extension_ui_request",
+      id: "input-a",
+      method: "input",
+      title: 'Waiting for sign-in to "remote".',
+    });
+    host.cancelForegroundWhere((request) => request.method === "select");
+    expect(host.hasPending("a")).toBe(true);
+    host.cancelForegroundWhere((request) => String(request.title).includes('"remote"'));
+    await handled;
+    expect(runtime.request).toHaveBeenCalledWith(
+      { type: "extension_ui_response", id: "input-a", cancelled: true },
+      targetA,
+    );
+  });
+
   it("switching sessions away re-queues the in-flight dialog instead of finalizing it", async () => {
     const runtime = { request: vi.fn().mockResolvedValue({}) };
     const host = new ExtensionUiHost({

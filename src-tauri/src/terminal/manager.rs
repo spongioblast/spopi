@@ -1,5 +1,5 @@
 // ABOUTME: Owns terminal lifecycle: event delivery, persistence, and cleanup.
-// ABOUTME: WebSocket commands are in ws_dispatch.rs. PTY spawn is in spawn.rs.
+// ABOUTME: WebSocket commands are in ws_dispatch/. PTY spawn is in spawn.rs.
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};

@@ -16,7 +16,7 @@
   margin: 0;
   color: var(--text-secondary);
   font-size: var(--font-size-sm);
-  line-height: 1.45;
+  line-height: var(--line-height-normal);
 }
 
 .first-run-item {
@@ -29,7 +29,7 @@
 .first-run-item h3 {
   margin: 0;
   font-size: var(--font-size-md);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
 }
 
 .first-run-item.is-warn h3,

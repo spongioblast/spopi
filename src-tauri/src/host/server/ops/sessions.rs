@@ -2,32 +2,39 @@
 // ABOUTME: forget_workspace records a preference. It does not delete Pi session files.
 
 use super::super::http::files;
-use super::super::{host_data_error, HostState};
+use super::super::{host_data_error, HostState, OpError};
 use crate::pi::coordinator::RuntimeTarget;
 use serde_json::{json, Value};
+
+/// `register` is false for a client that may only open folders SPOPI already knows.
+pub(crate) fn resolve_workspace(
+    state: &HostState,
+    request_id: &str,
+    frame: &Value,
+    register: bool,
+) -> Result<Value, OpError> {
+    let project_path = frame
+        .get("projectPath")
+        .and_then(Value::as_str)
+        .filter(|value| !value.is_empty())
+        .ok_or(("invalid_project_path", "projectPath is required".into()))?;
+    let workspace_id = files::resolve_workspace_path(state, project_path, register)
+        .map_err(|code| (code, code.replace('_', " ")))?;
+    Ok(json!({
+        "type": "host_response",
+        "requestId": request_id,
+        "operation": "resolve_workspace",
+        "workspaceId": workspace_id,
+    }))
+}
 
 pub(crate) async fn dispatch(
     state: &HostState,
     request_id: &str,
     operation: &str,
     frame: &Value,
-) -> Result<Value, (&'static str, String)> {
+) -> Result<Value, OpError> {
     match operation {
-        "resolve_workspace" => {
-            let project_path = frame
-                .get("projectPath")
-                .and_then(Value::as_str)
-                .filter(|value| !value.is_empty())
-                .ok_or(("invalid_project_path", "projectPath is required".into()))?;
-            let workspace_id = files::resolve_workspace_path(state, project_path, true)
-                .map_err(|code| (code, code.replace('_', " ")))?;
-            Ok(json!({
-                "type": "host_response",
-                "requestId": request_id,
-                "operation": "resolve_workspace",
-                "workspaceId": workspace_id,
-            }))
-        }
         "forget_workspace" => {
             let workspace_id = frame
                 .get("workspaceId")
@@ -42,7 +49,7 @@ pub(crate) async fn dispatch(
                 .trim()
                 .to_owned();
             if workspace_id.is_empty() && project_path.is_empty() {
-                return Err(("invalid_workspace", "workspaceId is required".into()));
+                return Err(OpError::new("invalid_workspace", "workspaceId is required"));
             }
             let metadata = state.metadata.clone().ok_or((
                 "host_operation_failed",
@@ -200,9 +207,9 @@ pub(crate) async fn dispatch(
                 "ok": true,
             }))
         }
-        _ => Err((
+        _ => Err(OpError::new(
             "host_operation_unimplemented",
-            "Host operation is not implemented on protocol v2".into(),
+            "Host operation is not implemented on protocol v2",
         )),
     }
 }

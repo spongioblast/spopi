@@ -1,6 +1,7 @@
 // ABOUTME: Renders the conversation navigator and scrolls to a chosen turn.
 // ABOUTME: The turn list is supplied by the chat column.
 
+import { t } from "../i18n/i18n.js";
 import { headerChromeRefs } from "../shell/chrome/chat.js";
 
 /**
@@ -297,7 +298,7 @@ export class ConvNav {
       const dot = document.createElement("button");
       dot.type = "button";
       dot.className = "conv-nav-dot";
-      dot.setAttribute("aria-label", `Jump to conversation ${trackEl.children.length + 1}`);
+      dot.setAttribute("aria-label", t("convNav.jump", { n: trackEl.children.length + 1 }));
       trackEl.appendChild(dot);
     }
     // Remove extra dots
@@ -311,7 +312,7 @@ export class ConvNav {
       if (!(dot instanceof HTMLElement)) return;
       dot.onclick = () => this.#jumpTo(this.#turns[i], i);
       dot.classList.toggle("active", i === activeIdx);
-      dot.setAttribute("aria-label", `Jump to conversation ${i + 1}`);
+      dot.setAttribute("aria-label", t("convNav.jump", { n: i + 1 }));
       dot.style.removeProperty("top");
       if (this.#hoveredIdx < 0) {
         // No wave when not hovering — keep all dots at their base CSS width

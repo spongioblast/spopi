@@ -156,6 +156,28 @@ test("binary, too large, and outside paths are not fetched as text diffs", async
   ]);
 });
 
+test("the workspace path is the root when the history has not recorded the project", async () => {
+  const sources = createReviewSources({
+    getTarget: () => ({ workspaceId: "w", sessionId: "s" }),
+    projectRoot: async () => "\\\\?\\D:\\proj",
+    control: {
+      shadowHistoryFiles: async () => ({
+        empty: false,
+        meta: {},
+        files: [{ path: "D:/proj/list_dir.py", status: "A" }],
+      }),
+      shadowHistoryFilePair: async () => ({
+        before: "",
+        after: "print(1)\n",
+        beforeExists: false,
+        afterExists: true,
+      }),
+    },
+  });
+  const loaded = await sources.load("session", { extraPaths: ["D:/proj/list_dir.py"] });
+  expect(loaded.files.map((file) => [file.path, file.kind])).toEqual([["list_dir.py", "text"]]);
+});
+
 test("pair fetches stay at four at a time and duplicate paths merge", async () => {
   let active = 0;
   let max = 0;

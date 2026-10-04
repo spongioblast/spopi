@@ -16,7 +16,6 @@ function validId(value) {
 
 /**
  * @typedef {{ name: "app_launcher" }
- *   | { name: "pair" }
  *   | { name: "settings" }
  *   | { name: "launcher", workspaceId: string }
  *   | { name: "session", workspaceId: string, sessionId: string }
@@ -28,7 +27,6 @@ function validId(value) {
  * @returns {AppRoute}
  */
 export function parseAppRoute(pathname) {
-  if (pathname === "/pair" || pathname === "/pair/") return { name: "pair" };
   if (pathname === "/app" || pathname === "/app/") return { name: "app_launcher" };
   if (pathname === "/app/settings") return { name: "settings" };
   const segments = pathname.split("/");

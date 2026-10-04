@@ -81,6 +81,46 @@ describe("HostControlGateway", () => {
     await expect(remove).resolves.toBeUndefined();
   });
 
+  it("lists, adds, and removes MCP servers and passes the host error through", async () => {
+    const adapter = createInMemoryRuntimeAdapter();
+    const control = new HostControlGateway(adapter);
+    const listed = control.listMcpServers({ workspaceId: "ws-1" });
+    const listFrame = adapter.takeSent();
+    expect(listFrame).toMatchObject({ operation: "list_mcp_servers", workspaceId: "ws-1" });
+    adapter.receive({
+      type: "host_response",
+      requestId: listFrame.requestId,
+      list: { servers: [{ name: "echo" }], errors: [] },
+    });
+    await expect(listed).resolves.toEqual({
+      list: { servers: [{ name: "echo" }], errors: [] },
+    });
+
+    const added = control.addMcpServer({ name: "echo", kind: "stdio" }, { workspaceId: "ws-1" });
+    const addFrame = adapter.takeSent();
+    expect(addFrame).toMatchObject({
+      operation: "add_mcp_server",
+      workspaceId: "ws-1",
+      spec: { name: "echo", kind: "stdio" },
+    });
+    adapter.receive({
+      type: "host_response",
+      requestId: addFrame.requestId,
+      error: { message: "--env expects KEY=VALUE" },
+    });
+    await expect(added).rejects.toThrow("--env expects KEY=VALUE");
+
+    const removed = control.removeMcpServer("echo", "project", { workspaceId: "ws-1" });
+    const removeFrame = adapter.takeSent();
+    expect(removeFrame).toMatchObject({
+      operation: "remove_mcp_server",
+      name: "echo",
+      scope: "project",
+    });
+    adapter.receive({ type: "host_response", requestId: removeFrame.requestId, ok: true });
+    await expect(removed).resolves.toBeUndefined();
+  });
+
   it("rejects the request when the host returns an error", async () => {
     const adapter = createInMemoryRuntimeAdapter();
     const control = new HostControlGateway(adapter);
@@ -203,32 +243,15 @@ describe("HostControlGateway", () => {
     await expect(response).resolves.toBe("workspace-a");
   });
 
-  it("lists installed external apps", async () => {
+  it("opens a path with the desktop's default app", async () => {
     const adapter = createInMemoryRuntimeAdapter();
     const control = new HostControlGateway(adapter);
-    const response = control.listInstalledApps();
-    const sent = adapter.takeSent();
-    expect(sent).toMatchObject({ type: "host_request", operation: "list_installed_apps" });
-    adapter.receive({
-      type: "host_response",
-      requestId: sent.requestId,
-      operation: "list_installed_apps",
-      apps: [{ id: "vscode", label: "VS Code" }],
-    });
-    await expect(response).resolves.toEqual([{ id: "vscode", label: "VS Code" }]);
-  });
-
-  it("opens a workspace in an external app", async () => {
-    const adapter = createInMemoryRuntimeAdapter();
-    const control = new HostControlGateway(adapter);
-    const response = control.openInApp("/tmp/spopi", { appName: "Visual Studio Code" });
+    const response = control.openPath("/tmp/spopi/README.md");
     const sent = adapter.takeSent();
     expect(sent).toMatchObject({
       type: "host_request",
-      operation: "open_in_app",
-      path: "/tmp/spopi",
-      appName: "Visual Studio Code",
-      command: null,
+      operation: "open_path",
+      path: "/tmp/spopi/README.md",
     });
     adapter.receive({ type: "host_response", requestId: sent.requestId, ok: true });
     await expect(response).resolves.toBeUndefined();

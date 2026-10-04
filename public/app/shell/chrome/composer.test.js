@@ -17,4 +17,33 @@ describe("composer chrome", () => {
     expect(refs.thinkingBtn.textContent.trim()).toBe("Think off");
     expect(root.querySelector("#abort-btn")).not.toBeNull();
   });
+
+  test("the More menu names its items and lets the toolbar overflow while open", () => {
+    const root = document.createElement("div");
+    document.body.append(root);
+    const { refs, destroy } = mountComposerChrome(root);
+    const toolbar = refs.moreBtn.closest(".composer-toolbar");
+    expect(refs.attachBtn.textContent).toBe("Attach image");
+    expect(refs.commandBtn.textContent).toBe("Commands");
+    refs.moreBtn.click();
+    expect(refs.moreMenu.classList.contains("hidden")).toBe(false);
+    expect(toolbar.classList.contains("more-menu-open")).toBe(true);
+    expect(refs.moreBtn.getAttribute("aria-expanded")).toBe("true");
+    const escapeKey = new KeyboardEvent("keydown", { key: "Escape", bubbles: true });
+    let reached = false;
+    const listener = () => {
+      reached = true;
+    };
+    document.addEventListener("keydown", listener);
+    document.body.dispatchEvent(escapeKey);
+    document.removeEventListener("keydown", listener);
+    expect(reached).toBe(false);
+    expect(refs.moreMenu.classList.contains("hidden")).toBe(true);
+    expect(toolbar.classList.contains("more-menu-open")).toBe(false);
+    refs.moreBtn.click();
+    refs.commandBtn.click();
+    expect(refs.moreMenu.classList.contains("hidden")).toBe(true);
+    destroy();
+    root.remove();
+  });
 });

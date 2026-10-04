@@ -9,6 +9,7 @@ describe("slash sources", () => {
     expect(names.slice(0, PI_BUILTINS.length)).toEqual(PI_BUILTINS.map((command) => command.name));
     expect(names.slice(PI_BUILTINS.length)).toEqual(SPOPI_COMMANDS.map((command) => command.name));
     expect(names).toContain("phone");
+    expect(names.filter((name) => name === "mcp")).toEqual(["mcp"]);
   });
 
   it("groups skills before extensions and keeps other builtins out", () => {

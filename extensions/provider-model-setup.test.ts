@@ -4,7 +4,7 @@
 
 import { inflateSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
-import { setupOneModel, solidPng } from "./provider-model-setup.ts";
+import { configureOneModel, solidPng } from "./provider-model-setup.ts";
 
 type Behaviour = {
   ownedBy?: string;
@@ -95,10 +95,10 @@ function fakeServer(behaviour: Behaviour) {
 
 const baseUrl = "http://127.0.0.1:8000/v1";
 
-describe("setupOneModel", () => {
+describe("configureOneModel", () => {
   it("keeps the Qwen chat template when the server ignores reasoning_effort", async () => {
     const server = fakeServer({ maxModelLen: 262144, thinksWhenOn: true, thinksWhenOff: false });
-    const result = await setupOneModel({
+    const result = await configureOneModel({
       baseUrl,
       modelId: "Qwen3.8-Flash-Next",
       fetchImpl: server.fetchImpl,
@@ -145,7 +145,7 @@ describe("setupOneModel", () => {
       listEfforts: true,
       noneTurnsOff: true,
     });
-    const result = await setupOneModel({
+    const result = await configureOneModel({
       baseUrl,
       modelId: "Qwen3.8-Flash-Next",
       fetchImpl: server.fetchImpl,
@@ -178,7 +178,7 @@ describe("setupOneModel", () => {
       efforts: ["low", "high"],
       noneTurnsOff: true,
     });
-    const result = await setupOneModel({
+    const result = await configureOneModel({
       baseUrl,
       modelId: "Qwen3.8-Flash-Next",
       fetchImpl: server.fetchImpl,
@@ -207,7 +207,7 @@ describe("setupOneModel", () => {
       efforts: ["low", "medium"],
       listEfforts: true,
     });
-    const result = await setupOneModel({
+    const result = await configureOneModel({
       baseUrl,
       modelId: "Qwen3.8-Flash-Next",
       fetchImpl: server.fetchImpl,
@@ -222,7 +222,7 @@ describe("setupOneModel", () => {
 
   it("keeps only the level that applies when the model always thinks", async () => {
     const server = fakeServer({ ownedBy: "sglang", thinksWhenOn: true, thinksWhenOff: true });
-    const result = await setupOneModel({
+    const result = await configureOneModel({
       baseUrl,
       modelId: "Qwen3.8-Flash-Next",
       fetchImpl: server.fetchImpl,
@@ -240,7 +240,7 @@ describe("setupOneModel", () => {
 
   it("marks a model that rejects images as text only", async () => {
     const server = fakeServer({ thinksWhenOn: false, thinksWhenOff: false, rejectImages: true });
-    const result = await setupOneModel({
+    const result = await configureOneModel({
       baseUrl,
       modelId: "Qwen3.8-Flash-Next",
       fetchImpl: server.fetchImpl,
@@ -260,7 +260,7 @@ describe("setupOneModel", () => {
 
   it("asks plainly when the server refuses chat_template_kwargs", async () => {
     const server = fakeServer({ rejectKwargs: true, thinksWhenOff: true });
-    const result = await setupOneModel({
+    const result = await configureOneModel({
       baseUrl,
       modelId: "Qwen3.8-Flash-Next",
       fetchImpl: server.fetchImpl,
@@ -271,7 +271,7 @@ describe("setupOneModel", () => {
 
   it("leaves the budget field off when vLLM refuses it", async () => {
     const server = fakeServer({ thinksWhenOn: true, thinksWhenOff: false, rejectBudget: true });
-    const result = await setupOneModel({
+    const result = await configureOneModel({
       baseUrl,
       modelId: "Qwen3.8-Flash-Next",
       fetchImpl: server.fetchImpl,

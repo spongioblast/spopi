@@ -12,6 +12,24 @@ const CONTROL_RUNTIME: &[&str] = &[
     "extension_ui_response",
     "new_session",
     "switch_session",
+    "set_model",
+    "cycle_model",
+    "set_thinking_level",
+    "cycle_thinking_level",
+];
+
+/// Pi commands that only read the session, so every tier may send them.
+const RUNTIME_READ: &[&str] = &[
+    "get_state",
+    "get_messages",
+    "get_entries",
+    "get_tree",
+    "get_session_stats",
+    "get_commands",
+    "get_available_models",
+    "get_available_thinking_levels",
+    "get_fork_messages",
+    "get_last_assistant_text",
 ];
 
 const GIT_READ: &[&str] = &[
@@ -34,15 +52,66 @@ const OBSERVE_DATA: &[&str] = &[
 
 const FILE_READ: &[&str] = &["list_files", "workspace_info"];
 
-/// Host operations a phone may call. Settings writes and device management stay desktop-only.
+/// Host operations every phone may call. Actions that only make sense at the desktop
+/// (opening files or links there, folder pickers, browser setup, the phone's own interface
+/// list) are in no list, so no phone runs them. `engine_scrape` is desktop only: the host
+/// fetches the URL it is given, and loopback is always allowed, so a phone could read
+/// SPOPI's own loopback routes through it.
 const HOST_READ: &[&str] = &[
     "get_preference",
     "list_preferences",
     "list_pi_packages",
     "browse_pi_packages",
     "check_pi_package_updates",
-    "list_installed_apps",
     "session_ui_profile_load",
+    "review_drafts_load",
+];
+
+/// What a Control phone needs to open a project, start a chat, and chat in it.
+const HOST_CHAT: &[&str] = &[
+    "create_project",
+    "resolve_workspace",
+    "project_chats",
+    "session_ui_profile_save",
+    "shadow_history_files",
+    "shadow_history_file_pair",
+    "git_identity_get",
+];
+
+/// Sidebar state (unread, favourites, archived) a Control phone may write.
+const CHAT_PREFERENCE_PREFIX: &str = "ui.sessions.";
+
+/// Phone access settings. The host applies them again at start, so a phone that wrote
+/// them could widen its own allowlist; only the desktop changes them.
+const PHONE_PREFERENCE_PREFIX: &str = "ui.phone.";
+
+/// Everything else a Full phone may also run: projects, sessions, settings, and setup.
+const HOST_MANAGE: &[&str] = &[
+    "sweep_project",
+    "relink_project",
+    "keep_chats_in_project",
+    "rename_project",
+    "close_project",
+    "delete_sessions",
+    "review_drafts_save",
+    "restart_runtime",
+    "forget_workspace",
+    "git_identity_set",
+    "create_worktree",
+    "merge_worktree",
+    "remove_worktree",
+    "set_preference",
+    "remove_preference",
+    "install_pi_package",
+    "remove_pi_package",
+    "update_pi_package",
+    "list_mcp_servers",
+    "add_mcp_server",
+    "remove_mcp_server",
+    "check_dependencies",
+    "start_dependency_install",
+    "dependency_install_status",
+    "cancel_dependency_install",
 ];
 
 pub fn capability_names(kind: &ClientKind) -> Vec<&'static str> {
@@ -58,6 +127,7 @@ pub fn capability_names(kind: &ClientKind) -> Vec<&'static str> {
             "terminal",
             "host_read",
             "settings_write",
+            "devices",
         ],
         ClientKind::Remote { tier, .. } => {
             let mut names = vec!["subscribe", "data_read", "host_read"];
@@ -65,10 +135,19 @@ pub fn capability_names(kind: &ClientKind) -> Vec<&'static str> {
                 names.extend(["file_read", "prompt", "git_read"]);
             }
             if matches!(tier, Tier::Full) {
-                names.extend(["runtime", "git_write", "terminal"]);
+                names.extend(["runtime", "git_write", "terminal", "settings_write"]);
             }
             names
         }
+    }
+}
+
+/// Whether `resolve_workspace` may add a folder SPOPI does not know yet. A Control phone
+/// opens existing projects only; adding any folder would expose its files to `list_files`.
+pub fn may_register_workspace(kind: &ClientKind) -> bool {
+    match kind {
+        ClientKind::Desktop => true,
+        ClientKind::Remote { tier, .. } => matches!(tier, Tier::Full),
     }
 }
 
@@ -82,8 +161,30 @@ pub fn allowed(kind: &ClientKind, action: &RoutedAction) -> bool {
         RoutedAction::Data { frame, .. } => data_allowed(*tier, frame),
         RoutedAction::Git { frame, .. } => git_allowed(*tier, frame),
         RoutedAction::Runtime { frame, .. } => runtime_allowed(*tier, frame),
-        RoutedAction::Host { operation, .. } => HOST_READ.contains(&operation.as_str()),
+        RoutedAction::Host {
+            operation, frame, ..
+        } => host_allowed(*tier, operation, frame),
     }
+}
+
+fn host_allowed(tier: Tier, operation: &str, frame: &Value) -> bool {
+    if HOST_READ.contains(&operation) {
+        return true;
+    }
+    let control = matches!(tier, Tier::Control | Tier::Full);
+    if HOST_CHAT.contains(&operation) {
+        return control;
+    }
+    if matches!(operation, "set_preference" | "remove_preference") {
+        let key = frame.get("key").and_then(Value::as_str).unwrap_or("");
+        if key.starts_with(PHONE_PREFERENCE_PREFIX) {
+            return false;
+        }
+        if key.starts_with(CHAT_PREFERENCE_PREFIX) {
+            return control;
+        }
+    }
+    HOST_MANAGE.contains(&operation) && matches!(tier, Tier::Full)
 }
 
 fn data_allowed(tier: Tier, frame: &Value) -> bool {
@@ -120,6 +221,9 @@ fn runtime_allowed(tier: Tier, frame: &Value) -> bool {
         .pointer("/command/type")
         .and_then(Value::as_str)
         .unwrap_or("");
+    if frame_type == "runtime_request" && RUNTIME_READ.contains(&command) {
+        return true;
+    }
     if CONTROL_RUNTIME.contains(&command) || frame_type == "runtime_rebind_session_request" {
         return matches!(tier, Tier::Control | Tier::Full);
     }
@@ -181,7 +285,7 @@ mod tests {
             RoutedAction::Runtime {
                 client_id: "c".into(),
                 request_id: "r".into(),
-                frame: json!({"type": "runtime_request", "command": {"type": "set_model"}}),
+                frame: json!({"type": "runtime_request", "command": {"type": "bash"}}),
             },
             RoutedAction::Git {
                 client_id: "c".into(),
@@ -223,40 +327,55 @@ mod tests {
             "list_pi_packages",
             "browse_pi_packages",
             "check_pi_package_updates",
-            "list_installed_apps",
             "session_ui_profile_load",
+            "review_drafts_load",
         ];
-        let desktop_only = [
+        let chat = [
+            "create_project",
+            "resolve_workspace",
+            "project_chats",
+            "session_ui_profile_save",
+            "shadow_history_files",
+            "shadow_history_file_pair",
+            "git_identity_get",
+        ];
+        let manage = [
+            "sweep_project",
+            "relink_project",
+            "keep_chats_in_project",
+            "rename_project",
+            "close_project",
+            "delete_sessions",
+            "review_drafts_save",
+            "restart_runtime",
+            "forget_workspace",
+            "git_identity_set",
+            "create_worktree",
+            "merge_worktree",
+            "remove_worktree",
             "set_preference",
             "remove_preference",
             "install_pi_package",
             "remove_pi_package",
             "update_pi_package",
-            "list_local_addresses",
-            "open_in_app",
-            "reveal_path",
-            "open_external",
-            "resolve_workspace",
-            "create_project",
-            "sweep_project",
-            "project_chats",
-            "relink_project",
-            "keep_chats_in_project",
-            "rename_project",
-            "close_project",
-            "forget_workspace",
-            "delete_sessions",
-            "session_ui_profile_save",
-            "restart_runtime",
-            "pick_skill_folder",
-            "engine_scrape",
+            "list_mcp_servers",
+            "add_mcp_server",
+            "remove_mcp_server",
             "check_dependencies",
             "start_dependency_install",
             "dependency_install_status",
             "cancel_dependency_install",
+        ];
+        let desktop_only = [
+            "list_local_addresses",
+            "open_path",
+            "reveal_path",
+            "open_external",
+            "pick_skill_folder",
             "surf_extension_path",
             "surf_connect",
             "open_browser_extensions",
+            "engine_scrape",
         ];
         for name in phone_read {
             for tier in [Tier::Observe, Tier::Control, Tier::Full] {
@@ -264,12 +383,96 @@ mod tests {
             }
             assert!(allowed(&ClientKind::Desktop, &host(name)));
         }
+        for name in chat {
+            assert!(!allowed(&remote(Tier::Observe), &host(name)), "{name}");
+            assert!(allowed(&remote(Tier::Control), &host(name)), "{name}");
+            assert!(allowed(&remote(Tier::Full), &host(name)), "{name}");
+        }
+        for name in manage {
+            assert!(!allowed(&remote(Tier::Observe), &host(name)), "{name}");
+            assert!(!allowed(&remote(Tier::Control), &host(name)), "{name}");
+            assert!(allowed(&remote(Tier::Full), &host(name)), "{name}");
+        }
         for name in desktop_only {
             for tier in [Tier::Observe, Tier::Control, Tier::Full] {
                 assert!(!allowed(&remote(tier), &host(name)), "{name} {tier:?}");
             }
             assert!(allowed(&ClientKind::Desktop, &host(name)));
         }
+    }
+
+    #[test]
+    fn a_control_phone_writes_sidebar_state_but_not_other_settings() {
+        let write = |key: &str| RoutedAction::Host {
+            client_id: "c".into(),
+            request_id: "r".into(),
+            operation: "set_preference".into(),
+            frame: json!({"key": key, "value": {}}),
+        };
+        let sidebar = write("ui.sessions.unread");
+        let theme = write("ui.theme");
+        assert!(!allowed(&remote(Tier::Observe), &sidebar));
+        assert!(allowed(&remote(Tier::Control), &sidebar));
+        assert!(!allowed(&remote(Tier::Control), &theme));
+        assert!(allowed(&remote(Tier::Full), &theme));
+    }
+
+    #[test]
+    fn only_the_desktop_and_full_phones_add_new_project_folders() {
+        assert!(may_register_workspace(&ClientKind::Desktop));
+        assert!(may_register_workspace(&remote(Tier::Full)));
+        assert!(!may_register_workspace(&remote(Tier::Control)));
+        assert!(!may_register_workspace(&remote(Tier::Observe)));
+    }
+
+    #[test]
+    fn no_phone_changes_phone_access_settings() {
+        for operation in ["set_preference", "remove_preference"] {
+            for key in ["ui.phone.allow", "ui.phone.enabled", "ui.phone.ip"] {
+                let action = RoutedAction::Host {
+                    client_id: "c".into(),
+                    request_id: "r".into(),
+                    operation: operation.into(),
+                    frame: json!({"key": key, "value": []}),
+                };
+                for tier in [Tier::Observe, Tier::Control, Tier::Full] {
+                    assert!(!allowed(&remote(tier), &action), "{operation} {key} {tier:?}");
+                }
+                assert!(allowed(&ClientKind::Desktop, &action));
+            }
+        }
+    }
+
+    #[test]
+    fn every_phone_may_read_the_session_and_control_may_pick_the_model() {
+        let command = |name: &str| RoutedAction::Runtime {
+            client_id: "c".into(),
+            request_id: "r".into(),
+            frame: json!({"type": "runtime_request", "command": {"type": name}}),
+        };
+        for name in [
+            "get_state",
+            "get_session_stats",
+            "get_commands",
+            "get_available_models",
+        ] {
+            assert!(allowed(&remote(Tier::Observe), &command(name)), "{name}");
+        }
+        assert!(!allowed(&remote(Tier::Observe), &command("prompt")));
+        assert!(!allowed(&remote(Tier::Observe), &command("set_model")));
+        assert!(allowed(&remote(Tier::Control), &command("set_model")));
+        assert!(!allowed(&remote(Tier::Control), &command("bash")));
+        assert!(allowed(&remote(Tier::Full), &command("bash")));
+    }
+
+    #[test]
+    fn only_the_desktop_manages_devices() {
+        assert!(capability_names(&ClientKind::Desktop).contains(&"devices"));
+        for tier in [Tier::Observe, Tier::Control, Tier::Full] {
+            assert!(!capability_names(&remote(tier)).contains(&"devices"));
+        }
+        assert!(capability_names(&remote(Tier::Full)).contains(&"settings_write"));
+        assert!(!capability_names(&remote(Tier::Control)).contains(&"settings_write"));
     }
 
     #[test]

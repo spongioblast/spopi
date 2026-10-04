@@ -40,7 +40,7 @@ export function mountRetryBanner(root, { retry, count = 1, t = () => "", onAbort
   root.append(
     el("button", {
       type: "button",
-      class: "retry-banner-abort",
+      class: "ui-button ui-button--xs ui-button--secondary retry-banner-abort",
       text: t("chat.retry.abort"),
       onClick: () => onAbort?.(),
     }),

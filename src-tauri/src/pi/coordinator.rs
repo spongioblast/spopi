@@ -125,6 +125,10 @@ impl RuntimeCoordinator {
     }
 
     pub fn validate(&self, target: &RuntimeTarget) -> Result<(), CoordinatorError> {
+        self.record(target).map(drop)
+    }
+
+    fn record(&self, target: &RuntimeTarget) -> Result<&RuntimeRecord, CoordinatorError> {
         let record = self
             .instances
             .get(&target.instance_id)
@@ -132,7 +136,21 @@ impl RuntimeCoordinator {
         if record.target != *target {
             return Err(CoordinatorError::IdentityMismatch);
         }
-        Ok(())
+        Ok(record)
+    }
+
+    fn record_mut(
+        &mut self,
+        target: &RuntimeTarget,
+    ) -> Result<&mut RuntimeRecord, CoordinatorError> {
+        let record = self
+            .instances
+            .get_mut(&target.instance_id)
+            .ok_or(CoordinatorError::UnknownInstance)?;
+        if record.target != *target {
+            return Err(CoordinatorError::IdentityMismatch);
+        }
+        Ok(record)
     }
 
     pub fn validate_command(
@@ -156,11 +174,11 @@ impl RuntimeCoordinator {
         target: &RuntimeTarget,
         idempotency_key: &str,
     ) -> Result<MutationAcceptance, CoordinatorError> {
-        self.validate(target)?;
+        let capacity = self.idempotency_capacity;
+        let record = self.record_mut(target)?;
         if idempotency_key.is_empty() {
             return Err(CoordinatorError::MissingIdempotencyKey);
         }
-        let record = self.instances.get_mut(&target.instance_id).unwrap();
         if record
             .mutations
             .iter()
@@ -172,7 +190,7 @@ impl RuntimeCoordinator {
             key: idempotency_key.to_owned(),
             result: None,
         });
-        while record.mutations.len() > self.idempotency_capacity {
+        while record.mutations.len() > capacity {
             record.mutations.pop_front();
         }
         Ok(MutationAcceptance::Accepted)
@@ -184,9 +202,8 @@ impl RuntimeCoordinator {
         idempotency_key: &str,
         result: Value,
     ) -> Result<(), CoordinatorError> {
-        self.validate(target)?;
-        let record = self.instances.get_mut(&target.instance_id).unwrap();
-        let mutation = record
+        let mutation = self
+            .record_mut(target)?
             .mutations
             .iter_mut()
             .find(|mutation| mutation.key == idempotency_key)
@@ -200,11 +217,8 @@ impl RuntimeCoordinator {
         target: &RuntimeTarget,
         idempotency_key: &str,
     ) -> Result<Option<Value>, CoordinatorError> {
-        self.validate(target)?;
         Ok(self
-            .instances
-            .get(&target.instance_id)
-            .unwrap()
+            .record(target)?
             .mutations
             .iter()
             .find(|mutation| mutation.key == idempotency_key)
@@ -216,8 +230,7 @@ impl RuntimeCoordinator {
         target: &RuntimeTarget,
         event: Value,
     ) -> Result<SequencedEvent, CoordinatorError> {
-        self.validate(target)?;
-        let record = self.instances.get_mut(&target.instance_id).unwrap();
+        let record = self.record_mut(target)?;
         record.sequence += 1;
         Ok(SequencedEvent {
             target: target.clone(),
@@ -227,8 +240,7 @@ impl RuntimeCoordinator {
     }
 
     pub fn snapshot(&self, target: &RuntimeTarget) -> Result<RuntimeSnapshot, CoordinatorError> {
-        self.validate(target)?;
-        let record = self.instances.get(&target.instance_id).unwrap();
+        let record = self.record(target)?;
         Ok(RuntimeSnapshot {
             target: record.target.clone(),
             sequence: record.sequence,
@@ -251,8 +263,7 @@ impl RuntimeCoordinator {
         target: &RuntimeTarget,
         state: RuntimeState,
     ) -> Result<(), CoordinatorError> {
-        self.validate(target)?;
-        self.instances.get_mut(&target.instance_id).unwrap().state = state;
+        self.record_mut(target)?.state = state;
         Ok(())
     }
 
@@ -286,7 +297,7 @@ impl RuntimeCoordinator {
         }) {
             return Err(CoordinatorError::DuplicateSession);
         }
-        let record = self.instances.get_mut(&temporary.instance_id).unwrap();
+        let record = self.record_mut(temporary)?;
         record.target.session_id = session_id;
         Ok(record.target.clone())
     }

@@ -39,6 +39,9 @@ jobs:
             pi_target_platform: windows-arm64
 
     runs-on: ${{ matrix.os }}
+    # Builds take 6-15 minutes. A hang otherwise runs to GitHub's 6-hour limit,
+    # and macOS minutes are billed at ten times the Linux rate.
+    timeout-minutes: 60
 
     env:
       # Mitigate intermittent crates.io download failures on CI runners
@@ -120,7 +123,6 @@ jobs:
             gstreamer1.0-tools \
             gstreamer1.0-plugins-base \
             gstreamer1.0-plugins-good \
-            rpm \
             patchelf
 
       - name: Install dependencies
@@ -285,7 +287,14 @@ jobs:
       # linuxdeploy (or a change to the shim) rewrites the embedded runtime
       # again, fail loudly here instead of shipping an AppImage whose pi dies
       # at startup with no stderr.
-      - name: Verify linuxdeploy left the embedded pi untouched (Linux)
+      #
+      # It also refuses a bundled libwayland-client. A copy from the runner
+      # shadows the host's, and Mesa 25+ (Ubuntu 26.04, Fedora 42+, Arch) then
+      # fails eglGetDisplay: the window stays blank and WebKitWebProcess logs
+      # "Could not create default EGL display: EGL_BAD_PARAMETER". The
+      # linuxdeploy that Tauri CLI 2.12+ downloads leaves it out; an older CLI
+      # or a stale tool cache would bring it back.
+      - name: Verify the AppImage contents (Linux)
         if: runner.os == 'Linux' && contains(matrix.linux_bundles, 'appimage')
         run: |
           set -euo pipefail
@@ -297,12 +306,12 @@ jobs:
             exit 1
           fi
           expected="$(sha256sum "$PWD/src-tauri/resources/pi/pi" | cut -d' ' -f1)"
-          workdir="$RUNNER_TEMP/appimage-pi-check"
+          workdir="$RUNNER_TEMP/appimage-check"
           rm -rf "$workdir"
           mkdir -p "$workdir"
           chmod +x "$appimage"
-          (cd "$workdir" && "$appimage" --appimage-extract 'usr/lib/*/pi/pi' >/dev/null)
-          bundled="$(find "$workdir/squashfs-root" -type f -name pi | head -1)"
+          (cd "$workdir" && "$appimage" --appimage-extract >/dev/null)
+          bundled="$(find "$workdir/squashfs-root/usr/lib" -type f -path '*/pi/pi' | head -1)"
           if [ -z "$bundled" ]; then
             echo "::error::the AppImage does not contain resources/pi/pi"
             exit 1
@@ -313,6 +322,12 @@ jobs:
             exit 1
           fi
           echo "embedded pi is byte-identical to upstream ($actual)"
+          bundled_wayland="$(find "$workdir/squashfs-root" -name 'libwayland-client.so*' | head -1)"
+          if [ -n "$bundled_wayland" ]; then
+            echo "::error::the AppImage bundles ${bundled_wayland#"$workdir/squashfs-root/"}, which blanks the window on Mesa 25+"
+            exit 1
+          fi
+          echo "no bundled libwayland-client"
 
       # macOS Developer ID signing + notarization. An unset secret reaches the
       # step as an empty string, and the bundler treats a present-but-empty
@@ -381,6 +396,7 @@ jobs:
     needs: build-and-release
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout code
         uses: actions/checkout@v6

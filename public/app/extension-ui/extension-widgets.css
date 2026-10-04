@@ -20,7 +20,7 @@
   color: var(--text-secondary);
   font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
   font-size: var(--font-size-sm);
-  line-height: 1.5;
+  line-height: var(--line-height-relaxed);
   /* Widget lines are pre-formatted terminal output: keep the author's
      alignment, but wrap rather than overflow a narrow window. */
   white-space: pre-wrap;

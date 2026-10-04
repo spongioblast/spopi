@@ -41,9 +41,6 @@
   "nav": {
     "chat": "聊天",
     "toggleSidebar": "切换侧边栏",
-    "openWorkspace": "打开项目",
-    "openWorkspaceInApp": "在应用中打开项目",
-    "chooseApp": "选择打开项目的应用",
     "sessions": "会话",
     "files": "文件",
     "review": "审查",
@@ -51,9 +48,6 @@
     "search": "搜索",
     "extensions": "软件包",
     "themeNamed": "主题：{name}",
-    "openWorkspaceInNamedApp": "在 {app} 中打开 {path}",
-    "openWorkspaceInAppAria": "在 {app} 中打开项目",
-    "openInApp": "在 {app} 中打开",
     "resourceManagement": "资源管理",
     "catalog": {
       "extensions": "扩展"
@@ -83,13 +77,13 @@
     "unstage": "取消暂存",
     "discard": "丢弃修改",
     "aiCommitMessage": "生成 AI 提交说明",
-    "push": "推送",
+    "push": "Push",
     "pushing": "推送中…",
     "pushFailed": "推送失败。",
     "pushDetachedHead": "HEAD 处于分离状态，无法推送。请先检出一个分支。",
     "pushNoRemote": "此仓库未配置远程地址。",
     "pushBusy": "此项目正在执行其他 Git 操作，请稍后重试。",
-    "commit": "提交",
+    "commit": "Commit",
     "stats": "+{additions} −{deletions} · 已暂存 {staged} · 修改 {changes} · 未跟踪 {untracked}",
     "summary": "{branch} · {upstream} · ↑{ahead} ↓{behind}",
     "noUpstream": "未配置上游分支",
@@ -103,6 +97,21 @@
     "aiFailed": "AI 提交说明生成失败。你仍可手动填写提交说明。",
     "commitInProgress": "提交进行中...",
     "outcomeUnknown": "无法确定提交结果。重试前请先检查仓库状态。",
+    "identityCommittingAs": "提交身份",
+    "identityChange": "更改",
+    "identityKeep": "保持当前",
+    "identityTitle": "提交者",
+    "identityIntro": "Git 会在每次提交记录这个姓名和邮箱。它们保存在 Git 自己的配置里，不在 SPOPI 中。",
+    "identityName": "姓名",
+    "identityEmail": "邮箱",
+    "identityNamePlaceholder": "你的姓名",
+    "identityEmailPlaceholder": "you@example.com",
+    "identityScopeGlobal": "此电脑上的所有仓库",
+    "identityScopeRepository": "仅此仓库",
+    "identityThisRepository": "此仓库",
+    "identityRequired": "需要填写姓名和邮箱。",
+    "identityInvalidEmail": "邮箱需要包含 @，且不能有空格。",
+    "identityMissing": "Git 需要姓名和邮箱才能提交。",
     "diffOriginal": "原始版本",
     "diffModified": "修改后",
     "diffEmpty": "没有可显示的修改",
@@ -142,14 +151,35 @@
     "createBranch": "创建分支…",
     "checkout": "检出",
     "branchPrompt": "新分支名称",
-    "behindAhead": "↓{behind} / ↑{ahead}"
+    "behindAhead": "↓{behind} / ↑{ahead}",
+    "publishTitle": "推送此分支并在远程上跟踪",
+    "addRemote": "添加远程…",
+    "addRemoteTitle": "将此仓库连接到远程，例如一个空的 GitHub 仓库",
+    "pullNoUpstream": "此分支还没有上游。请先发布。",
+    "remoteTitleAdd": "添加远程",
+    "remoteTitleEdit": "远程 {name}",
+    "remoteMenuItem": "远程 {name}…",
+    "remoteHint": "先在 GitHub 或其他 Git 托管服务上创建一个空仓库，然后粘贴它的 URL。Git 通过自己的凭据管理器或你的 SSH 密钥登录。",
+    "remoteName": "名称",
+    "remoteUrl": "URL",
+    "remoteUrlPlaceholder": "https://github.com/you/repo.git",
+    "remotePublishNow": "立即推送此分支",
+    "remoteAddAction": "添加",
+    "remoteSave": "保存",
+    "remoteRemove": "移除远程",
+    "remoteRemoveConfirm": "从此仓库移除远程 {name}？服务器上的内容不会被删除。",
+    "remoteInvalidName": "名称可以使用字母、数字、'.'、'_' 和 '-'。",
+    "remoteInvalidUrl": "请使用 https:// 或 ssh:// URL，或 user@host:path。",
+    "remoteFailed": "无法更改远程。"
   },
   "usage": {
     "sessionCostTitle": "会话成本",
     "contextTitle": "上下文用量",
     "costSub": "{amount}（订阅）",
     "inputSummary": "↓ {in}",
-    "outputSummary": "↑ {out}"
+    "outputSummary": "↑ {out}",
+    "contextOfWindow": "上下文：{used} / {window} 个 token",
+    "contextUsed": "上下文：{used} 个 token"
   },
   "sessionInfo": {
     "title": "会话信息",
@@ -197,6 +227,7 @@
     "provider": "提供商",
     "delete": "删除",
     "edit": "编辑",
+    "moreActions": "更多操作",
     "unsaved": "有未保存的更改",
     "saveProvider": "保存提供商",
     "rename": "重命名",
@@ -255,7 +286,6 @@
     "setup": {
       "button": "设置模型",
       "buttonFor": "设置 {model}",
-      "short": "设置",
       "hint": "向此模型发送几个很小的请求，检查思考、推理强度、图片、vLLM 预算和上下文。",
       "running": "正在设置 {model}…",
       "done": "已检查 {model}。请核对字段，然后点击“保存模型”。",
@@ -308,7 +338,9 @@
         "placeholder": "不需要：此服务器无需密钥即可运行",
         "none": "无密钥"
       }
-    }
+    },
+    "countOne": "1 个模型",
+    "countOther": "{count} 个模型"
   },
   "input": {
     "attachImage": "附加图片",
@@ -350,7 +382,9 @@
     "streaming": "执行中",
     "complete": "完成",
     "error": "错误",
-    "pending": "等待中"
+    "pending": "等待中",
+    "imageResult": "工具图片",
+    "nestedMore": "还有未记录的调用"
   },
   "files": {
     "loading": "加载中…",
@@ -360,6 +394,7 @@
     "refreshDirectory": "刷新目录",
     "refreshDirectoryAria": "刷新当前目录列表",
     "showHiddenFiles": "显示隐藏文件",
+    "hideHiddenFiles": "不显示隐藏文件",
     "showHiddenFilesAria": "显示或隐藏点文件及被忽略目录",
     "openInFileManager": "在文件管理器中打开",
     "close": "关闭文件浏览器",
@@ -404,7 +439,9 @@
         "installWindows": "py -3 -m pip install \"markitdown[docx,pptx,xlsx,xls,outlook]\"",
         "remoteImageHidden": "远程图片已隐藏"
       },
-      "conflictMessage": "{name} 的磁盘内容已更改。要重新加载还是覆盖磁盘版本？"
+      "conflictMessage": "{name} 的磁盘内容已更改。要重新加载还是覆盖磁盘版本？",
+      "unchangedOne": "… {count} 行未更改 …",
+      "unchangedOther": "… {count} 行未更改 …"
     },
     "unsaved": {
       "title": "未保存的更改",
@@ -445,10 +482,10 @@
     "save": "保存"
   },
   "header": {
-    "extensionUpdatesAvailable": "扩展有可用更新",
-    "openInPiTui": "在 Pi TUI 中打开此会话 (pi -r)",
-    "toggleDock": "切换停靠栏 (Ctrl+J)",
-    "toggleChat": "切换聊天面板 (Ctrl+Shift+L)",
+    "extensionUpdatesAvailable": "有可用的软件包更新",
+    "openPi": "在终端中打开 Pi",
+    "toggleDock": "切换停靠栏",
+    "toggleChat": "切换聊天面板",
     "metrics": "实时指标"
   },
   "extensions": {
@@ -460,7 +497,7 @@
     "searchPackages": "搜索包...",
     "all": "全部",
     "themes": "主题",
-    "prompts": "提示词",
+    "prompts": "Prompts",
     "installedOnly": "仅已安装",
     "mostDownloads": "最多下载",
     "nameAZ": "名称 (A–Z)",
@@ -498,8 +535,8 @@
       "extensionsOther": "{count} 个扩展",
       "skillsOne": "{count} 个技能",
       "skillsOther": "{count} 个技能",
-      "promptsOne": "{count} 个提示词",
-      "promptsOther": "{count} 个提示词",
+      "promptsOne": "{count} prompt",
+      "promptsOther": "{count} prompts",
       "themesOne": "{count} 个主题",
       "themesOther": "{count} 个主题"
     },
@@ -587,6 +624,7 @@
     "statusFailed": "启动失败",
     "retry": "重试",
     "sendToChat": "发送到聊天",
+    "piTabFailed": "无法在终端中打开 Pi。",
     "ariaResizer": "终端面板调整器",
     "enlarge": "放大面板",
     "newTabMenu": "用其他 shell 新建终端",
@@ -646,6 +684,7 @@
     "closeProject": "关闭项目",
     "closeWorking": "回复仍在进行。仍要关闭项目吗？",
     "renameProject": "重命名…",
+    "newWorktree": "新建 worktree…",
     "renameOutside": "将此文件夹重命名为 {to}？它会从 {from} 移走。",
     "renameWorking": "回复仍在进行。仍要重命名吗？",
     "keepChats": "把对话保存在项目文件夹",
@@ -662,7 +701,9 @@
     "archivedCount": "已归档 ({count})",
     "deleteArchivedHere": "删除此项目中已归档的对话",
     "pinned": "置顶",
-    "newChat": "在 {path} 中新建会话"
+    "newChat": "在 {path} 中新建会话",
+    "statusStreaming": "正在回复",
+    "statusUnread": "未读"
   },
   "updater": {
     "update": "更新",
@@ -732,7 +773,6 @@
         "label": "npm (Node.js)",
         "help": "Pi 用 npm 安装软件包。没有它，推荐软件包和 Surf 都无法安装。",
         "install": "安装 Node.js",
-        "commands": "用你的包管理器安装 Node.js，然后按全部测试：",
         "download": "从 nodejs.org 下载"
       },
       "browser": {
@@ -746,7 +786,8 @@
           "found": "正在使用 {path}",
           "download": "下载浏览器",
           "downloadHelp": "一次性下载 Chrome for Testing，大约 206 MB。",
-          "linuxDeps": "如果仍然无法启动，请安装它需要的库："
+          "linuxDeps": "如果仍然无法启动，请安装它需要的库：",
+          "noSandbox": "以 --no-sandbox 运行：此系统只允许通过包管理器安装的 Chrome 使用 Chrome 的沙箱。"
         },
         "both": "两者都打开时，Pi 用 agent-browser 看本地页面，用 Surf 看网页。",
         "surf": {
@@ -772,8 +813,16 @@
     },
     "customizations": {
       "title": "自定义",
-      "safe": "安全模式（只用随附界面）",
-      "overrides": "覆盖",
+      "overrides": "SPOPI 界面覆盖",
+      "intro": "你让 Pi 修改外观或布局时，Pi 在 SPOPI 自身界面中改动或新增的文件。更新后仍会保留。你的项目、Pi 的设置和 Pi 包不会列在这里。",
+      "folder": "保存在",
+      "overridesEmpty": "Pi 还没有改动 SPOPI 的界面。可以在聊天里提出，例如“把侧边栏调窄一点”。",
+      "statusAdded": "新文件，不属于随附界面",
+      "statusOk": "随附文件的改动副本",
+      "statusStale": "已停用：这次更新改动了随附文件。可以让 Pi 合并，或者还原它。",
+      "safeTitle": "安全模式",
+      "safe": "只使用随附界面",
+      "safeHelp": "停用上面所有覆盖，但不删除它们。如果某个改动弄坏了窗口，可以用它。",
       "revert": "还原",
       "threeWay": "查看三个版本",
       "unknown": "未知的语言键",
@@ -783,26 +832,51 @@
       "safeBanner": "安全模式已打开。正在使用随附界面。",
       "reload": "重新加载",
       "close": "关闭",
-      "overridesEmpty": "没有改动的界面文件。Pi 会把界面改动写到 %APPDATA%\\spopi\\ui。",
       "autoSafe": "界面连续两次未能加载后自动打开。"
     },
     "phone": {
       "title": "手机访问",
       "enable": "允许手机连接",
       "pair": "配对",
-      "accept": "向手机开放",
       "devices": "设备",
       "revoke": "撤销",
       "tier": "权限",
       "port": "端口",
-      "allow": "允许列表",
-      "waiting": "桌面端界面已更改，正在等待批准",
       "interface": "网卡",
       "allowSources": "允许的来源",
-      "allowHelp": "用逗号或空格分隔 CIDR 或地址。",
+      "allowHelp": "IPv4 地址或范围（如 192.168.1.0/24），用逗号或空格分隔。在你自行填写之前会跟随所选接口。",
+      "allowInvalid": "“{entry}”不是 IPv4 地址或范围，例如 192.168.1.0/24。",
+      "allowEmpty": "请至少填写一个地址或范围。列表为空时任何手机都无法连接。",
+      "listenFailed": "无法在 {address} 上开启手机访问：{error}",
       "noInterfaces": "未找到网络接口。配对仅限本机。",
-      "changesSummary": "自手机上次接受以来有 {count} 个界面文件已更改",
-      "changesList": "显示文件"
+      "kind": {
+        "main": "主网络",
+        "lan": "网络",
+        "tailscale": "Tailscale",
+        "vpn": "VPN",
+        "virtual": "虚拟，手机无法访问",
+        "loopback": "仅限本机"
+      },
+      "firewall": "Windows 防火墙",
+      "firewallAllow": "在防火墙中允许",
+      "firewallUpdate": "更新防火墙规则",
+      "firewallOk": "防火墙允许手机通过端口 {port} 连接。",
+      "firewallOtherPort": "防火墙规则针对端口 {ports}，而不是 {port}。",
+      "firewallOtherSources": "防火墙规则放行的是 {remote}，而不是允许的来源。其他手机会被阻止。",
+      "firewallNone": "SPOPI 还没有防火墙规则。Windows 可能会阻止手机，尤其是在设为公用的网络上。",
+      "firewallBlocked": "有一条防火墙规则阻止了 SPOPI。允许会删除它。",
+      "firewallHelp": "该规则只允许来自允许来源的此端口 TCP 连接。Windows 会要求管理员权限。",
+      "firewallWaiting": "请在 Windows 提示中确认…",
+      "firewallCancelled": "Windows 未允许此更改。",
+      "firewallFailed": "未能写入防火墙规则：{error}",
+      "connection": "连接",
+      "pairTitle": "配对手机",
+      "pairHelp": "每次点击都会生成一个新代码，可配对一部手机。用手机摄像头扫描，然后在这里批准该手机。",
+      "pairValid": "{minutes} 分钟内有效，仅限一部手机。再次配对会生成新代码。",
+      "pairExpired": "代码已过期。点击配对获取新代码。",
+      "pairNeedsOn": "请先打开手机访问。",
+      "desktopOnly": "手机访问、配对和设备需在桌面端管理。",
+      "devicesEmpty": "还没有配对的手机。"
     },
     "appearance": "外观",
     "packages": {
@@ -812,7 +886,7 @@
       "title": "资源",
       "extension": "扩展",
       "skill": "技能",
-      "prompt": "提示词",
+      "prompt": "Prompts",
       "theme": "主题",
       "global": "全局",
       "project": "当前项目",
@@ -848,7 +922,10 @@
         "gondolin": "Gondolin：Pi 留在主机上，工具在本地微型虚拟机中运行。",
         "mount": "只挂载工作文件夹。不要挂载 ~/.pi/agent。",
         "docs": "Pi 容器文档"
-      }
+      },
+      "stale": "规则已过期",
+      "staleDescription": "权限文件由旧版 SPOPI 写入或被手动编辑过。更新会按当前模式重写它。",
+      "repair": "更新"
     },
     "updates": "更新",
     "autoCompaction": "自动压缩",
@@ -871,6 +948,12 @@
       "placeholder": "主文件夹中的 SPOPI",
       "choose": "选择…",
       "notAbsolute": "请使用完整路径，例如 D:\\Chats 或 /home/you/chats。"
+    },
+    "gitIdentity": {
+      "title": "Git 姓名和邮箱",
+      "description": "Git 会在每次提交记录这些信息。它们保存在 Git 自己的配置里，不在 SPOPI 中。",
+      "save": "保存",
+      "saved": "已保存"
     },
     "taskCompleteTitle": "任务已完成",
     "taskCompleteMessage": "你的任务已完成。",
@@ -917,6 +1000,90 @@
       "helpPost": "（chmod 600）。从 Finder/Dock 启动时也会导入 login shell 中导出的 provider 环境变量。",
       "helpPostWindows": "从界面启动时也会读取环境变量中的提供方变量。"
     },
+    "mcp": {
+      "title": "MCP",
+      "pageTitle": "MCP 服务器",
+      "help": "Pi 连接这些服务器，并把它们的工具交给模型。SPOPI 运行的是 Pi 自己的 pi mcp 命令，这里不会直接连接服务器。",
+      "add": "添加服务器",
+      "refresh": "刷新",
+      "manage": "在 Pi 中管理",
+      "loading": "正在检查服务器… Pi 会启动每个服务器来测试它。",
+      "checking": "上次检查 {time}",
+      "retry": "重试",
+      "emptyHint": "你也可以在聊天里让 Pi 添加服务器。",
+      "exampleCommand": "pi mcp add filesystem -- npx -y @modelcontextprotocol/server-filesystem .",
+      "exampleUrl": "https://mcp.sentry.dev/mcp (sign in after adding)",
+      "global": "所有项目",
+      "project": "此项目",
+      "packages": "来自软件包",
+      "packageNote": "由扩展注册；请在该软件包中修改。",
+      "tools": "{count} 个工具",
+      "resources": "{count} 个资源",
+      "templates": "{count} 个资源模板",
+      "state": {
+        "connected": "已连接",
+        "needsAuth": "需要登录",
+        "failed": "失败",
+        "disabled": "已禁用",
+        "disconnected": "未连接"
+      },
+      "signIn": "登录",
+      "signOut": "退出登录",
+      "reconnect": "在此会话中重新连接",
+      "remove": "移除",
+      "removeConfirm": "移除 {name}？Pi 会删除该条目，并保留已保存的登录。",
+      "details": "详情",
+      "override": "已在 {path} 中为此项目更改",
+      "trustNote": "此项目的 .pi/mcp.json 会在 SPOPI 会话中运行，但在你于 Pi 中信任该项目之前，Pi 自己的检查会跳过它。",
+      "trustDenied": "你曾告诉 Pi 不要信任此项目。",
+      "trustButton": "在 Pi 中信任此项目",
+      "permissionsLink": "权限模式",
+      "more": "更多操作",
+      "open": "打开",
+      "copy": "复制",
+      "desktopOnly": "仅在桌面可用。",
+      "manageToast": "Pi 的 MCP 管理器已在终端中打开。完成后退出 Pi（按两次 Ctrl+C）；标签页会关闭，SPOPI 会读入更改。",
+      "manageFailed": "终端没有启动。请打开底部面板的终端后重试。",
+      "replace": "替换",
+      "replaceConfirm": "Pi 会替换 {name} 的整条配置。",
+      "clash": "Pi 把这视为与 {name} 相同的服务器。",
+      "secretWarning": "这看起来像密钥。请用 ${NAME} 从环境变量读取。",
+      "scopeGlobal": "所有项目",
+      "scopeProject": "此项目",
+      "kindCommand": "命令",
+      "kindUrl": "URL",
+      "name": "名称",
+      "type": "类型",
+      "scope": "范围",
+      "command": "命令",
+      "argument": "参数",
+      "addArgument": "添加参数",
+      "addEnv": "添加变量",
+      "value": "值",
+      "cwd": "工作文件夹",
+      "envHint": "用 ${NAME} 从环境变量读取，不要粘贴密钥。",
+      "url": "URL",
+      "signInMode": "登录",
+      "authNone": "无",
+      "authOauth": "OAuth（添加后登录）",
+      "authBearer": "来自环境变量的令牌",
+      "authHeaders": "自定义请求头",
+      "bearerEnv": "环境变量",
+      "addHeader": "添加请求头",
+      "advancedOauth": "高级 OAuth",
+      "clientId": "客户端 ID",
+      "clientSecret": "客户端密钥",
+      "callbackPort": "回调端口",
+      "clientName": "客户端名称",
+      "exposure": "暴露方式",
+      "exposureCodemode": "默认；脚本会找到这些工具",
+      "exposureDeferred": "由工具搜索加载",
+      "exposureDirect": "始终声明给模型；占用上下文",
+      "exposureHidden": "已注册但不可用",
+      "description": "说明",
+      "descriptionHint": "帮助 Pi 找到合适的服务器。",
+      "keepGlobal": "保存凭据的服务器请放在「所有项目」。"
+    },
     "models": {
       "title": "模型",
       "helpPre": "编辑",
@@ -925,6 +1092,7 @@
       "helpPost2": "了解完整架构。更改即时生效 — 无需重启。",
       "oauth": {
         "signInWithChatGPT": "使用 ChatGPT 登录",
+        "chatgptHint": "若要在 OpenAI 提供方上使用 ChatGPT，请在终端运行 pi，输入 /login，然后选择 OpenAI。",
         "preparing": "正在准备 ChatGPT 登录…",
         "completeInBrowser": "请在浏览器中完成授权以继续。",
         "openBrowser": "打开浏览器",
@@ -937,8 +1105,15 @@
         "expired": "此设备代码已过期，请重新开始。",
         "failed": "ChatGPT 登录失败。",
         "tlsUntrusted": "TLS 证书校验失败。本地 HTTPS 代理（Clash / Surge / VPN）很可能在拦截 OpenAI 请求。请信任该代理的 CA，或对 OpenAI 关闭 HTTPS 解密后再重试。",
-        "retry": "重试"
-      }
+        "retry": "重试",
+        "connectTitle": "连接 {name}",
+        "subscriptionHint": "此提供商使用你的订阅账户。",
+        "terminalLoginNote": "此登录由 Pi 执行。请在终端中运行下面的命令开始登录，然后回到这里刷新提供商状态。"
+      },
+      "addProvider": "添加提供商",
+      "addProviderHint": "连接提供商即可使用其模型。",
+      "searchProviders": "搜索提供商…",
+      "customAndSubscriptions": "自定义与订阅"
     },
     "customProvider": {
       "title": "添加自定义供应商",
@@ -1014,28 +1189,28 @@
       "saveFailed": "保存技能设置失败。"
     },
     "installSkills": {
-      "title": "安装技能",
-      "description": "从本地目录链接技能，不会复制或修改文件。",
-      "chooseFolder": "选择目录",
-      "scanning": "正在扫描技能…",
-      "scanFailed": "扫描所选目录失败。",
+      "title": "Install skills",
+      "description": "Link skills from a local folder. No files are copied or changed.",
+      "chooseFolder": "Choose folder",
+      "scanning": "Scanning skills…",
+      "scanFailed": "Failed to scan the selected folder.",
       "global": "全局",
-      "project": "当前项目",
-      "projectUntrusted": "当前项目尚未受信任，不能安装到当前项目。",
-      "review": "确认安装",
-      "confirmation": "将 {count} 个已选技能安装到 {scope}？",
-      "confirmationHeading": "确认安装技能",
-      "confirm": "安装已选技能",
-      "cancel": "取消",
-      "installing": "正在安装…",
-      "installFailed": "安装已选技能失败。",
-      "complete": "已安装 {added} 项；{skipped} 项已配置。",
-      "restartRequired": "已保存。新建会话或重启 Pi 后生效。",
+      "project": "Current project",
+      "projectUntrusted": "This project is not trusted. Install to the current project is unavailable.",
+      "review": "Review installation",
+      "confirmation": "Install {count} selected skills to {scope}?",
+      "confirmationHeading": "Confirm skill installation",
+      "confirm": "Install selected skills",
+      "cancel": "Cancel",
+      "installing": "Installing…",
+      "installFailed": "Failed to install selected skills.",
+      "complete": "Installed {added} entries; {skipped} already configured.",
+      "restartRequired": "Saved. Start a new session or restart Pi for the change to take effect.",
       "reloaded": "已添加。Pi 已重新加载。",
       "noSkills": "此文件夹中没有找到技能。",
       "skippedFiles": "Pi 会跳过这些文件：",
       "skill": "技能",
-      "group": "分组"
+      "group": "Group"
     },
     "installedPackages": "已安装扩展包",
     "installedHelp": "管理为此安装配置的扩展包：启用、禁用、更新或移除。",
@@ -1074,7 +1249,9 @@
       "webglDescription": "使用 GPU 渲染终端。若文字模糊请关闭。",
       "themeSystem": "跟随 SPOPI 主题",
       "themeLight": "浅色",
-      "themeDark": "深色"
+      "themeDark": "深色",
+      "shellSection": "Shell",
+      "displaySection": "显示"
     },
     "fontLevel": {
       "small": "小",
@@ -1163,7 +1340,7 @@
     "actionWhileStreaming": "请等待当前回复完成",
     "refresh": "刷新会话历史",
     "empty": "暂无消息",
-    "statusError": "出错",
+    "statusError": "Error",
     "statusAborted": "已中止",
     "imageMessage": "图片",
     "roleUser": "你",
@@ -1216,7 +1393,8 @@
     "pin": "固定",
     "drop": "丢弃",
     "dropConfirm": "从下次提示中移除？此操作无法撤销。",
-    "compact": "压缩"
+    "compact": "压缩",
+    "unknown": "未知"
   },
   "sessionTree": {
     "title": "会话树",
@@ -1324,6 +1502,8 @@
       "conflict": "磁盘上已改变"
     },
     "noHistory": "安装 pi-workspace-history 才能按轮查看 Pi 的改动。",
+    "notRecorded": "pi-workspace-history 没有这个项目的记录，所以 SPOPI 无法在这里列出 Pi 的改动。",
+    "openPackages": "打开包",
     "turnGone": "这一轮的改动已不再保留。pi-workspace-history 只保留每个项目最近的几个会话。",
     "noGit": "不是 Git 仓库",
     "loadFailed": "无法加载改动。",
@@ -1358,13 +1538,25 @@
       "deleted": "已删除的文件。",
       "binary": "二进制文件。打开后查看。",
       "outside": "这个文件在项目之外。SPOPI 不能显示或撤销它。",
+      "notRecorded": "pi-workspace-history 没有这个项目的记录，所以没有差异。打开文件查看。",
       "app": "Pi 修改了 SPOPI 自身的界面。“撤销上一轮”不包括它，请在自定义中还原。"
     },
     "comments": {
       "placeholder": "给 Pi 的评论…",
-      "send": "发到聊天",
-      "queue": "排队为后续",
-      "add": "加入消息"
+      "addToReview": "加入审阅",
+      "sendNow": "立即发送",
+      "cancel": "取消",
+      "delete": "删除"
+    },
+    "drafts": {
+      "count": {
+        "one": "{count} 条评论",
+        "other": "{count} 条评论"
+      },
+      "send": "发送审阅",
+      "discard": "放弃",
+      "discardConfirm": "放弃这些审阅评论？",
+      "sendFailed": "审阅没有发出。评论还在。"
     }
   },
   "chat": {
@@ -1412,15 +1604,27 @@
     "contextEdit": {
       "omitted": "下次请求中已省略",
       "replaced": "已为下次请求替换"
+    },
+    "customUiTab": "扩展",
+    "notice": {
+      "compacting": "正在压缩上下文…",
+      "compacted": "上下文已压缩",
+      "compactionFailed": "压缩失败",
+      "compactionFailedWith": "压缩失败：{error}",
+      "summaryRetryIn": "{seconds} 秒后第 {attempt} 次重试摘要",
+      "summaryRetrying": "正在重试摘要（{source}）",
+      "extensionFailed": "扩展失败"
     }
   },
   "pair": {
-    "title": "配对这部手机",
-    "name": "设备名称",
-    "approve": "请在桌面端批准",
-    "home": "在 iPhone 上添加到主屏幕",
     "allow": "允许",
-    "denied": "桌面端拒绝了这部手机"
+    "deny": "拒绝",
+    "requestTitle": "要配对手机吗？",
+    "requestBody": "来自 {source} 的“{name}”请求与 SPOPI 配对。",
+    "requestHint": "只有在你刚刚扫描了这台电脑上的代码时才允许。",
+    "tierObserve": "观察：查看会话",
+    "tierControl": "控制：聊天、读取文件和 Git",
+    "tierFull": "完全：另加终端、Git 更改、设置、软件包"
   },
   "shell": {
     "spopiLogoAlt": "SPOPI logo",
@@ -1441,13 +1645,11 @@
     "newSessionTitle": "在此项目中新建会话",
     "settingsTitle": "设置",
     "downloadAndInstallUpdateTitle": "Download and install update",
-    "chooseAppTitle": "Choose app",
     "filesTitle": "文件",
     "closeTitle": "关闭",
     "toggleFileBrowserLabel": "Toggle file browser",
     "keyboardShortcutsLabel": "Keyboard shortcuts",
     "conversationNavigatorLabel": "Conversation navigator",
-    "openCommandsLabel": "Open commands",
     "thinkingEffortOffClickToCycleReasoningLabel": "思考深度：关闭。点击切换推理深度。",
     "searchTasksLabel": "Search tasks",
     "searchResultsLabel": "Search results",
@@ -1493,6 +1695,7 @@
         "focus": "聚焦编辑器",
         "guard": "设置权限模式",
         "cockpit": "打开指标座舱",
+        "mcp": "打开 MCP 服务器",
         "tui": "打开终端",
         "phone": "打开手机访问",
         "hotkeys": "显示键盘快捷键",
@@ -1534,7 +1737,10 @@
     "modelConfigAfterReply": "模型设置将在此回复结束后生效",
     "noThinkingLevels": "此模型没有思考级别",
     "noThinkingLevelsHint": "在“设置 → 模型”中为它开启思考，或使用“设置模型”。",
-    "openModelSettings": "打开模型设置"
+    "openModelSettings": "打开模型设置",
+    "guardStale": "权限规则已过期。可在 设置 → 通用 → Guard 中更新。",
+    "pasteOffloadFailed": "无法将粘贴的文本保存到文件",
+    "moreTools": "更多"
   },
   "features": {
     "todos": {
@@ -1544,7 +1750,8 @@
   "notifications": {
     "center": {
       "dismissNotificationLabel": "Dismiss notification"
-    }
+    },
+    "title": "通知"
   },
   "session": {
     "search": {
@@ -1591,7 +1798,11 @@
     "compactionPendingAfter": "新大小等待下一次请求",
     "compactionNoRewrite": "上下文未改写",
     "noServerMetrics": "没有模型服务器指标",
-    "thinkingBudgetTitle": "切换此思考级别的思考令牌预算"
+    "thinkingBudgetTitle": "切换此思考级别的思考令牌预算",
+    "outTitle": "本次提示的输出 token · 思考 {thinking} · 文本 {chars} 字符",
+    "tpsEstimated": "按输出 ÷ 生成时长估算",
+    "kvCache": "KV 缓存 {pct}%",
+    "kvPeak": "峰值 {pct}%"
   },
   "keybindings": {
     "title": "键盘快捷键",
@@ -1614,13 +1825,47 @@
     "guard": "权限模式",
     "guardCycle": "切换权限模式",
     "cockpit": "打开驾驶舱",
+    "mcp": "打开 MCP 服务器",
     "tui": "打开终端",
-    "close": "关闭"
+    "close": "关闭",
+    "slashCommands": "斜杠命令"
   },
   "projects": {
     "fallbackTitle": "项目文件夹不可用",
     "fallbackUsed": "SPOPI 无法使用 {wanted}，因此此对话位于 {used}。",
     "fallbackHome": "SPOPI 无法使用 {wanted} 或主文件夹中的 SPOPI 文件夹，因此此对话位于主文件夹。",
     "fallbackOpenSettings": "打开设置"
+  },
+  "extensionUi": {
+    "question": "问题",
+    "cancelled": "已取消",
+    "answered": "已回答"
+  },
+  "costDashboard": {
+    "quickRange": "快速范围"
+  },
+  "convNav": {
+    "jump": "跳到第 {n} 段对话"
+  },
+  "worktree": {
+    "branch": "分支名",
+    "newChat": "新聊天",
+    "merge": "合并到主检出…",
+    "mergeConfirm": "把这个 worktree 合并到主检出？",
+    "merged": "已合并到 {into}。",
+    "removeNow": "现在移除这个 worktree？",
+    "conflicts": "合并已中止，没有改动。",
+    "remove": "移除 worktree…",
+    "removeConfirm": "移除这个 worktree？分支会保留。",
+    "removeDirty": "这个 worktree 有未提交的更改。仍要移除吗？",
+    "errors": {
+      "primaryDirty": "主检出有未提交的更改。",
+      "worktreeDirty": "这个 worktree 有未提交的更改。",
+      "primaryDetached": "主检出不在分支上。",
+      "worktreeDetached": "这个 worktree 不在分支上。",
+      "locked": "这个 worktree 已锁定。",
+      "notWorktree": "这个文件夹不是链接的 worktree。",
+      "hasChats": "这个 worktree 把聊天存在自己的文件夹里，所以不能移除。"
+    }
   }
 }

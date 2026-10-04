@@ -43,8 +43,18 @@ export async function hydrateLanguagePreference(preferences) {
   languagePreferences?.set?.("ui.language", getLanguagePreference())?.catch?.(() => {});
 }
 
-const SUPPORTED_PREFERENCES = new Set(["system", "en", "zh", "ja", "es"]);
-const BCP47_TAG = { en: "en", zh: "zh-CN", ja: "ja", es: "es" };
+/** Shipped catalogs. `code` is the file name and the value stored in ui.language. */
+const LOCALES = [
+  { code: "en", tag: "en", nativeLabel: "English" },
+  { code: "de", tag: "de", nativeLabel: "Deutsch" },
+  { code: "es", tag: "es", nativeLabel: "Español" },
+  { code: "it", tag: "it", nativeLabel: "Italiano" },
+  { code: "ja", tag: "ja", nativeLabel: "日本語" },
+  { code: "zh", tag: "zh-CN", nativeLabel: "中文" },
+];
+
+const SUPPORTED_PREFERENCES = new Set(["system", ...LOCALES.map((locale) => locale.code)]);
+const BCP47_TAG = Object.fromEntries(LOCALES.map((locale) => [locale.code, locale.tag]));
 
 /** @typedef {Record<string, unknown>} MessageTree */
 
@@ -62,12 +72,14 @@ let localeLoadSequence = 0;
 const listeners = new Set();
 const warnedKeys = new Set();
 
+/**
+ * @typedef {{ value: string, labelKey?: string, nativeLabel?: string }} LanguageOption
+ */
+
+/** @type {LanguageOption[]} */
 export const LANGUAGES = [
   { value: "system", labelKey: "settings.language.systemDefault" },
-  { value: "en", nativeLabel: "English" },
-  { value: "zh", nativeLabel: "中文" },
-  { value: "ja", nativeLabel: "日本語" },
-  { value: "es", nativeLabel: "Español" },
+  ...LOCALES.map((locale) => ({ value: locale.code, nativeLabel: locale.nativeLabel })),
 ];
 
 // ── Preference normalization ──────────────────────────────────────────
@@ -84,20 +96,14 @@ function normalizePreference(preference) {
 /**
  * @param {unknown} preference
  * @param {string} [systemLanguage]
- * @returns {"en" | "zh" | "ja" | "es"}
+ * @returns {string}
  */
 export function resolveLocale(preference, systemLanguage = navigator.language) {
   const pref = normalizePreference(preference);
-  if (pref === "en") return "en";
-  if (pref === "zh") return "zh";
-  if (pref === "ja") return "ja";
-  if (pref === "es") return "es";
-  // system
+  if (pref !== "system") return pref;
   const lang = systemLanguage?.toLowerCase() ?? "";
-  if (lang.startsWith("zh")) return "zh";
-  if (lang.startsWith("ja")) return "ja";
-  if (lang.startsWith("es")) return "es";
-  return "en";
+  const match = LOCALES.find((locale) => locale.code !== "en" && lang.startsWith(locale.code));
+  return match ? match.code : "en";
 }
 
 // ── Cookie helpers (mirrors public/app/theme/themes.js pattern) ─────────────────
@@ -359,10 +365,7 @@ export async function createI18n() {
  * @returns {string}
  */
 function bcp47(locale) {
-  if (locale === "en" || locale === "zh" || locale === "ja" || locale === "es") {
-    return BCP47_TAG[locale];
-  }
-  return "en";
+  return BCP47_TAG[locale] ?? "en";
 }
 
 // ── Locale switching ──────────────────────────────────────────────────

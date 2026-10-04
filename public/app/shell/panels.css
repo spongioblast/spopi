@@ -51,7 +51,7 @@
   padding: var(--space-2) var(--space-2) var(--space-0-5);
   color: var(--text-primary);
   font-size: var(--font-size-sm);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -86,12 +86,23 @@
   font-size: var(--font-size-sm);
 }
 
-.extensions-first-run,
 .extensions-recommended {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
   padding: var(--space-2) 0;
+}
+
+.extensions-first-run {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+}
+
+.extensions-first-run > p {
+  margin: 0;
 }
 
 .extensions-recommended-grid {
@@ -115,17 +126,7 @@
 }
 
 .extensions-tab-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 1.1em;
   margin-left: var(--space-1);
-  padding: 0 var(--space-1);
-  border-radius: var(--radius-pill);
-  background: var(--accent-quiet);
-  color: var(--accent-text);
-  font-size: var(--font-size-sm);
-  line-height: 1.4;
 }
 
 .settings-tab[data-settings-panel="extensions"] .settings-header {
@@ -133,7 +134,6 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
-  padding: var(--space-3) var(--space-4) 0;
 }
 
 .extensions-recommended-enables {
@@ -142,8 +142,7 @@
   text-transform: lowercase;
 }
 
-.extensions-recommended-card > .ui-button,
-.extensions-first-run > .ui-button {
+.extensions-recommended-card > .ui-button {
   width: 100%;
 }
 
@@ -177,7 +176,7 @@
 
 .pkg-install-error {
   margin: 0;
-  color: var(--danger, #e54);
+  color: var(--danger);
   font-size: var(--font-size-sm);
 }
 
@@ -209,7 +208,7 @@
   justify-content: flex-start;
   gap: var(--space-1);
   box-sizing: border-box;
-  min-height: 40px;
+  min-height: var(--control-height-lg);
   margin: 0;
   padding: var(--space-1-5) var(--space-3);
   border-bottom: none;
@@ -240,14 +239,14 @@
 /* Review scopes and Git sub-tabs use the editor tab look. */
 .app-layout.spopi-shell #review-sidebar .review-scope > button,
 .app-layout.spopi-shell #git-sidebar .git-subtab {
-  height: 28px;
+  height: var(--control-height-sm);
   padding: 0 var(--space-2);
   border: none;
   border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text-secondary);
   font-size: var(--font-size-sm);
-  font-weight: 400;
+  font-weight: var(--font-weight-normal);
 }
 
 .app-layout.spopi-shell #review-sidebar .review-scope > button:hover,
@@ -398,7 +397,7 @@ body[data-layout-preset="focus"]:not([data-center-mode="review"], [data-center-m
   margin: 0 0 var(--space-2);
   color: var(--text-primary);
   font-size: var(--font-size-sm);
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }

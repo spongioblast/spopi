@@ -4,7 +4,7 @@
 import { createHeaderStatusBar } from "../ui/header-status-bar.js";
 
 /**
- * @typedef {{ id?: string, projectPath?: string | null, filePath?: string | null }} CostBarSession
+ * @typedef {{ id?: string, filePath?: string | null }} CostBarSession
  * @typedef {{ sessionId?: string }} CostBarTarget
  * @typedef {{
  *   request: (payload: { type: string }, target?: CostBarTarget | null) => Promise<unknown>,
@@ -25,7 +25,6 @@ import { createHeaderStatusBar } from "../ui/header-status-bar.js";
  * @param {CostBarRuntime} options.runtime
  * @param {() => CostBarTarget} options.getTarget
  * @param {() => CostBarSession[]} options.getSessions
- * @param {() => string | null | undefined} options.getCwd
  */
 export function mountSessionCostBar({
   sessionCostEl,
@@ -34,7 +33,6 @@ export function mountSessionCostBar({
   runtime,
   getTarget,
   getSessions,
-  getCwd,
 }) {
   const headerStatusBar = sessionCostEl
     ? createHeaderStatusBar({
@@ -43,17 +41,11 @@ export function mountSessionCostBar({
         onTotalsChange,
       })
     : null;
-  let sessionTotalCost = 0;
   let statsHydrationGeneration = 0;
 
   function activeSessionFile() {
-    const sessions = getSessions();
     const target = getTarget();
-    return (
-      sessions.find((session) => session.id === target.sessionId)?.filePath ??
-      sessions.find((session) => session.projectPath === getCwd())?.filePath ??
-      null
-    );
+    return getSessions().find((session) => session.id === target.sessionId)?.filePath ?? null;
   }
 
   async function hydrateHeaderSessionStats() {
@@ -98,42 +90,5 @@ export function mountSessionCostBar({
     }
   }
 
-  /** @param {unknown} messages */
-  function computeTotalCostFromMessages(messages) {
-    if (!Array.isArray(messages)) return 0;
-    let total = 0;
-    for (const msg of messages) {
-      if (!msg || typeof msg !== "object") continue;
-      const usage = /** @type {{ usage?: { cost?: { total?: unknown } } }} */ (msg).usage;
-      if (usage?.cost?.total) total += Number(usage.cost.total) || 0;
-    }
-    return total;
-  }
-
-  /** @param {number} cost */
-  function setSessionCost(cost) {
-    sessionTotalCost = cost;
-    if (!sessionCostEl) return;
-    if (!cost || cost <= 0) {
-      sessionCostEl.classList.remove("visible");
-      sessionCostEl.textContent = "";
-      return;
-    }
-    sessionCostEl.classList.add("visible");
-    sessionCostEl.textContent = `$${cost.toFixed(4)}`;
-    if ("title" in sessionCostEl) {
-      /** @type {{ title: string }} */ (sessionCostEl).title = `Session cost: $${cost.toFixed(6)}`;
-    }
-  }
-
-  return {
-    headerStatusBar,
-    activeSessionFile,
-    hydrateHeaderSessionStats,
-    computeTotalCostFromMessages,
-    setSessionCost,
-    get sessionTotalCost() {
-      return sessionTotalCost;
-    },
-  };
+  return { headerStatusBar, hydrateHeaderSessionStats };
 }

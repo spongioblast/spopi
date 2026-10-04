@@ -1,5 +1,5 @@
 /* ABOUTME: SPOPI workbench grid: rail | sidebar | editor-over-dock | chat. */
-/* ABOUTME: The chat column is the rightmost region. */
+/* ABOUTME: The chat column is the rightmost region; the phone layout is in phone-layout.css. */
 
 .app-layout.spopi-shell {
   display: grid;
@@ -116,7 +116,7 @@
 
 .app-layout.spopi-shell .workspace-content {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 4px minmax(380px, var(--chat-dock-width, 34%));
+  grid-template-columns: minmax(0, 1fr) 4px minmax(min(280px, 100%), var(--chat-dock-width, 34%));
   grid-template-rows: minmax(0, 1fr);
   grid-auto-rows: 0;
   min-height: 0;
@@ -173,6 +173,9 @@ body:is([data-center-mode="review"], [data-center-mode="subagent"])
   .pane-center
   #file-preview-panel {
   display: flex;
+  /* Below the wide layout the editor is a fixed full-screen layer; as a tab strip it stays in flow. */
+  position: static;
+  z-index: auto;
   flex: 0 0 auto;
   min-width: 0;
   opacity: 1;
@@ -199,7 +202,7 @@ body:is([data-center-mode="review"], [data-center-mode="subagent"])
 }
 
 .app-layout.spopi-shell .workspace-content > .main {
-  min-width: min(380px, 100%);
+  min-width: min(280px, 100%);
   min-height: 0;
   width: auto;
 }
@@ -221,10 +224,6 @@ body.chat-hidden .app-layout.spopi-shell .spopi-chat-resizer {
   display: none;
 }
 
-.phone-tabs {
-  display: none;
-}
-
 /* design-token-ignore: 44px is the coarse-pointer minimum from the phone plan */
 body[data-pointer="coarse"] {
   --control-height-lg: 44px;
@@ -243,84 +242,6 @@ body[data-layout="narrow"] .app-layout.spopi-shell .spopi-chat-resizer {
 
 body[data-layout="narrow"] .app-layout.spopi-shell .workspace-content {
   grid-template-columns: minmax(0, 1fr);
-}
-
-body[data-layout="phone"] .app-layout.spopi-shell {
-  grid-template-columns: minmax(0, 1fr);
-  min-width: 0;
-}
-
-body[data-layout="phone"] .app-layout.spopi-shell .workspace-content {
-  grid-template-columns: minmax(0, 1fr);
-}
-
-body[data-layout="phone"] .app-layout.spopi-shell .spopi-rail,
-body[data-layout="phone"] .app-layout.spopi-shell .spopi-sidebar-resizer,
-body[data-layout="phone"] .app-layout.spopi-shell .spopi-chat-resizer,
-body[data-layout="phone"] .app-layout.spopi-shell .pane-center,
-body[data-layout="phone"] .app-layout.spopi-shell .spopi-sidebar-stack {
-  display: none;
-}
-
-body[data-layout="phone"] .phone-tabs {
-  display: flex;
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 30;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3) env(safe-area-inset-bottom);
-  background: var(--bg-solid);
-  border-top: 1px solid var(--border);
-}
-
-body[data-layout="phone"] .phone-tabs button {
-  flex: 1;
-  min-height: var(--control-height-lg);
-}
-
-body[data-layout="phone"] .phone-tabs button.on {
-  color: var(--text-primary);
-  background: var(--bg-active);
-}
-
-body[data-layout="phone"] #header-open-app,
-body[data-layout="phone"] #open-in-terminal-btn,
-body[data-layout="phone"] #toggle-dock,
-body[data-layout="phone"] #toggle-chat {
-  display: none;
-}
-
-body[data-layout="phone"] .notification-stack {
-  top: auto;
-  bottom: calc(var(--tabbar-h, 0px) + var(--space-2));
-}
-
-.phone-more-sheet {
-  display: none;
-}
-
-body[data-layout="phone"] .phone-more-sheet {
-  display: flex;
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: var(--tabbar-h, 0px);
-  z-index: 32;
-  flex-direction: column;
-  gap: var(--space-2);
-  padding: var(--space-3);
-  background: var(--bg-solid);
-  border-top: 1px solid var(--border);
-  /* design-token-ignore: the sheet height follows the viewport */
-  max-height: 70vh;
-  overflow: auto;
-}
-
-.phone-more-item {
-  min-height: var(--control-height-lg);
-  text-align: left;
 }
 
 body[data-layout="narrow"] .shell-scrim {
@@ -346,50 +267,12 @@ body[data-layout="narrow"][data-drawer="center"] .app-layout.spopi-shell .pane-c
   z-index: 41;
   width: min(360px, calc(100vw - 48px));
   background: var(--bg-base);
-  box-shadow: var(--shadow-overlay, 0 8px 24px rgb(0 0 0 / 24%));
+  box-shadow: var(--shadow-overlay);
 }
 
 /* Review in a narrow window: the diff drawer takes the width, since code needs it. */
 body[data-layout="narrow"][data-drawer="center"].review-open .app-layout.spopi-shell .pane-center {
   width: calc(100vw - 48px);
-}
-
-body[data-layout="phone"][data-phone-region="sessions"]
-  .app-layout.spopi-shell
-  .spopi-sidebar-stack {
-  display: flex;
-  position: fixed;
-  inset: 0 0 var(--tabbar-h, 0px) 0;
-  z-index: 25;
-  background: var(--bg-base);
-}
-
-body[data-layout="phone"][data-phone-region="changes"] .app-layout.spopi-shell .pane-center {
-  display: flex;
-  flex-direction: column;
-  position: fixed;
-  top: 0;
-  right: 0;
-  bottom: var(--tabbar-h, 0px);
-  left: 0;
-  width: 100%;
-  z-index: 25;
-  padding-top: 0;
-  background: var(--bg-base);
-}
-
-body[data-layout="phone"][data-phone-region="changes"] #spopi-review {
-  display: flex;
-  flex: 1 1 auto;
-  width: 100%;
-  min-width: 0;
-  min-height: 0;
-}
-
-body[data-layout="phone"][data-phone-region="sessions"] .main,
-body[data-layout="phone"][data-phone-region="changes"] .main,
-body[data-layout="phone"][data-phone-region="more"] .main {
-  display: none;
 }
 
 body[data-pointer="coarse"] .session-action-slot,
@@ -405,12 +288,4 @@ body[data-cap-terminal="0"] .spopi-dock-tab[data-dock="terminal"],
 body[data-cap-git-write="0"] .git-commit-submit,
 body[data-cap-git-write="0"] .git-push {
   display: none;
-}
-
-body[data-layout="phone"] #dialog-container .dialog {
-  width: 100%;
-  height: 100%;
-  max-height: 100dvh;
-  margin: 0;
-  border-radius: 0;
 }

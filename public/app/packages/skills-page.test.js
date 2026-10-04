@@ -26,12 +26,12 @@ test("Packages page has a title and a Resources tab", () => {
   expect(packages.querySelector('[data-settings-panel="skills"]')).toBeNull();
 });
 
-test("skills sub-tabs use the settings body type scale", () => {
-  const css = readFileSync(
-    resolve(process.cwd(), "public/app/packages/packages-add-skills.css"),
-    "utf8",
-  );
-  const tab = ruleBody(css, ".skills-page-tab");
-  expect(tab).toContain("font: inherit");
-  expect(tab).toContain("font-size: var(--font-size-md)");
+test("Packages sub-tabs are underline tabs at the settings body type scale", () => {
+  const packages = packagesMarkup();
+  const tabs = packages.querySelector("#extensions-tabs");
+  expect(tabs?.classList.contains("ui-tabs--underline")).toBe(true);
+  expect(tabs?.querySelector(".skills-page-tab")?.classList.contains("ui-tab")).toBe(true);
+  const css = readFileSync(resolve(process.cwd(), "public/design-system.css"), "utf8");
+  expect(ruleBody(css, ".ui-tab")).toContain("font: inherit");
+  expect(ruleBody(css, ".ui-tabs--underline .ui-tab")).toContain("font-size: var(--font-size-md)");
 });

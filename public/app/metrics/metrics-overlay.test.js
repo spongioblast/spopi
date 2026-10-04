@@ -1,7 +1,7 @@
 // ABOUTME: Tests the docked Cockpit controls row.
 // ABOUTME: Tests metrics-overlay.js.
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { bindCacheWarming } from "./cache-warming-control.js";
+import { connectCacheWarming } from "./cache-warming-control.js";
 import { MetricsOverlay } from "./metrics-overlay.js";
 
 /** @type {MetricsOverlay | null} */
@@ -27,7 +27,7 @@ function configCallFor(mode = "streaming") {
  * @param {ReturnType<typeof configCallFor>} configCall
  */
 async function mountDocked(configCall) {
-  await bindCacheWarming(configCall);
+  await connectCacheWarming(configCall);
   const host = document.createElement("div");
   document.body.append(host);
   overlay = new MetricsOverlay({

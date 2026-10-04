@@ -1,4 +1,4 @@
-// ABOUTME: File preview and run-in-terminal are session-store actions.
+// ABOUTME: File preview and run-in-terminal are chat actions.
 // ABOUTME: Leaf widgets emit them; the chat mount subscribes and performs them.
 
 /** @type {(action: { type: string, path?: string, line?: number, command?: string }) => void} */

@@ -96,20 +96,37 @@ export function mountSidebarChrome(root) {
         ),
       ],
     ),
-    el("div", { class: "sidebar-section-label", "data-i18n": "sidebar.sessionList" }, ["Sessions"]),
-    el("div", { class: "session-list", id: "session-list" }, [
-      el(
-        "div",
-        {
-          class: "session-loading ui-loading",
-          role: "status",
-          "aria-live": "polite",
-          "aria-busy": "true",
-          "data-i18n": "sidebar.loadingSessions",
-        },
-        ["Loading sessions..."],
-      ),
-    ]),
+    el(
+      "div",
+      {
+        class: "sidebar-section-label",
+        id: "session-list-label",
+        "data-i18n": "sidebar.sessionList",
+      },
+      ["Sessions"],
+    ),
+    el(
+      "div",
+      {
+        class: "session-list",
+        id: "session-list",
+        role: "region",
+        "aria-labelledby": "session-list-label",
+      },
+      [
+        el(
+          "div",
+          {
+            class: "session-loading ui-loading",
+            role: "status",
+            "aria-live": "polite",
+            "aria-busy": "true",
+            "data-i18n": "sidebar.loadingSessions",
+          },
+          ["Loading sessions..."],
+        ),
+      ],
+    ),
     el("div", { class: "sidebar-footer" }, [
       el("div", { class: "sidebar-settings-row" }, [
         el(

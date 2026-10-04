@@ -41,9 +41,6 @@
   "nav": {
     "chat": "Chat",
     "toggleSidebar": "Toggle sidebar",
-    "openWorkspace": "Open project",
-    "openWorkspaceInApp": "Open project in app",
-    "chooseApp": "Choose app to open the project",
     "sessions": "Sessions",
     "files": "Files",
     "review": "Review",
@@ -51,9 +48,6 @@
     "search": "Search",
     "extensions": "Packages",
     "themeNamed": "Theme: {name}",
-    "openWorkspaceInNamedApp": "Open {path} in {app}",
-    "openWorkspaceInAppAria": "Open project in {app}",
-    "openInApp": "Open in {app}",
     "resourceManagement": "Resource management",
     "catalog": {
       "extensions": "Extensions"
@@ -103,6 +97,21 @@
     "aiFailed": "AI commit message generation failed. You can still write a commit message manually.",
     "commitInProgress": "Commit in progress...",
     "outcomeUnknown": "The commit outcome could not be determined. Check the repository state before retrying.",
+    "identityCommittingAs": "Committing as",
+    "identityChange": "Change",
+    "identityKeep": "Keep current",
+    "identityTitle": "Who commits",
+    "identityIntro": "Git records this name and email on each commit. They live in Git's own config, not in SPOPI.",
+    "identityName": "Name",
+    "identityEmail": "Email",
+    "identityNamePlaceholder": "Your name",
+    "identityEmailPlaceholder": "you@example.com",
+    "identityScopeGlobal": "All repositories on this computer",
+    "identityScopeRepository": "Only this repository",
+    "identityThisRepository": "this repository",
+    "identityRequired": "Name and email are required.",
+    "identityInvalidEmail": "Email needs an @ and no spaces.",
+    "identityMissing": "Git needs a name and email before it can commit.",
     "diffOriginal": "Original",
     "diffModified": "Modified",
     "diffEmpty": "No changes to display",
@@ -142,18 +151,39 @@
     "createBranch": "Create branch…",
     "checkout": "Checkout",
     "branchPrompt": "New branch name",
-    "behindAhead": "↓{behind} / ↑{ahead}"
+    "behindAhead": "↓{behind} / ↑{ahead}",
+    "publishTitle": "Push this branch and track it on the remote",
+    "addRemote": "Add remote…",
+    "addRemoteTitle": "Connect this repository to a remote, such as an empty GitHub repository",
+    "pullNoUpstream": "This branch has no upstream yet. Publish it first.",
+    "remoteTitleAdd": "Add remote",
+    "remoteTitleEdit": "Remote {name}",
+    "remoteMenuItem": "Remote {name}…",
+    "remoteHint": "Create an empty repository on GitHub or another Git host, then paste its URL. Git signs in with its own credential manager or your SSH key.",
+    "remoteName": "Name",
+    "remoteUrl": "URL",
+    "remoteUrlPlaceholder": "https://github.com/you/repo.git",
+    "remotePublishNow": "Push this branch now",
+    "remoteAddAction": "Add",
+    "remoteSave": "Save",
+    "remoteRemove": "Remove remote",
+    "remoteRemoveConfirm": "Remove the remote {name} from this repository? Nothing on the server is deleted.",
+    "remoteInvalidName": "The name can use letters, digits, '.', '_' and '-'.",
+    "remoteInvalidUrl": "Use an https:// or ssh:// URL, or user@host:path.",
+    "remoteFailed": "Could not change the remote."
   },
   "usage": {
     "sessionCostTitle": "Session cost",
     "contextTitle": "Context usage",
     "costSub": "{amount} (sub)",
     "inputSummary": "↓ {in}",
-    "outputSummary": "↑ {out}"
+    "outputSummary": "↑ {out}",
+    "contextOfWindow": "Context: {used} / {window} tokens",
+    "contextUsed": "Context: {used} tokens"
   },
   "sessionInfo": {
     "title": "Session info",
-    "heading": "Session Info",
+    "heading": "Session info",
     "file": "File",
     "id": "ID",
     "inMemory": "In memory (not saved yet)",
@@ -197,6 +227,7 @@
     "provider": "Provider",
     "delete": "Delete",
     "edit": "Edit",
+    "moreActions": "More actions",
     "unsaved": "Unsaved changes",
     "saveProvider": "Save provider",
     "rename": "Rename",
@@ -255,7 +286,6 @@
     "setup": {
       "button": "Set up model",
       "buttonFor": "Set up {model}",
-      "short": "Set up",
       "hint": "Sends a few tiny requests to this model to check thinking, reasoning effort, images, the vLLM budget, and context.",
       "running": "Setting up {model}…",
       "done": "Checked {model}. Review the fields, then Save model.",
@@ -308,7 +338,9 @@
         "placeholder": "Not needed: this server runs without a key",
         "none": "No key"
       }
-    }
+    },
+    "countOne": "1 model",
+    "countOther": "{count} models"
   },
   "input": {
     "attachImage": "Attach image",
@@ -350,7 +382,9 @@
     "streaming": "streaming",
     "complete": "complete",
     "error": "error",
-    "pending": "pending"
+    "pending": "pending",
+    "imageResult": "Tool image",
+    "nestedMore": "More calls were not recorded"
   },
   "files": {
     "loading": "Loading…",
@@ -360,6 +394,7 @@
     "refreshDirectory": "Refresh directory",
     "refreshDirectoryAria": "Refresh current directory listing",
     "showHiddenFiles": "Show hidden files",
+    "hideHiddenFiles": "Hide hidden files",
     "showHiddenFilesAria": "Show or hide dotfiles and ignored directories",
     "openInFileManager": "Open in file manager",
     "close": "Close file browser",
@@ -404,7 +439,9 @@
         "installWindows": "py -3 -m pip install \"markitdown[docx,pptx,xlsx,xls,outlook]\"",
         "remoteImageHidden": "Remote image hidden"
       },
-      "conflictMessage": "{name} changed on disk. Reload it or overwrite the disk version?"
+      "conflictMessage": "{name} changed on disk. Reload it or overwrite the disk version?",
+      "unchangedOne": "… {count} unchanged line …",
+      "unchangedOther": "… {count} unchanged lines …"
     },
     "unsaved": {
       "title": "Unsaved changes",
@@ -445,10 +482,10 @@
     "save": "Save"
   },
   "header": {
-    "extensionUpdatesAvailable": "Extension updates available",
-    "openInPiTui": "Open this session in the Pi TUI (pi -r)",
-    "toggleDock": "Toggle dock (Ctrl+J)",
-    "toggleChat": "Toggle chat panel (Ctrl+Shift+L)",
+    "extensionUpdatesAvailable": "Package updates available",
+    "openPi": "Open Pi in the terminal",
+    "toggleDock": "Toggle dock",
+    "toggleChat": "Toggle chat panel",
     "metrics": "Live metrics"
   },
   "extensions": {
@@ -587,6 +624,7 @@
     "statusFailed": "Failed to start",
     "retry": "Retry",
     "sendToChat": "Send to chat",
+    "piTabFailed": "Could not open Pi in the terminal.",
     "ariaResizer": "Terminal panel resizer",
     "enlarge": "Enlarge panel",
     "newTabMenu": "New terminal with another shell",
@@ -646,6 +684,7 @@
     "closeProject": "Close project",
     "closeWorking": "A reply is still running. Close the project anyway?",
     "renameProject": "Rename…",
+    "newWorktree": "New worktree…",
     "renameOutside": "Rename this folder to {to}? It moves from {from}.",
     "renameWorking": "A reply is still running. Rename anyway?",
     "keepChats": "Keep chats in project folder",
@@ -662,7 +701,9 @@
     "archivedCount": "Archived ({count})",
     "deleteArchivedHere": "Delete archived chats in this project",
     "pinned": "PINNED",
-    "newChat": "New session in {path}"
+    "newChat": "New session in {path}",
+    "statusStreaming": "Streaming",
+    "statusUnread": "Unread"
   },
   "updater": {
     "update": "Update",
@@ -732,7 +773,6 @@
         "label": "npm (Node.js)",
         "help": "Pi installs packages with npm. Without it, Recommended packages and Surf cannot install.",
         "install": "Install Node.js",
-        "commands": "Install Node.js with your package manager, then press Test all:",
         "download": "Download from nodejs.org"
       },
       "browser": {
@@ -746,7 +786,8 @@
           "found": "Using {path}",
           "download": "Download browser",
           "downloadHelp": "A one-time download of Chrome for Testing, about 206 MB.",
-          "linuxDeps": "If it still does not start, install the libraries it needs:"
+          "linuxDeps": "If it still does not start, install the libraries it needs:",
+          "noSandbox": "Runs with --no-sandbox: this system lets only a Chrome installed by the package manager use Chrome's sandbox."
         },
         "both": "With both on, Pi uses agent-browser for local pages and Surf for the web.",
         "surf": {
@@ -772,8 +813,16 @@
     },
     "customizations": {
       "title": "Customizations",
-      "safe": "Safe mode (shipped UI only)",
-      "overrides": "Overrides",
+      "overrides": "SPOPI interface overrides",
+      "intro": "Files Pi changed or added in SPOPI's own interface when you asked it to restyle or rearrange the app. They survive updates. Your projects, Pi's settings, and Pi packages are not listed here.",
+      "folder": "Saved in",
+      "overridesEmpty": "Pi has not changed SPOPI's interface yet. Ask in chat, for example \"make the sidebar narrower\".",
+      "statusAdded": "New file, not part of the shipped interface",
+      "statusOk": "Changed copy of a shipped file",
+      "statusStale": "Switched off: this update changed the shipped file. Ask Pi to merge it, or revert it.",
+      "safeTitle": "Safe mode",
+      "safe": "Use the shipped interface only",
+      "safeHelp": "Turns every override above off without deleting it. Use it if a change broke the window.",
       "revert": "Revert",
       "threeWay": "Show three-way",
       "unknown": "Unknown locale keys",
@@ -783,26 +832,51 @@
       "safeBanner": "Safe mode is on. SPOPI is serving the shipped UI.",
       "reload": "Reload",
       "close": "Close",
-      "overridesEmpty": "No UI files changed. Pi writes UI changes to %APPDATA%\\spopi\\ui.",
       "autoSafe": "Turned on automatically after the UI failed to load twice."
     },
     "phone": {
       "title": "Phone access",
       "enable": "Allow a phone to connect",
       "pair": "Pair",
-      "accept": "Accept for phones",
       "devices": "Devices",
       "revoke": "Revoke",
       "tier": "Tier",
       "port": "Port",
-      "allow": "Allowlist",
-      "waiting": "UI changed on the desktop, waiting for approval",
       "interface": "Interface",
       "allowSources": "Allowed sources",
-      "allowHelp": "One CIDR or address per item, separated by commas or spaces.",
+      "allowHelp": "IPv4 addresses or ranges such as 192.168.1.0/24, separated by commas or spaces. Follows the interface until you enter your own.",
+      "allowInvalid": "“{entry}” is not an IPv4 address or range, for example 192.168.1.0/24.",
+      "allowEmpty": "Add at least one address or range. With an empty list no phone can connect.",
+      "listenFailed": "Phone access could not start on {address}: {error}",
       "noInterfaces": "No network interface was found. Pairing stays on this computer.",
-      "changesSummary": "{count} UI files changed since phones last accepted",
-      "changesList": "Show files"
+      "kind": {
+        "main": "main network",
+        "lan": "network",
+        "tailscale": "Tailscale",
+        "vpn": "VPN",
+        "virtual": "virtual, a phone cannot reach it",
+        "loopback": "this computer only"
+      },
+      "firewall": "Windows Firewall",
+      "firewallAllow": "Allow through firewall",
+      "firewallUpdate": "Update firewall rule",
+      "firewallOk": "The firewall lets phones in on port {port}.",
+      "firewallOtherPort": "The firewall rule is for port {ports}, not {port}.",
+      "firewallOtherSources": "The firewall rule lets in {remote}, not the allowed sources. Phones outside it are blocked.",
+      "firewallNone": "SPOPI has no firewall rule yet. Windows can block the phone, especially on a network set to Public.",
+      "firewallBlocked": "A firewall rule blocks SPOPI. Allowing removes it.",
+      "firewallHelp": "The rule allows TCP on this port from the allowed sources only. Windows asks for admin rights.",
+      "firewallWaiting": "Confirm the Windows prompt…",
+      "firewallCancelled": "Windows did not allow the change.",
+      "firewallFailed": "The firewall rule was not written: {error}",
+      "connection": "Connection",
+      "pairTitle": "Pair a phone",
+      "pairHelp": "Each click makes a new code that pairs one phone. Scan it with the phone's camera, then approve the phone here.",
+      "pairValid": "Valid for {minutes} minutes and for one phone. Pair again for a new code.",
+      "pairExpired": "The code expired. Click Pair for a new one.",
+      "pairNeedsOn": "Turn on phone access first.",
+      "desktopOnly": "Phone access, pairing, and devices are managed on the desktop.",
+      "devicesEmpty": "No phone is paired yet."
     },
     "appearance": "Appearance",
     "packages": {
@@ -848,7 +922,10 @@
         "gondolin": "Gondolin: Pi stays on the host and tools run in a local micro-VM.",
         "mount": "Mount only the working folder. Do not mount ~/.pi/agent.",
         "docs": "Pi container docs"
-      }
+      },
+      "stale": "Recipe out of date",
+      "staleDescription": "The permission file was written by an older SPOPI or edited by hand. Update rewrites it for the current mode.",
+      "repair": "Update"
     },
     "updates": "Updates",
     "autoCompaction": "Auto-compaction",
@@ -871,6 +948,12 @@
       "placeholder": "SPOPI in your home folder",
       "choose": "Choose…",
       "notAbsolute": "Use a full path, such as D:\\Chats or /home/you/chats."
+    },
+    "gitIdentity": {
+      "title": "Git name and email",
+      "description": "Git records these on each commit. They live in Git's own config, not in SPOPI.",
+      "save": "Save",
+      "saved": "Saved"
     },
     "taskCompleteTitle": "Task completed",
     "taskCompleteMessage": "Your task has finished.",
@@ -917,6 +1000,90 @@
       "helpPost": "(chmod 600). GUI launches also import provider variables from your login shell.",
       "helpPostWindows": "GUI launches also import provider variables from the environment."
     },
+    "mcp": {
+      "title": "MCP",
+      "pageTitle": "MCP servers",
+      "help": "Pi connects to these servers and gives their tools to the model. SPOPI runs Pi's own pi mcp commands; nothing here talks to a server directly.",
+      "add": "Add server",
+      "refresh": "Refresh",
+      "manage": "Manage in Pi",
+      "loading": "Checking servers… Pi starts each server to test it.",
+      "checking": "Last checked {time}",
+      "retry": "Retry",
+      "emptyHint": "You can also ask Pi in chat to add a server.",
+      "exampleCommand": "pi mcp add filesystem -- npx -y @modelcontextprotocol/server-filesystem .",
+      "exampleUrl": "https://mcp.sentry.dev/mcp (sign in after adding)",
+      "global": "All projects",
+      "project": "This project",
+      "packages": "From packages",
+      "packageNote": "Registered by an extension; change it in that package.",
+      "tools": "{count} tools",
+      "resources": "{count} resources",
+      "templates": "{count} resource templates",
+      "state": {
+        "connected": "connected",
+        "needsAuth": "needs sign-in",
+        "failed": "failed",
+        "disabled": "disabled",
+        "disconnected": "disconnected"
+      },
+      "signIn": "Sign in",
+      "signOut": "Sign out",
+      "reconnect": "Reconnect in this session",
+      "remove": "Remove",
+      "removeConfirm": "Remove {name}? Pi deletes the entry and keeps any saved sign-in.",
+      "details": "Details",
+      "override": "Changed for this project in {path}",
+      "trustNote": "This project's .pi/mcp.json runs in your SPOPI sessions, but Pi's own check skips it until the project is trusted in Pi.",
+      "trustDenied": "You told Pi not to trust this project.",
+      "trustButton": "Trust this project in Pi",
+      "permissionsLink": "Permission mode",
+      "more": "More actions",
+      "open": "Open",
+      "copy": "Copy",
+      "desktopOnly": "Available on the desktop.",
+      "manageToast": "Pi's MCP manager is open in the terminal. Quit Pi when you are done (Ctrl+C twice); the tab closes and SPOPI picks up the changes.",
+      "manageFailed": "The terminal did not start. Open the dock terminal and try again.",
+      "replace": "Replace",
+      "replaceConfirm": "Pi replaces the whole entry for {name}.",
+      "clash": "Pi treats this as the same server as {name}.",
+      "secretWarning": "This looks like a secret. Use ${NAME} to read it from the environment instead.",
+      "scopeGlobal": "All projects",
+      "scopeProject": "This project",
+      "kindCommand": "Command",
+      "kindUrl": "URL",
+      "name": "Name",
+      "type": "Type",
+      "scope": "Scope",
+      "command": "Command",
+      "argument": "Argument",
+      "addArgument": "Add argument",
+      "addEnv": "Add variable",
+      "value": "Value",
+      "cwd": "Working folder",
+      "envHint": "Use ${NAME} to read a value from your environment instead of pasting a secret.",
+      "url": "URL",
+      "signInMode": "Sign-in",
+      "authNone": "None",
+      "authOauth": "OAuth (sign in after adding)",
+      "authBearer": "Token from env var",
+      "authHeaders": "Custom headers",
+      "bearerEnv": "Environment variable",
+      "addHeader": "Add header",
+      "advancedOauth": "Advanced OAuth",
+      "clientId": "Client id",
+      "clientSecret": "Client secret",
+      "callbackPort": "Callback port",
+      "clientName": "Client name",
+      "exposure": "Exposure",
+      "exposureCodemode": "default; scripts find the tools",
+      "exposureDeferred": "loaded by tool search",
+      "exposureDirect": "always declared to the model; costs context",
+      "exposureHidden": "registered but unreachable",
+      "description": "Description",
+      "descriptionHint": "Helps Pi find the right server.",
+      "keepGlobal": "Keep servers that hold credentials in All projects."
+    },
     "models": {
       "title": "Models",
       "helpPre": "Edit",
@@ -925,6 +1092,7 @@
       "helpPost2": "for the full schema. Changes are picked up immediately — no restart needed.",
       "oauth": {
         "signInWithChatGPT": "Sign in with ChatGPT",
+        "chatgptHint": "For ChatGPT on the OpenAI provider instead, run pi in the terminal, type /login, and choose OpenAI.",
         "preparing": "Preparing ChatGPT sign-in…",
         "completeInBrowser": "Complete authorization in your browser to continue.",
         "openBrowser": "Open browser",
@@ -937,8 +1105,15 @@
         "expired": "This device code has expired. Start again.",
         "failed": "ChatGPT sign-in failed.",
         "tlsUntrusted": "TLS certificate verification failed. A local HTTPS proxy (Clash, Surge, or VPN) is likely intercepting OpenAI. Trust that proxy’s CA, or disable HTTPS inspection for OpenAI, then retry.",
-        "retry": "Try again"
-      }
+        "retry": "Try again",
+        "connectTitle": "Connect {name}",
+        "subscriptionHint": "This provider uses your subscription account.",
+        "terminalLoginNote": "Pi runs this sign-in. Start it from a terminal with the command below, then come back here to refresh the provider status."
+      },
+      "addProvider": "Add provider",
+      "addProviderHint": "Connect a provider to start using its models.",
+      "searchProviders": "Search providers…",
+      "customAndSubscriptions": "Custom and subscriptions"
     },
     "customProvider": {
       "title": "Add custom provider",
@@ -1074,7 +1249,9 @@
       "webglDescription": "Render the terminal on the GPU. Disable it if text looks blurry.",
       "themeSystem": "Match SPOPI theme",
       "themeLight": "Light",
-      "themeDark": "Dark"
+      "themeDark": "Dark",
+      "shellSection": "Shell",
+      "displaySection": "Display"
     },
     "fontLevel": {
       "small": "Small",
@@ -1216,7 +1393,8 @@
     "pin": "Pin",
     "drop": "Drop",
     "dropConfirm": "Drop this from the next prompt? This cannot be undone.",
-    "compact": "Compact"
+    "compact": "Compact",
+    "unknown": "unknown"
   },
   "sessionTree": {
     "title": "Session tree",
@@ -1324,6 +1502,8 @@
       "conflict": "changed on disk"
     },
     "noHistory": "Install pi-workspace-history to review Pi's changes turn by turn.",
+    "notRecorded": "pi-workspace-history has no record of this project, so SPOPI can't list Pi's changes here.",
+    "openPackages": "Open Packages",
     "turnGone": "This turn's changes are no longer kept. pi-workspace-history keeps only the most recent sessions of each project.",
     "noGit": "Not a git repository",
     "loadFailed": "Couldn't load the changes.",
@@ -1358,13 +1538,25 @@
       "deleted": "Deleted file.",
       "binary": "Binary file. Open it to inspect.",
       "outside": "This file is outside the project. SPOPI can't show or undo it.",
+      "notRecorded": "pi-workspace-history has no record of this project, so there is no diff. Open the file to see it.",
       "app": "Pi changed SPOPI's own interface. Undo last turn doesn't cover it; revert it in Customizations."
     },
     "comments": {
       "placeholder": "Comment for Pi…",
-      "send": "Send to chat",
-      "queue": "Queue as follow-up",
-      "add": "Add to message"
+      "addToReview": "Add to review",
+      "sendNow": "Send now",
+      "cancel": "Cancel",
+      "delete": "Delete"
+    },
+    "drafts": {
+      "count": {
+        "one": "{count} comment",
+        "other": "{count} comments"
+      },
+      "send": "Send review",
+      "discard": "Discard",
+      "discardConfirm": "Discard these review comments?",
+      "sendFailed": "The review was not sent. The comments are still here."
     }
   },
   "chat": {
@@ -1412,15 +1604,27 @@
     "contextEdit": {
       "omitted": "Omitted from the next request",
       "replaced": "Replaced for the next request"
+    },
+    "customUiTab": "Extension",
+    "notice": {
+      "compacting": "Compacting context…",
+      "compacted": "Context compacted",
+      "compactionFailed": "Compaction failed",
+      "compactionFailedWith": "Compaction failed: {error}",
+      "summaryRetryIn": "Summary retry {attempt} in {seconds}s",
+      "summaryRetrying": "Retrying the summary ({source})",
+      "extensionFailed": "Extension failed"
     }
   },
   "pair": {
-    "title": "Pair this phone",
-    "name": "Device name",
-    "approve": "Approve on your desktop",
-    "home": "On iPhone, use Add to Home Screen",
     "allow": "Allow",
-    "denied": "The desktop denied this phone"
+    "deny": "Deny",
+    "requestTitle": "Pair a phone?",
+    "requestBody": "“{name}” at {source} asks to pair with SPOPI.",
+    "requestHint": "Allow it only if you just scanned the code from this computer.",
+    "tierObserve": "Observe: watch sessions",
+    "tierControl": "Control: chat, read files and Git",
+    "tierFull": "Full: also terminal, Git changes, settings, packages"
   },
   "shell": {
     "spopiLogoAlt": "SPOPI logo",
@@ -1441,13 +1645,11 @@
     "newSessionTitle": "New session in this project",
     "settingsTitle": "Settings",
     "downloadAndInstallUpdateTitle": "Download and install update",
-    "chooseAppTitle": "Choose app",
     "filesTitle": "Files",
     "closeTitle": "Close",
     "toggleFileBrowserLabel": "Toggle file browser",
     "keyboardShortcutsLabel": "Keyboard shortcuts",
     "conversationNavigatorLabel": "Conversation navigator",
-    "openCommandsLabel": "Open commands",
     "thinkingEffortOffClickToCycleReasoningLabel": "Thinking effort: off. Click to cycle reasoning depth.",
     "searchTasksLabel": "Search tasks",
     "searchResultsLabel": "Search results",
@@ -1493,6 +1695,7 @@
         "focus": "Focus the editor",
         "guard": "Set the permission mode",
         "cockpit": "Open the metrics cockpit",
+        "mcp": "Open MCP servers",
         "tui": "Open the terminal",
         "phone": "Open phone access",
         "hotkeys": "Show keyboard shortcuts",
@@ -1534,7 +1737,10 @@
     "modelConfigAfterReply": "Model settings apply after this reply",
     "noThinkingLevels": "This model has no thinking levels",
     "noThinkingLevelsHint": "Turn on Thinking for it in Settings → Models, or use Set up model.",
-    "openModelSettings": "Open model settings"
+    "openModelSettings": "Open model settings",
+    "guardStale": "The permission recipe is out of date. Settings → General → Guard can update it.",
+    "pasteOffloadFailed": "Could not save the pasted text to a file",
+    "moreTools": "More"
   },
   "features": {
     "todos": {
@@ -1544,7 +1750,8 @@
   "notifications": {
     "center": {
       "dismissNotificationLabel": "Dismiss notification"
-    }
+    },
+    "title": "Notification"
   },
   "session": {
     "search": {
@@ -1591,7 +1798,11 @@
     "compactionPendingAfter": "new size waits for the next request",
     "compactionNoRewrite": "context left untouched",
     "noServerMetrics": "No model-server metrics",
-    "thinkingBudgetTitle": "Cycle the thinking token budget for this thinking level"
+    "thinkingBudgetTitle": "Cycle the thinking token budget for this thinking level",
+    "outTitle": "output tokens this prompt · {thinking} thinking · {chars} text chars",
+    "tpsEstimated": "estimated from output ÷ generation window",
+    "kvCache": "KV cache {pct}%",
+    "kvPeak": "peak {pct}%"
   },
   "keybindings": {
     "title": "Keyboard shortcuts",
@@ -1614,13 +1825,47 @@
     "guard": "Permission mode",
     "guardCycle": "Cycle permission mode",
     "cockpit": "Open Cockpit",
+    "mcp": "Open MCP servers",
     "tui": "Open the terminal",
-    "close": "Close"
+    "close": "Close",
+    "slashCommands": "Slash commands"
   },
   "projects": {
     "fallbackTitle": "Projects folder not available",
     "fallbackUsed": "SPOPI could not use {wanted}, so this chat is in {used}.",
     "fallbackHome": "SPOPI could not use {wanted} or the SPOPI folder in your home folder, so this chat is in your home folder.",
     "fallbackOpenSettings": "Open Settings"
+  },
+  "extensionUi": {
+    "question": "Question",
+    "cancelled": "Cancelled",
+    "answered": "Answered"
+  },
+  "costDashboard": {
+    "quickRange": "Quick range"
+  },
+  "convNav": {
+    "jump": "Jump to conversation {n}"
+  },
+  "worktree": {
+    "branch": "Branch name",
+    "newChat": "New chat",
+    "merge": "Merge into main checkout…",
+    "mergeConfirm": "Merge this worktree into the main checkout?",
+    "merged": "Merged into {into}.",
+    "removeNow": "Remove the worktree now?",
+    "conflicts": "The merge was aborted and nothing changed.",
+    "remove": "Remove worktree…",
+    "removeConfirm": "Remove this worktree? Its branch is kept.",
+    "removeDirty": "This worktree has uncommitted changes. Remove it anyway?",
+    "errors": {
+      "primaryDirty": "The main checkout has uncommitted changes.",
+      "worktreeDirty": "This worktree has uncommitted changes.",
+      "primaryDetached": "The main checkout is not on a branch.",
+      "worktreeDetached": "This worktree is not on a branch.",
+      "locked": "This worktree is locked.",
+      "notWorktree": "This folder is not a linked worktree.",
+      "hasChats": "This worktree stores chats inside its folder, so it cannot be removed."
+    }
   }
 }

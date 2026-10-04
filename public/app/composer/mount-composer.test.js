@@ -19,7 +19,7 @@ function makeComposer({ allowPrompt, catalog = new Map() } = {}) {
     runtime,
     messageRenderer: { renderSystemMessage() {} },
     showError: vi.fn(),
-    getStore: () => ({ lifecycle: "idle" }),
+    isWorking: () => false,
     getTarget: () => ({ workspaceId: "w", sessionId: "s" }),
     getCommandCatalog: () => catalog,
     clearPendingFork() {},
@@ -47,6 +47,16 @@ test("a slash command still runs while no model is usable", async () => {
   expect(allowPrompt).not.toHaveBeenCalled();
   expect(runtime.request).toHaveBeenCalledOnce();
   expect(runtime.request.mock.calls[0][0]).toMatchObject({ type: "prompt", message: "/login" });
+});
+
+test("bare /mcp sends nothing to the runtime", async () => {
+  const catalog = new Map([
+    ["mcp", { type: "builtin", action: "mcp", capabilityState: "enabled", passArgsToPi: true }],
+  ]);
+  const { input, runtime, sendComposerInput } = makeComposer({ catalog });
+  input.value = "/mcp";
+  await sendComposerInput({ altKey: false });
+  expect(runtime.request).not.toHaveBeenCalled();
 });
 
 test("an allowed prompt is sent and the box clears", async () => {

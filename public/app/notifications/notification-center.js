@@ -20,7 +20,7 @@ const DEFAULT_DURATION_MS = 8000;
 function normalizeNotification(input) {
   if (typeof input === "string") return { title: input };
   if (input && typeof input === "object") return /** @type {Notice} */ (input);
-  return { title: "Notification" };
+  return { title: t("notifications.title") };
 }
 
 /**
@@ -53,7 +53,7 @@ export function createNotificationCenter({
 
     const title = document.createElement("div");
     title.className = "notification-title";
-    title.textContent = notification.title || "Notification";
+    title.textContent = notification.title || t("notifications.title");
     content.appendChild(title);
 
     if (notification.message) {

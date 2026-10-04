@@ -46,9 +46,9 @@
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.6);
+  background: var(--scrim);
   border: none;
-  color: white;
+  color: var(--on-danger);
   font-size: var(--font-size-sm);
   cursor: pointer;
   display: flex;

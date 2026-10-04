@@ -309,7 +309,7 @@ async function main() {
   }
 
   if (!fs.existsSync(cachedArchive)) {
-    const url = `https://github.com/earendil-works/pi-mono/releases/download/v${version}/${asset.archiveName}`;
+    const url = `https://github.com/earendil-works/pi/releases/download/v${version}/${asset.archiveName}`;
     info(`downloading ${url}`);
     try {
       await downloadTo(url, cachedArchive);
@@ -317,7 +317,7 @@ async function main() {
       fail(
         `download failed: ${err.message}\n` +
           `  - check network connectivity\n` +
-          `  - verify v${version} exists at https://github.com/earendil-works/pi-mono/releases\n` +
+          `  - verify v${version} exists at https://github.com/earendil-works/pi/releases\n` +
           `  - if the version was just published, the asset may take a few minutes to propagate`,
       );
     }

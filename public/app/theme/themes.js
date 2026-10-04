@@ -68,7 +68,7 @@ let themePreferences = null;
 /**
  * @param {{ set?: (key: string, value: unknown) => Promise<unknown> | void, get?: (key: string) => Promise<unknown> } | null | undefined} next
  */
-export function bindThemePreferences(next) {
+export function setThemePreferences(next) {
   themePreferences = next || null;
 }
 
@@ -77,7 +77,7 @@ export function bindThemePreferences(next) {
  * @param {{ get?: (key: string) => Promise<unknown>, set?: (key: string, value: unknown) => Promise<unknown> } | null | undefined} preferences
  */
 export async function hydrateThemePreference(preferences) {
-  bindThemePreferences(preferences);
+  setThemePreferences(preferences);
   let stored = null;
   try {
     stored = await preferences?.get?.("ui.theme");

@@ -4,7 +4,7 @@
 import { closeWhenResolved, showNativeDialog } from "../extension-ui/dialog.js";
 import { t } from "../i18n/i18n.js";
 import { composerChromeRefs } from "../shell/chrome/composer.js";
-import { bindFocusTrap } from "../ui/dialog.js";
+import { trapFocus } from "../ui/dialog.js";
 import { el } from "../ui/dom.js";
 import { choiceRole, parsePermissionPrompt, sessionLabel } from "./approval-prompt.js";
 
@@ -18,12 +18,6 @@ import { choiceRole, parsePermissionPrompt, sessionLabel } from "./approval-prom
  * @returns {ApprovalChoice[]}
  */
 export function approvalChoices(request) {
-  if (requestKind(request) === "phone_claim") {
-    return [
-      { label: label("pair.allow", "Allow"), result: { confirmed: true, value: "control" } },
-      { label: label("composer.deny", "Deny"), result: { cancelled: true } },
-    ];
-  }
   const method =
     request && typeof request === "object" && "method" in request ? String(request.method) : "";
   const options =
@@ -44,13 +38,6 @@ export function approvalChoices(request) {
     ];
   }
   return [];
-}
-
-/**
- * @param {unknown} request
- */
-function requestKind(request) {
-  return request && typeof request === "object" && "kind" in request ? String(request.kind) : "";
 }
 
 /**
@@ -182,21 +169,6 @@ export function mountApprovalBar(root, request, { onAnswer } = {}) {
   bar.setAttribute("role", "alertdialog");
   bar.setAttribute("aria-label", title.split("\n")[0] || label("composer.allowOnce", "Allow once"));
   if (title) bar.append(...approvalHead(title));
-  /** @type {HTMLSelectElement | null} */
-  let tier = null;
-  if (requestKind(request) === "phone_claim") {
-    tier = document.createElement("select");
-    tier.className = "approval-tier";
-    tier.setAttribute("aria-label", label("settings.phone.tier", "Tier"));
-    for (const name of ["observe", "control", "full"]) {
-      const option = document.createElement("option");
-      option.value = name;
-      option.textContent = name;
-      if (name === "control") option.selected = true;
-      tier.append(option);
-    }
-    bar.append(tier);
-  }
   const actions = document.createElement("div");
   actions.className = "approval-bar-actions";
   let settled = false;
@@ -206,20 +178,13 @@ export function mountApprovalBar(root, request, { onAnswer } = {}) {
   /**
    * @param {DialogResult} result
    */
-  const withTier = (result) => {
-    if (tier && result.confirmed) return { ...result, value: tier.value };
-    return result;
-  };
-  /**
-   * @param {DialogResult} result
-   */
   const finish = (result) => {
     if (settled) return;
     settled = true;
     if (countdown != null) clearInterval(countdown);
     unbindTrap();
     document.removeEventListener("keydown", onKey);
-    onAnswer?.(withTier(result));
+    onAnswer?.(result);
   };
   choices.forEach((choice, index) => {
     const button = choiceButton(choice.label, index);
@@ -259,7 +224,7 @@ export function mountApprovalBar(root, request, { onAnswer } = {}) {
     finish(choice.result);
   };
   document.addEventListener("keydown", onKey);
-  unbindTrap = bindFocusTrap(bar);
+  unbindTrap = trapFocus(bar);
   return {
     destroy() {
       if (countdown != null) clearInterval(countdown);
@@ -335,18 +300,6 @@ export function openDockedApproval(request, opts = {}) {
  * @returns {Promise<DialogResult>}
  */
 export function showApprovalOrDialog(request, container, opts) {
-  if (request?.kind === "phone_claim") {
-    const host = document.createElement("div");
-    (container || document.body).append(host);
-    return new Promise((resolve) => {
-      mountApprovalBar(host, request, {
-        onAnswer: (result) => {
-          host.remove();
-          resolve(result);
-        },
-      });
-    });
-  }
   if (request?.method === "select" || request?.method === "confirm") {
     const docked = openDockedApproval(request, opts);
     if (docked) return docked;

@@ -6,7 +6,7 @@ import { t } from "../i18n/i18n.js";
 import { el } from "../ui/dom.js";
 import { openPopover } from "../ui/popover.js";
 import { enhanceSelect } from "../ui/select-menu.js";
-import { row, sectionTitle, select } from "../ui/settings-controls.js";
+import { row, select, settingsCard } from "../ui/settings-controls.js";
 import { containerHelpBody } from "./container-help.js";
 import { liveDebugRow } from "./live-debug-setting.js";
 
@@ -47,13 +47,13 @@ export function guardSettingsSection(
 ) {
   const mode = select({
     id: "settings-guard-mode",
-    label: "Mode",
+    label: t("settings.guard.mode"),
     className: "ui-select",
     value: "ask",
     options: [
-      { value: "ask", label: "Ask" },
-      { value: "auto-edit", label: "Auto-edit" },
-      { value: "full", label: "Full access" },
+      { value: "ask", label: t("composer.guardAsk") },
+      { value: "auto-edit", label: t("composer.guardAuto") },
+      { value: "full", label: t("composer.guardFull") },
     ],
     onChange: () => {
       void save(deps, mode);
@@ -77,31 +77,67 @@ export function guardSettingsSection(
       body: containerHelpBody({ openExternal: hostOpenExternal(deps) }),
     });
   });
-  const section = el("section", { class: "settings-section", id: "settings-guard" }, [
-    sectionTitle("Guard", { i18n: "settings.guard.title" }),
+  const repair = /** @type {HTMLButtonElement} */ (
+    el("button", {
+      type: "button",
+      class: "ui-button ui-button--secondary ui-button--sm",
+      id: "settings-guard-repair",
+      text: t("settings.guard.repair"),
+    })
+  );
+  repair.dataset.i18n = "settings.guard.repair";
+  const repairRow = /** @type {HTMLElement} */ (
     row({
-      id: "setting-guard-disclaimer",
-      label:
-        "The guard asks before risky actions. It is not a sandbox: Pi runs with your user's permissions. For real isolation, run Pi in a container or VM.",
-      labelKey: "settings.guard.disclaimer",
-      control: help,
-    }),
-    row({
-      id: "setting-guard-mode",
-      label: "Mode",
-      labelKey: "settings.guard.mode",
-      // pi-permission-system reads one recipe per agent folder, so there is no per-session mode.
-      description:
-        "One mode for every session and for Pi in a terminal. A change applies to the next tool call. A new install starts in Ask.",
-      descriptionKey: "settings.guard.modeDescription",
-      control: mode,
-    }),
-    liveDebugRow({ preferences: deps?.preferences, register }),
-  ]);
+      id: "setting-guard-stale",
+      label: t("settings.guard.stale"),
+      labelKey: "settings.guard.stale",
+      description: t("settings.guard.staleDescription"),
+      descriptionKey: "settings.guard.staleDescription",
+      control: repair,
+    })
+  );
+  repairRow.hidden = true;
+  repair.addEventListener("click", () => {
+    repair.disabled = true;
+    void save(deps, mode)
+      .then(() => {
+        repairRow.hidden = true;
+      })
+      .finally(() => {
+        repair.disabled = false;
+      });
+  });
+  const section = settingsCard(
+    t("settings.guard.title"),
+    "settings.guard.title",
+    [
+      row({
+        id: "setting-guard-disclaimer",
+        label:
+          "The guard asks before risky actions. It is not a sandbox: Pi runs with your user's permissions. For real isolation, run Pi in a container or VM.",
+        labelKey: "settings.guard.disclaimer",
+        control: help,
+      }),
+      row({
+        id: "setting-guard-mode",
+        label: "Mode",
+        labelKey: "settings.guard.mode",
+        // pi-permission-system reads one recipe per agent folder, so there is no per-session mode.
+        description:
+          "One mode for every session and for Pi in a terminal. A change applies to the next tool call. A new install starts in Ask.",
+        descriptionKey: "settings.guard.modeDescription",
+        control: mode,
+      }),
+      repairRow,
+      liveDebugRow({ preferences: deps?.preferences, register }),
+    ],
+    { id: "settings-guard" },
+  );
   register(() =>
     deps?.configGateway?.call?.("get_permission_mode").then((result) => {
-      const data = result?.data;
+      const data = /** @type {{ mode?: unknown, stale?: unknown } | undefined} */ (result?.data);
       if (typeof data?.mode !== "string") return;
+      repairRow.hidden = data.stale !== true;
       mode.value = data.mode;
       // Setting .value is not a DOM mutation, so the styled menu has to be told.
       enhanceSelect(mode)?.sync();

@@ -1,4 +1,12 @@
 {
-  "version": "0.87.1",
-  "_comment": "Locked pi-mono release version that spopi bundles. Bump this, run `bun run fetch:pi`, smoke-test, then commit. Optionally pin sha256 per-asset under `sha256` to enable strict checksum verification."
+  "version": "1.0.2",
+  "_comment": "Locked Pi release version that spopi bundles (github.com/earendil-works/pi). Change it with `bun run bump:pi <version>`, which also fills `sha256` from the release's SHA256SUMS; see docs/PI_BUMP.md.",
+  "sha256": {
+    "pi-darwin-arm64.tar.gz": "c2f035ea4adba87916f005c99515e3c91674b11d16ba75d95d0881e4781aa3bb",
+    "pi-darwin-x64.tar.gz": "d54be8df33ab6a2f3457bd7de37edc947050ac4a7f043456d37e03afd15684de",
+    "pi-linux-arm64.tar.gz": "3321ccdc3ff38d6c52274bdab28246e06434618d1988a54e99cce45e535a013c",
+    "pi-linux-x64.tar.gz": "0d7687a6a9fcbaa88ff664cb6b28683ce9ee3e028931b55eb48a70ae9a285d18",
+    "pi-windows-arm64.zip": "4eb7c89f12c523d28069fed66f2ceb2466f909e41c87a6367a52728cec938b15",
+    "pi-windows-x64.zip": "37a2ee3c5222a73efc78b49f571748f11a74f4dbe160da3030a404da71f464e7"
+  }
 }

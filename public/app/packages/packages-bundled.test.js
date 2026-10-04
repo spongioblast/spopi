@@ -107,7 +107,7 @@ test("an existing disabled name turns Load SPOPI's copy off and writes the inver
 });
 
 test("locale catalogs carry the bundled switch copy", () => {
-  for (const code of ["en", "es", "ja", "zh"]) {
+  for (const code of ["en", "de", "es", "it", "ja", "zh"]) {
     const messages = JSON.parse(
       readFileSync(join(process.cwd(), "public/locales", `${code}.json`), "utf8"),
     );

@@ -6,6 +6,7 @@
 //! and forwards them.
 
 pub(crate) mod capabilities;
+pub(crate) mod op_error;
 pub(crate) mod phone;
 pub(crate) mod router;
 pub(crate) mod server;

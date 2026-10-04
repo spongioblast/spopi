@@ -115,7 +115,7 @@
 }
 
 .metrics-phase {
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   color: var(--text-primary);
 }
 
@@ -124,7 +124,7 @@
    the transcript rather than beside it. */
 .metrics-phase.idle {
   color: var(--text-placeholder);
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
 }
 
 .metrics-phase.accent {
@@ -167,7 +167,7 @@
 }
 
 .metrics-chip b {
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
   color: var(--text-secondary);
   font-size: var(--font-size-sm);
   text-transform: uppercase;
@@ -190,7 +190,7 @@
    weighted: a colour-only emphasis would vanish in that theme. */
 .metrics-chip.accent span {
   color: var(--accent-text);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
 }
 
 .metrics-chip.success span {

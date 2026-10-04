@@ -2,6 +2,7 @@
 // ABOUTME: The enable switch is read once at startup and passed to Pi as SPOPI_AGENT_BROWSER.
 
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use serde_json::Value;
 
@@ -52,8 +53,45 @@ pub fn bundled_agent_browser(static_dir: &Path) -> Option<PathBuf> {
     None
 }
 
+static NO_SANDBOX: AtomicBool = AtomicBool::new(false);
+
+/// Chrome's sandbox needs unprivileged user namespaces. Ubuntu 23.10+ grants them only to
+/// programs with an AppArmor profile (`/opt/google/chrome/chrome`, the distro Chromium), so
+/// Chrome for Testing in `~/.agent-browser` exits with "No usable sandbox!". There the
+/// development browser runs Chrome with `--no-sandbox`, unless the user already chose the
+/// browser or its arguments.
+pub fn needs_no_sandbox(restricted: bool, args_set: bool, executable_set: bool) -> bool {
+    restricted && !args_set && !executable_set
+}
+
+/// True when SPOPI started agent-browser's Chrome with `--no-sandbox` for this run.
+pub fn runs_without_sandbox() -> bool {
+    NO_SANDBOX.load(Ordering::Relaxed)
+}
+
+fn userns_restricted() -> bool {
+    cfg!(target_os = "linux")
+        && std::fs::read_to_string("/proc/sys/kernel/apparmor_restrict_unprivileged_userns")
+            .is_ok_and(|value| value.trim() == "1")
+}
+
+fn env_set(key: &str) -> bool {
+    std::env::var(key).is_ok_and(|value| !value.trim().is_empty())
+}
+
 pub fn configure_env(enabled: bool, static_dir: &Path) {
     std::env::set_var("SPOPI_AGENT_BROWSER", if enabled { "1" } else { "0" });
+    if enabled
+        && !runs_without_sandbox()
+        && needs_no_sandbox(
+            userns_restricted(),
+            env_set("AGENT_BROWSER_ARGS"),
+            env_set("AGENT_BROWSER_EXECUTABLE_PATH") || configured_executable().is_some(),
+        )
+    {
+        std::env::set_var("AGENT_BROWSER_ARGS", "--no-sandbox");
+        NO_SANDBOX.store(true, Ordering::Relaxed);
+    }
     if enabled {
         if let Some(path) = bundled_agent_browser(static_dir) {
             if let Some(dir) = path.parent() {
@@ -216,6 +254,20 @@ mod tests {
         .unwrap();
         assert!(!finding.found);
         assert!(finding.path.is_none());
+    }
+
+    #[test]
+    fn no_sandbox_only_where_user_namespaces_are_restricted() {
+        assert!(needs_no_sandbox(true, false, false));
+        assert!(!needs_no_sandbox(false, false, false));
+        assert!(
+            !needs_no_sandbox(true, true, false),
+            "the user's AGENT_BROWSER_ARGS win"
+        );
+        assert!(
+            !needs_no_sandbox(true, false, true),
+            "a chosen browser may have its own AppArmor profile"
+        );
     }
 
     #[test]

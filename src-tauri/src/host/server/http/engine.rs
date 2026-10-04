@@ -1,7 +1,7 @@
 // ABOUTME: Websocket engine_scrape for the Cockpit dock.
 // ABOUTME: The scrape target must be loopback or the model server's own host.
 
-use super::super::HostState;
+use super::super::{HostState, OpError};
 use crate::metrics::engine_scrape::{
     decode_scrape_request, is_local_network_url, metrics_url_for, scrape_url_allowed,
     EngineSnapshot,
@@ -13,22 +13,22 @@ pub async fn dispatch_extra(
     request_id: &str,
     operation: &str,
     frame: &Value,
-) -> Result<Value, (&'static str, String)> {
+) -> Result<Value, OpError> {
     match operation {
         "engine_scrape" => {
             let snapshot = scrape_engine(frame.clone())
                 .await
                 .map_err(|message| ("engine_scrape_failed", message))?;
-            Ok(json!({
+            crate::host::server::host_ok(json!({
                 "type": "host_response",
                 "requestId": request_id,
                 "operation": operation,
                 "snapshot": snapshot,
             }))
         }
-        _ => Err((
+        _ => Err(OpError::new(
             "host_operation_unimplemented",
-            "Host operation is not implemented on protocol v2".into(),
+            "Host operation is not implemented on protocol v2",
         )),
     }
 }

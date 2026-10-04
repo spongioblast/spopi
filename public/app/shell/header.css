@@ -185,7 +185,7 @@
 /* Extension package update pill (hidden until the package manager reports updates) */
 .update-indicator {
   position: relative;
-  color: var(--accent, #3b82f6);
+  color: var(--accent);
 }
 
 .update-indicator.hidden {
@@ -201,7 +201,7 @@
   padding: 0 var(--space-0-5);
   /* design-token-ignore: counter glyph below smallest type token, fits 14px pill */
   font-size: 9px;
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   line-height: 14px;
   text-align: center;
   color: var(--on-accent);
@@ -215,17 +215,21 @@
 }
 
 .token-usage.visible {
+  display: none;
+}
+
+body.dock-hidden .token-usage.visible {
   display: block;
 }
 
 .token-usage.warning {
   color: var(--warning);
-  border-color: rgba(251, 191, 36, 0.25);
+  border-color: color-mix(in srgb, var(--warning) 25%, transparent);
 }
 
 .token-usage.critical {
   color: var(--error);
-  border-color: rgba(248, 113, 113, 0.25);
+  border-color: color-mix(in srgb, var(--error) 25%, transparent);
   animation: pulse 2s infinite;
 }
 
@@ -299,7 +303,7 @@
   border-radius: var(--radius-md);
   padding: var(--space-1);
   box-shadow: var(--shadow-lg);
-  z-index: 1001;
+  z-index: var(--z-popover);
   animation: dropdownIn 0.15s var(--ease);
 }
 
@@ -323,7 +327,7 @@
   color: var(--text-primary);
   font-size: var(--font-size-sm);
   outline: none;
-  margin-bottom: 4px;
+  margin-bottom: var(--space-1);
   box-sizing: border-box;
 }
 
@@ -378,7 +382,7 @@
 
 .model-dropdown-section {
   padding: var(--space-2) var(--space-3) var(--space-1);
-  color: var(--text-dim);
+  color: var(--text-placeholder);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semibold);
   text-transform: uppercase;
@@ -390,7 +394,7 @@
   padding: var(--space-1);
   border: 0;
   background: transparent;
-  color: var(--text-dim);
+  color: var(--text-placeholder);
   font-size: var(--font-size-lg);
   line-height: 1;
   cursor: pointer;
@@ -425,12 +429,12 @@
 
 .model-dropdown-item-ctx {
   font-size: var(--font-size-sm);
-  margin-left: 12px;
+  margin-left: var(--space-3);
 }
 
 .model-dropdown-item-provider {
   font-size: var(--font-size-sm);
-  margin-left: 4px;
+  margin-left: var(--space-1);
 }
 
 /* Thinking tag — matches settings-value-btn style */
@@ -484,7 +488,7 @@
 
 .status-indicator.connected {
   background: var(--success);
-  box-shadow: 0 0 8px rgba(52, 211, 153, 0.5);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--success) 50%, transparent);
   animation: connectPop 0.4s var(--spring);
 }
 
@@ -502,7 +506,7 @@
 
 .status-indicator.disconnected {
   background: var(--error);
-  box-shadow: 0 0 8px rgba(248, 113, 113, 0.4);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--error) 40%, transparent);
 }
 
 .status-indicator.streaming {

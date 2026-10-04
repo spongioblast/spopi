@@ -22,6 +22,8 @@ import { uiStore } from "../storage/ui-store.js";
 /**
  * @typedef {{
  *   name?: string,
+ *   source?: string,
+ *   type?: string,
  *   path?: string,
  *   sourceInfo?: { path?: string | null },
  * }} CompatCommand
@@ -206,7 +208,8 @@ export class ExtensionCommandCompatibility {
    * @returns {CompatRecord | undefined}
    */
   get(command) {
-    if (!command?.name) return undefined;
+    if (!command?.name || command.source === "spopi" || command.type === "builtin")
+      return undefined;
     return this.#records.get(createCompatibilityKey(commandPath(command), command.name));
   }
 

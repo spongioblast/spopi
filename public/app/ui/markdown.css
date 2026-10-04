@@ -11,7 +11,7 @@
 /* Tables */
 .message.assistant .message-content .table-wrapper {
   overflow-x: auto;
-  margin: 8px 0;
+  margin: var(--space-2) 0;
   border-radius: var(--radius-md);
   border: 1px solid var(--border);
 }
@@ -28,7 +28,7 @@
 
 .message.assistant .message-content th {
   background: var(--bg-glass-strong);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   text-transform: none;
   letter-spacing: 0.03em;
   padding: var(--space-2) var(--space-3);
@@ -94,7 +94,7 @@
 .message.assistant .message-content .inline-image {
   max-width: 100%;
   border-radius: var(--radius-md);
-  margin: 6px 0;
+  margin: var(--space-1-5) 0;
   border: 1px solid var(--border);
   cursor: pointer;
   transition: opacity 0.15s var(--ease);
@@ -111,16 +111,16 @@
   min-width: 0;
   max-width: 100%;
   box-sizing: border-box;
-  margin: 8px 0;
+  margin: var(--space-2) 0;
   border-radius: var(--radius);
   overflow: hidden;
   border: 1px solid var(--border);
-  background: rgba(0, 0, 0, 0.25);
+  background: var(--shade-strong);
   backdrop-filter: blur(12px);
 }
 
 :root[data-scheme="light"] .code-block-wrapper {
-  background: rgba(0, 0, 0, 0.03);
+  background: var(--shade-weak);
 }
 
 .code-block-header {
@@ -157,7 +157,7 @@ pre {
   padding: var(--space-3);
   overflow-x: auto;
   font-size: var(--font-size-sm);
-  line-height: 1.6;
+  line-height: var(--line-height-code);
   margin: 0;
   border: none;
   border-radius: 0;

@@ -31,14 +31,14 @@ export function queueModeControls(deps) {
   const options = queueOptions();
   const steering = select({
     id: "queue-steering-mode",
-    label: "While Pi is working, new messages",
+    label: t("settings.steeringMode"),
     options,
     value: "one-at-a-time",
     onChange: (mode) => void applyQueueMode(deps, "steering", mode),
   });
   const followUp = select({
     id: "queue-follow-up-mode",
-    label: "Follow-up messages",
+    label: t("settings.followUpMode"),
     options,
     value: "one-at-a-time",
     onChange: (mode) => void applyQueueMode(deps, "followUp", mode),

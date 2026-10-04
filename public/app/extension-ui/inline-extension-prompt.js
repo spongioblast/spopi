@@ -69,7 +69,7 @@ export function showInlineExtensionPrompt(
     header.className = "inline-prompt-header";
     const eyebrow = document.createElement("span");
     eyebrow.className = "inline-prompt-eyebrow";
-    eyebrow.textContent = content.header || "Question";
+    eyebrow.textContent = content.header || t("extensionUi.question");
     const title = document.createElement("div");
     title.className = "inline-prompt-title";
     title.textContent = content.title || t("composer.chooseOption");
@@ -216,7 +216,7 @@ function renderCustomAnswerInSelect(card, layout, actions, sentinelValue, finish
   const submit = document.createElement("button");
   submit.type = "button";
   submit.className = "inline-prompt-submit";
-  submit.textContent = "Submit";
+  submit.textContent = t("dialogs.submit");
   submit.addEventListener("click", () => {
     pendingCustomAnswers.push(input.value);
     finish({ value: sentinelValue });
@@ -383,7 +383,7 @@ function createActions(onCancel, onSubmit) {
     const submit = document.createElement("button");
     submit.type = "button";
     submit.className = "inline-prompt-submit";
-    submit.textContent = "Submit";
+    submit.textContent = t("dialogs.submit");
     submit.addEventListener("click", onSubmit);
     actions.appendChild(submit);
   }
@@ -439,7 +439,7 @@ function markAnswered(card, result) {
   }
   const status = document.createElement("div");
   status.className = "inline-prompt-status";
-  status.textContent = result.cancelled ? "Cancelled" : "Answered";
+  status.textContent = result.cancelled ? t("extensionUi.cancelled") : t("extensionUi.answered");
   card.appendChild(status);
 }
 

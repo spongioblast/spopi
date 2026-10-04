@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createI18n } from "../i18n/i18n.js";
-import { mountLanguageSelector } from "./general-settings.js";
+import { mountLanguageSelector } from "./language-selector.js";
 
 const enMessages = JSON.parse(readFileSync(join(process.cwd(), "public/locales/en.json"), "utf8"));
 const zhMessages = JSON.parse(readFileSync(join(process.cwd(), "public/locales/zh.json"), "utf8"));
@@ -37,7 +37,7 @@ afterEach(() => {
 
 describe("settings language selector", () => {
   it("renders all language choices from i18n", () => {
-    mountLanguageSelector();
+    mountLanguageSelector(document);
 
     const options = Array.from(document.querySelectorAll("#settings-language-select option"));
     // The supported locales may grow; ensure the core ones are present.
@@ -46,14 +46,18 @@ describe("settings language selector", () => {
     expect(values).toContain("system");
     expect(values).toContain("en");
     expect(values).toContain("zh");
+    expect(values).toContain("de");
+    expect(values).toContain("it");
     // Verify the core language display names are present.
     expect(texts).toContain("System Default");
     expect(texts).toContain("English");
     expect(texts).toContain("中文");
+    expect(texts).toContain("Deutsch");
+    expect(texts).toContain("Italiano");
   });
 
   it("switches locale and repaints translated DOM", async () => {
-    mountLanguageSelector();
+    mountLanguageSelector(document);
 
     const select = document.getElementById("settings-language-select");
     select.value = "zh";

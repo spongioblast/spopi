@@ -1,9 +1,10 @@
-// ABOUTME: Thinking level, token budgets, and auto-compaction in settings.json.
-// ABOUTME: Reads use the strict settings parser; writes take Pi's settings lock.
+// ABOUTME: Thinking level, token budgets, auto-compaction, retry, and scoped models in settings.json.
+// ABOUTME: Global keys Pi has a setter for go through SettingsManager; the rest take Pi's lock.
 
 import * as path from "node:path";
 import type { ConfigContext } from "./paths";
 import { agentConfigPath, asString, PROJECT_CONFIG_DIR_NAME } from "./paths";
+import { updateGlobalSettings } from "./pi-settings";
 import {
   readSettingsRecord as readSettingsObject,
   resolveSettingsPath,
@@ -61,22 +62,31 @@ export function getDefaultThinkingLevel(scope: unknown, ctx: ConfigContext) {
   return { level: "off", source: "pi_default", path: agentConfigPath() };
 }
 
-export function setDefaultThinkingLevel(level: unknown, scope: unknown, ctx: ConfigContext) {
+export async function setDefaultThinkingLevel(level: unknown, scope: unknown, ctx: ConfigContext) {
   const thinkingLevel = asThinkingLevel(level);
   const target = resolveSettingsPath(scope, ctx);
-  updateSettingsObject(target.path, (settings) => {
-    settings.defaultThinkingLevel = thinkingLevel;
-  });
+  if (target.scope === "global") {
+    await updateGlobalSettings((manager) => manager.setDefaultThinkingLevel(thinkingLevel));
+  } else {
+    updateSettingsObject(target.path, (settings) => {
+      settings.defaultThinkingLevel = thinkingLevel;
+    });
+  }
   return { level: thinkingLevel, scope: target.scope, path: target.path };
 }
 
-function modelReference(provider: unknown, modelId: unknown): string {
+function modelParts(provider: unknown, modelId: unknown) {
   const normalizedProvider = asString(provider).trim();
   const normalizedModelId = asString(modelId).trim();
   if (!normalizedProvider || !normalizedModelId) {
     throw new Error("provider and modelId are required");
   }
-  return `${normalizedProvider}/${normalizedModelId}`;
+  return { provider: normalizedProvider, modelId: normalizedModelId };
+}
+
+function modelReference(provider: unknown, modelId: unknown): string {
+  const parts = modelParts(provider, modelId);
+  return `${parts.provider}/${parts.modelId}`;
 }
 
 /** Pi's per-model thinking level: `settings.json` `modelThinkingLevels["provider/model"]`. */
@@ -94,21 +104,18 @@ export function getModelThinkingLevel(provider: unknown, modelId: unknown) {
 }
 
 /** `level: null` removes the entry so the global default applies again. */
-export function setModelThinkingLevel(provider: unknown, modelId: unknown, level: unknown) {
-  const reference = modelReference(provider, modelId);
+export async function setModelThinkingLevel(provider: unknown, modelId: unknown, level: unknown) {
+  const parts = modelParts(provider, modelId);
   const thinkingLevel = level === null || level === "" ? null : asThinkingLevel(level);
-  updateSettingsObject(agentConfigPath(), (settings) => {
-    const existing = settings.modelThinkingLevels;
-    const levels =
-      existing && typeof existing === "object" && !Array.isArray(existing)
-        ? { ...(existing as Record<string, unknown>) }
-        : {};
-    if (thinkingLevel) levels[reference] = thinkingLevel;
-    else delete levels[reference];
-    if (Object.keys(levels).length > 0) settings.modelThinkingLevels = levels;
-    else delete settings.modelThinkingLevels;
+  await updateGlobalSettings((manager) => {
+    if (thinkingLevel) manager.setModelThinkingLevel(parts.provider, parts.modelId, thinkingLevel);
+    else manager.removeModelThinkingLevel(parts.provider, parts.modelId);
   });
-  return { reference, level: thinkingLevel, path: agentConfigPath() };
+  return {
+    reference: `${parts.provider}/${parts.modelId}`,
+    level: thinkingLevel,
+    path: agentConfigPath(),
+  };
 }
 
 /**
@@ -224,9 +231,17 @@ export function getDefaultAutoCompaction(scope: unknown, ctx: ConfigContext) {
   return { enabled: true, source: "pi_default", path: agentConfigPath() };
 }
 
-export function setDefaultAutoCompaction(enabled: unknown, scope: unknown, ctx: ConfigContext) {
+export async function setDefaultAutoCompaction(
+  enabled: unknown,
+  scope: unknown,
+  ctx: ConfigContext,
+) {
   if (typeof enabled !== "boolean") throw new Error("enabled must be a boolean");
   const target = resolveSettingsPath(scope, ctx);
+  if (target.scope === "global") {
+    await updateGlobalSettings((manager) => manager.setCompactionEnabled(enabled));
+    return { enabled, scope: target.scope, path: target.path };
+  }
   updateSettingsObject(target.path, (settings) => {
     const existing = settings.compaction;
     const compaction =
@@ -254,17 +269,9 @@ export function getDefaultAutoRetry(scope: unknown, _ctx: ConfigContext) {
   };
 }
 
-export function setDefaultAutoRetry(enabled: unknown, scope: unknown, _ctx: ConfigContext) {
+export async function setDefaultAutoRetry(enabled: unknown, scope: unknown, _ctx: ConfigContext) {
   if (typeof enabled !== "boolean") throw new Error("enabled must be a boolean");
-  updateSettingsObject(agentConfigPath(), (settings) => {
-    const existing = settings.retry;
-    const retry =
-      existing && typeof existing === "object" && !Array.isArray(existing)
-        ? { ...(existing as Record<string, unknown>) }
-        : {};
-    retry.enabled = enabled;
-    settings.retry = retry;
-  });
+  await updateGlobalSettings((manager) => manager.setRetryEnabled(enabled));
   return { enabled, scope: asString(scope) || "global", path: agentConfigPath() };
 }
 
@@ -283,7 +290,7 @@ export function scopedModelId(pattern: string): string {
   return suffixIndex === -1 ? pattern : pattern.slice(0, suffixIndex);
 }
 
-export function setScopedModel(provider: unknown, modelId: unknown, enabled: unknown) {
+export async function setScopedModel(provider: unknown, modelId: unknown, enabled: unknown) {
   const normalizedProvider = asString(provider);
   const normalizedModelId = asString(modelId);
   if (!normalizedProvider || !normalizedModelId) {
@@ -292,12 +299,11 @@ export function setScopedModel(provider: unknown, modelId: unknown, enabled: unk
   if (typeof enabled !== "boolean") throw new Error("enabled must be a boolean");
   const reference = `${normalizedProvider}/${normalizedModelId}`;
   let modelIds: string[] = [];
-  updateSettingsObject(agentConfigPath(), (settings) => {
-    const current = readEnabledModels(settings);
+  await updateGlobalSettings((manager) => {
+    const current = readEnabledModels(manager.getGlobalSettings() as Record<string, unknown>);
     const withoutModel = current.filter((pattern) => scopedModelId(pattern) !== reference);
     const models = enabled ? [...withoutModel, reference] : withoutModel;
-    if (models.length > 0) settings.enabledModels = models;
-    else delete settings.enabledModels;
+    manager.setEnabledModels(models.length > 0 ? models : undefined);
     modelIds = models.map(scopedModelId);
   });
   return {

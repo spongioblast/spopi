@@ -17,14 +17,13 @@ function loadLocale(code) {
 
 const en = loadLocale("en");
 const zh = loadLocale("zh");
-const ja = loadLocale("ja");
-const es = loadLocale("es");
 
-const NON_EN_LOCALES = [
-  { code: "zh", messages: zh },
-  { code: "ja", messages: ja },
-  { code: "es", messages: es },
-];
+const NON_EN_LOCALES = readdirSync(resolve(publicDir, "locales"))
+  .filter((name) => name.endsWith(".json") && name !== "en.json")
+  .map((name) => {
+    const code = name.slice(0, -".json".length);
+    return { code, messages: loadLocale(code) };
+  });
 
 // ── Flatten helpers ───────────────────────────────────────────────────
 

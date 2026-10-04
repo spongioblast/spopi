@@ -26,7 +26,6 @@
   "app/session/session-search-dialog.css",
   "app/session/session-info.css",
   "app/session/info-panel.css",
-  "app/shell/header-open-app.css",
   "app/shell/app-launcher.css",
   "app/composer/composer-images.css",
   "app/composer/composer-slash-menu.css",
@@ -36,6 +35,7 @@
   "app/terminal/terminal-panel.css",
   "app/metrics/metrics-overlay.css",
   "app/shell/shell.css",
+  "app/shell/phone-layout.css",
   "app/shell/panels.css",
   "app/dock/dock.css",
   "app/dock/problems-dock.css",
@@ -58,5 +58,10 @@
   "app/packages/packages-add-skills.css",
   "app/packages/packages-resources.css",
   "app/settings/settings-panel.css",
-  "app/settings/settings-config.css"
+  "app/settings/mcp/mcp-settings.css",
+  "app/settings/customizations-settings.css",
+  "app/settings/phone-settings.css",
+  "app/pair/phone-claim.css",
+  "app/settings/settings-config.css",
+  "app/git/git-panel.css"
 ]

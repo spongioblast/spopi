@@ -5,7 +5,7 @@ import { onLocaleChange, t, translateSubtree } from "../i18n/i18n.js";
 import { applyTheme, getCurrentTheme, themes } from "../theme/themes.js";
 import { el } from "../ui/dom.js";
 import { enhanceSelect } from "../ui/select-menu.js";
-import { row, sectionTitle, segmentedLevel, select } from "../ui/settings-controls.js";
+import { row, segmentedLevel, select, settingsCard } from "../ui/settings-controls.js";
 import {
   applyAppearanceToDom,
   FONT_SIZE_LEVELS,
@@ -97,7 +97,7 @@ function fontLevel(id, nameId, markerId, stepsId, radioName, labelKey) {
  * @param {Array<Node | string | false | null | undefined>} children
  */
 function section(title, i18n, children) {
-  return el("div", { class: "settings-section" }, [sectionTitle(title, { i18n }), ...children]);
+  return settingsCard(title, i18n, children);
 }
 
 /**
@@ -326,7 +326,7 @@ function bindAppearance(root, { preferences, themeGrid, chatFont, previewFont, p
       const themeName = named.name || id;
       btn.setAttribute("aria-label", themeName);
       btn.title = themeName;
-      btn.append(colors);
+      btn.append(el("span", { class: "theme-swatch-name", text: themeName }), colors);
       btn.addEventListener("click", () => {
         applyTheme(id);
         for (const swatch of themeGrid.querySelectorAll(".theme-swatch")) {

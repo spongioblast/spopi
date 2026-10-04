@@ -1,37 +1,16 @@
-// ABOUTME: Switches Workbench and Focus for the current project.
+// ABOUTME: Workbench and Focus as a patch for ui.layout.
 // ABOUTME: Focus hides the sidebar and dock and keeps the chat near 72ch.
 
-const STORAGE_PREFIX = "spopi.layout.preset";
-
 /**
- * @param {string} [workspaceId]
- * @returns {"workbench" | "focus"}
+ * @param {"workbench" | "focus"} preset
+ * @returns {{ focus: boolean, sidebarHidden: boolean, dockHidden: boolean }}
  */
-function readLayoutPreset(workspaceId = "") {
-  try {
-    const stored = localStorage.getItem(`${STORAGE_PREFIX}:${workspaceId || "default"}`);
-    return stored === "focus" ? "focus" : "workbench";
-  } catch {
-    return "workbench";
-  }
+export function layoutPresetPatch(preset) {
+  const focus = preset === "focus";
+  return { focus, sidebarHidden: focus, dockHidden: focus };
 }
 
-/**
- * @param {string} [workspaceId]
- * @param {(patch: { sidebarHidden: boolean, dockHidden: boolean }) => void} [apply]
- * @returns {"workbench" | "focus"}
- */
-export function toggleLayoutPreset(workspaceId = "", apply) {
-  const next = readLayoutPreset(workspaceId) === "focus" ? "workbench" : "focus";
-  try {
-    localStorage.setItem(`${STORAGE_PREFIX}:${workspaceId || "default"}`, next);
-  } catch {
-    // Private mode can reject storage. The body flag still applies for this view.
-  }
-  document.body.dataset.layoutPreset = next;
-  apply?.({
-    sidebarHidden: next === "focus",
-    dockHidden: next === "focus",
-  });
-  return next;
+/** @param {{ focus?: boolean } | null | undefined} layout */
+export function toggledLayoutPreset(layout) {
+  return layoutPresetPatch(layout?.focus ? "workbench" : "focus");
 }

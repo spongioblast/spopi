@@ -1,8 +1,5 @@
 // ABOUTME: Provides Lucide (ISC) SVG action icons for SPOPI controls.
-// ABOUTME: Path data synced from lucide v1.31.0; keeps icon DOM creation safe,
-
-// ABOUTME: same-origin, and independent of user content. `text-collapse` is a
-// ABOUTME: SPOPI-custom icon (no Lucide equivalent).
+// ABOUTME: Path data synced from lucide v1.31.0; unknown names render nothing.
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
@@ -15,6 +12,22 @@ const ICONS = {
       },
     ],
     ["circle", { cx: "12", cy: "12", r: "3" }],
+  ],
+  "eye-off": [
+    [
+      "path",
+      {
+        d: "M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49",
+      },
+    ],
+    ["path", { d: "M14.084 14.158a3 3 0 0 1-4.242-4.242" }],
+    [
+      "path",
+      {
+        d: "M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143",
+      },
+    ],
+    ["path", { d: "m2 2 20 20" }],
   ],
   pencil: [
     [
@@ -66,17 +79,6 @@ const ICONS = {
     ["path", { d: "M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" }],
     ["path", { d: "M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" }],
   ],
-  sliders: [
-    ["path", { d: "M10 5H3" }],
-    ["path", { d: "M12 19H3" }],
-    ["path", { d: "M14 3v4" }],
-    ["path", { d: "M16 17v4" }],
-    ["path", { d: "M21 12h-9" }],
-    ["path", { d: "M21 19h-5" }],
-    ["path", { d: "M21 5h-7" }],
-    ["path", { d: "M8 10v4" }],
-    ["path", { d: "M8 12H3" }],
-  ],
   wrap: [
     ["path", { d: "M13 4v16" }],
     ["path", { d: "M17 4v16" }],
@@ -110,31 +112,10 @@ const ICONS = {
     ["path", { d: "M3 16h3a2 2 0 0 1 2 2v3" }],
     ["path", { d: "M16 21v-3a2 2 0 0 1 2-2h3" }],
   ],
-  "text-collapse": [
-    ["path", { d: "M21 12H9" }],
-    ["path", { d: "M13 8l-4 4 4 4" }],
-    ["path", { d: "M3 4h18" }],
-    ["path", { d: "M3 20h18" }],
-  ],
-  "refresh-cw": [
-    ["path", { d: "M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" }],
-    ["path", { d: "M21 3v5h-5" }],
-    ["path", { d: "M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" }],
-    ["path", { d: "M8 16H3v5" }],
-  ],
-  "message-square-plus": [
-    [
-      "path",
-      {
-        d: "M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z",
-      },
-    ],
-    ["path", { d: "M12 8v6" }],
-    ["path", { d: "M9 11h6" }],
-  ],
-  terminal: [
-    ["path", { d: "M12 19h8" }],
-    ["path", { d: "m4 17 6-6-6-6" }],
+  pi: [
+    ["line", { x1: "9", x2: "9", y1: "4", y2: "20" }],
+    ["path", { d: "M4 7c0-1.7 1.3-3 3-3h13" }],
+    ["path", { d: "M18 20c-1.7 0-3-1.3-3-3V4" }],
   ],
   box: [
     [
@@ -164,22 +145,6 @@ const ICONS = {
       },
     ],
   ],
-  "message-circle": [
-    [
-      "path",
-      {
-        d: "M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719",
-      },
-    ],
-  ],
-  "message-square": [
-    [
-      "path",
-      {
-        d: "M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z",
-      },
-    ],
-  ],
   settings: [
     [
       "path",
@@ -194,23 +159,10 @@ const ICONS = {
     ["path", { d: "M4 12h16" }],
     ["path", { d: "M4 19h16" }],
   ],
-  smartphone: [
-    ["rect", { width: "14", height: "20", x: "5", y: "2", rx: "2", ry: "2" }],
-    ["path", { d: "M12 18h.01" }],
-  ],
   "chevron-down": [["path", { d: "m6 9 6 6 6-6" }]],
-  "chevron-up": [["path", { d: "m18 15-6-6-6 6" }]],
-  "panel-right": [
-    ["rect", { width: "18", height: "18", x: "3", y: "3", rx: "2" }],
-    ["path", { d: "M15 3v18" }],
-  ],
   "arrow-down": [
     ["path", { d: "M12 5v14" }],
     ["path", { d: "m19 12-7 7-7-7" }],
-  ],
-  "arrow-right": [
-    ["path", { d: "M5 12h14" }],
-    ["path", { d: "m12 5 7 7-7 7" }],
   ],
   "arrow-up": [
     ["path", { d: "m5 12 7-7 7 7" }],
@@ -223,28 +175,6 @@ const ICONS = {
     ["path", { d: "M20 14h2" }],
     ["path", { d: "M15 13v2" }],
     ["path", { d: "M9 13v2" }],
-  ],
-  mic: [
-    ["path", { d: "M12 19v3" }],
-    ["path", { d: "M19 10v2a7 7 0 0 1-14 0v-2" }],
-    ["rect", { x: "9", y: "2", width: "6", height: "13", rx: "3" }],
-  ],
-  "mic-off": [
-    ["path", { d: "M12 19v3" }],
-    ["path", { d: "M15 9.34V5a3 3 0 0 0-5.68-1.33" }],
-    ["path", { d: "M16.95 16.95A7 7 0 0 1 5 12v-2" }],
-    ["path", { d: "M18.89 13.23A7 7 0 0 0 19 12v-2" }],
-    ["path", { d: "m2 2 20 20" }],
-    ["path", { d: "M9 9v3a3 3 0 0 0 5.12 2.12" }],
-  ],
-  send: [
-    [
-      "path",
-      {
-        d: "M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z",
-      },
-    ],
-    ["path", { d: "m21.854 2.147-10.94 10.939" }],
   ],
   square: [["rect", { width: "18", height: "18", x: "3", y: "3", rx: "2" }]],
   archive: [
@@ -260,7 +190,6 @@ const ICONS = {
     ["path", { d: "M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" }],
   ],
   "chevron-right": [["path", { d: "m9 18 6-6-6-6" }]],
-  "chevron-left": [["path", { d: "m15 18-6-6 6-6" }]],
   "folder-open": [
     [
       "path",
@@ -286,44 +215,9 @@ const ICONS = {
     ["path", { d: "M12 8h.01" }],
   ],
   minus: [["path", { d: "M5 12h14" }]],
-  "sliders-horizontal": [
-    ["path", { d: "M10 5H3" }],
-    ["path", { d: "M12 19H3" }],
-    ["path", { d: "M14 3v4" }],
-    ["path", { d: "M16 17v4" }],
-    ["path", { d: "M21 12h-9" }],
-    ["path", { d: "M21 19h-5" }],
-    ["path", { d: "M21 5h-7" }],
-    ["path", { d: "M8 10v4" }],
-    ["path", { d: "M8 12H3" }],
-  ],
-  brain: [
-    ["path", { d: "M12 18V5" }],
-    ["path", { d: "M15 13a4.17 4.17 0 0 1-3-4 4.17 4.17 0 0 1-3 4" }],
-    ["path", { d: "M17.598 6.5A3 3 0 1 0 12 5a3 3 0 1 0-5.598 1.5" }],
-    ["path", { d: "M17.997 5.125a4 4 0 0 1 2.526 5.77" }],
-    ["path", { d: "M18 18a4 4 0 0 0 2-7.464" }],
-    ["path", { d: "M19.967 17.483A4 4 0 1 1 12 18a4 4 0 1 1-7.967-.517" }],
-    ["path", { d: "M6 18a4 4 0 0 1-2-7.464" }],
-    ["path", { d: "M6.003 5.125a4 4 0 0 0-2.526 5.77" }],
-  ],
   clipboard: [
     ["rect", { width: "8", height: "4", x: "8", y: "2", rx: "1", ry: "1" }],
     ["path", { d: "M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" }],
-  ],
-  "bar-chart": [
-    ["path", { d: "M3 3v16a2 2 0 0 0 2 2h16" }],
-    ["path", { d: "M18 17V9" }],
-    ["path", { d: "M13 17V5" }],
-    ["path", { d: "M8 17v-3" }],
-  ],
-  "chevrons-down": [
-    ["path", { d: "m7 6 5 5 5-5" }],
-    ["path", { d: "m7 13 5 5 5-5" }],
-  ],
-  "chevrons-up": [
-    ["path", { d: "m17 11-5-5-5 5" }],
-    ["path", { d: "m17 18-5-5-5 5" }],
   ],
   ellipsis: [
     ["circle", { cx: "12", cy: "12", r: "1" }],
@@ -345,10 +239,6 @@ const ICONS = {
     ["path", { d: "M22 5h-4" }],
     ["path", { d: "M4 17v2" }],
     ["path", { d: "M5 18H3" }],
-  ],
-  "panel-bottom": [
-    ["rect", { width: "18", height: "18", x: "3", y: "3", rx: "2" }],
-    ["path", { d: "M3 15h18" }],
   ],
   sessions: [["path", { d: "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" }]],
   files: [
@@ -426,10 +316,8 @@ const ICONS = {
   ],
   play: [["path", { d: "M8 5v14l11-7z" }]],
   "collapse-all": [
-    ["path", { d: "m7 20-5-5 5-5" }],
-    ["path", { d: "M2 15h9" }],
-    ["path", { d: "m17 4 5 5-5 5" }],
-    ["path", { d: "M22 9h-9" }],
+    ["path", { d: "m7 20 5-5 5 5" }],
+    ["path", { d: "m7 4 5 5 5-5" }],
   ],
   "model-chevron": [
     [

@@ -232,6 +232,7 @@ describe("InfoPanel session history", () => {
     try {
       const info = new InfoPanel({
         panel: document.createElement("aside"),
+        messages: document.body,
         actions: { copyWorkspacePath: async () => "" },
         t,
       });
@@ -256,6 +257,7 @@ describe("InfoPanel session history", () => {
     try {
       const info = new InfoPanel({
         panel: document.createElement("aside"),
+        messages: document.body,
         actions: { copyWorkspacePath: async () => "" },
         t,
       });

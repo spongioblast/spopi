@@ -1,42 +1,37 @@
-// ABOUTME: Binds the loopback host and routes HTTP and WebSocket traffic.
-// ABOUTME: Static files are served from the bundled public directory.
+// ABOUTME: Builds the host state, binds the loopback port, and serves HTTP and WebSocket.
+// ABOUTME: The HTTP route table is http/mod.rs; shared error shapes are here.
 
 mod auth;
 pub(crate) mod http;
 mod idle_reaper;
 mod ops;
+mod session_view;
 pub(crate) mod ui_assets;
+mod ui_fingerprint;
 pub(crate) mod ws;
 
-use self::auth::{is_public_http_request, trusted_loopback_request};
+pub(crate) use crate::host::op_error::{host_ok, OpError};
+
 use crate::data::metadata_store::MetadataStore;
 use crate::data::{HostDataError, HostDataPlane};
 use crate::editor::markitdown::MarkitdownPreviewService;
 use crate::host::router::HostRouter;
-use crate::pi::coordinator::{RuntimeStatus, RuntimeTarget};
+use crate::pi::coordinator::RuntimeTarget;
 use crate::pi::launch::PiLaunchResolver;
 use crate::pi::runtime::PiRuntime;
 use crate::platform::window_owner::OwnerId;
 use crate::terminal::manager::TerminalManager;
 use crate::terminal::registry::TerminalRegistry;
 use crate::terminal::state_store::TerminalStateStore;
-use axum::body::Body;
 use axum::extract::ws::{Message, WebSocket};
-use axum::extract::{ConnectInfo, DefaultBodyLimit, Json};
-use axum::http::header::CONTENT_TYPE;
+use axum::extract::Json;
 use axum::http::StatusCode;
-use axum::middleware;
-use axum::response::Response;
-use axum::routing::{get, post};
-use axum::Router;
 use serde_json::{json, Value};
 use std::collections::HashMap;
-use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use tokio::sync::oneshot;
 
-const MAX_HTTP_BODY_BYTES: usize = 1024 * 1024;
 pub(super) const MAX_WS_MESSAGE_BYTES: usize = 16 * 1024 * 1024;
 
 pub(crate) struct HostState {
@@ -60,6 +55,8 @@ pub(crate) struct HostState {
     // reopened. Optional so the constructor stays infallible in tests.
     pub(super) session_ui_profiles:
         Arc<crate::data::session_ui_profile_store::SessionUiProfileStore>,
+    /// Review comment drafts, one list per project folder.
+    pub(super) review_drafts: Arc<crate::data::review_draft_store::ReviewDraftStore>,
     // Global display preferences (ui.* keys). None in tests and remote-only
     // setups, where preference operations degrade to a host error.
     pub(crate) metadata: Option<Arc<Mutex<MetadataStore>>>,
@@ -69,6 +66,8 @@ pub(crate) struct HostState {
     pub(crate) fanout: tokio::sync::broadcast::Sender<Value>,
     pub(crate) device_sockets: ws::DeviceSockets,
     pub(crate) dependency_jobs: crate::dependencies::jobs::DependencyJobs,
+    /// New on every start. A client that sees it change knows its Pi instances are gone.
+    pub(crate) host_id: String,
 }
 
 pub struct HostServer {
@@ -147,6 +146,9 @@ impl HostServer {
                 profile_dir.join("session-ui-profiles.json"),
             )?,
         );
+        let review_drafts = Arc::new(crate::data::review_draft_store::ReviewDraftStore::open(
+            profile_dir.join("review-drafts.json"),
+        )?);
         let terminal_manager = TerminalManager::new(
             TerminalRegistry::new(15),
             TerminalStateStore::new(crate::data::app_paths::config_dir()),
@@ -168,6 +170,7 @@ impl HostServer {
             git_service,
             git_events,
             session_ui_profiles,
+            review_drafts,
             metadata,
             app_handle,
             ui: std::sync::Arc::new(crate::host::ui_overlay::UiOverlay::open(
@@ -180,6 +183,7 @@ impl HostServer {
             fanout: tokio::sync::broadcast::channel(32).0,
             device_sockets: ws::DeviceSockets::default(),
             dependency_jobs: crate::dependencies::jobs::DependencyJobs::new(),
+            host_id: crate::host::phone::new_token()[..16].to_string(),
         });
         // Prewarm the cost-metrics cache in the background: one full scan at
         // startup parses every file the Usage dashboard can need, so the first
@@ -191,78 +195,9 @@ impl HostServer {
         if !cfg!(test) {
             let data = state.data.clone();
             std::thread::spawn(move || data.prewarm_cost_metrics());
+            tokio::spawn(http::phone::restore(Arc::clone(&state)));
         }
-        let ui = ui_assets::router(static_dir.clone(), Some(state.ui.root.clone()), false);
-        let app = Router::new()
-            .route("/", get(http::routes::app_launcher_redirect))
-            .route("/health", get(http::routes::health))
-            .route("/health/runtime", get(http::routes::health_runtime))
-            .route("/v2/ws", get(ws::websocket_upgrade))
-            .route("/v2/bootstrap", get(http::routes::bootstrap_target))
-            .route("/v2/sessions", get(http::routes::list_all_sessions_http))
-            .route(
-                "/api/files/content",
-                get(http::files::read_file_content).put(http::files::write_file_content),
-            )
-            .route("/api/files/raw", get(http::files::raw_file_content))
-            .route("/api/git/diff", get(http::git::git_file_diff))
-            .route("/api/git/stat", get(http::git::git_stat_handler))
-            .route("/api/file-mentions", get(http::files::file_mentions))
-            .route(
-                "/api/workspace-info",
-                get(http::files::workspace_info_handler),
-            )
-            .route("/api/search", get(http::search::search_handler))
-            .route("/api/ui/overrides", get(http::ui::list))
-            .route("/api/ui/locale", get(http::ui::locale))
-            .route("/api/ui/three-way", get(http::ui::three_way))
-            .route("/api/ui/revert", post(http::ui::revert))
-            .route("/api/ui/safe", post(http::ui::safe_mode))
-            .route("/api/ui/ready", post(http::ui::ready))
-            .route("/api/ui/disabled", post(http::ui::disabled))
-            .route("/api/ui/screenshot", get(http::screenshot::screenshot))
-            .route("/api/phone/status", get(http::phone::status))
-            .route("/api/phone/accept", post(http::phone::accept))
-            .route("/api/phone/pair", post(http::phone::pair))
-            .route("/api/phone/decide", post(http::phone::decide))
-            .route("/api/phone/devices", get(http::phone::devices))
-            .route("/api/phone/revoke", post(http::phone::revoke))
-            .route("/api/phone/enable", post(http::phone::enable))
-            .route("/v2/new-session", post(http::files::new_session))
-            .route(
-                "/v2/resolve-workspace",
-                post(http::files::resolve_workspace),
-            )
-            .merge(ui)
-            .layer(DefaultBodyLimit::max(MAX_HTTP_BODY_BYTES))
-            .layer(middleware::from_fn_with_state(
-                state.clone(),
-                http::ui::serve_overlay,
-            ))
-            .with_state(state.clone());
-        let app = app.layer(middleware::from_fn(
-            |request: axum::extract::Request, next: middleware::Next| async move {
-                let path = request.uri().path();
-                if is_public_http_request(request.method(), path) {
-                    return next.run(request).await;
-                }
-                let loopback = request
-                    .extensions()
-                    .get::<ConnectInfo<std::net::SocketAddr>>()
-                    .copied()
-                    .map(|peer| trusted_loopback_request(peer, request.headers(), request.uri()))
-                    .unwrap_or(false);
-                if loopback {
-                    next.run(request).await
-                } else {
-                    Response::builder()
-                        .status(StatusCode::UNAUTHORIZED)
-                        .header(CONTENT_TYPE, "application/json")
-                        .body(Body::from(r#"{"error":{"code":"unauthorized"}}"#))
-                        .expect("authorization response is valid")
-                }
-            },
-        ));
+        let app = http::router(Arc::clone(&state), static_dir.clone());
         let (shutdown_tx, shutdown_rx) = oneshot::channel();
         idle_reaper::spawn(Arc::clone(&state));
         // Plain drive paths: the permission recipes turn these into deny patterns, and a
@@ -290,10 +225,7 @@ impl HostServer {
             loop {
                 tick.tick().await;
                 let ui = Arc::clone(&polled.ui);
-                let changed = tokio::task::spawn_blocking(move || ui.poll()).await;
-                if changed.ok().flatten().is_some() {
-                    http::phone::refresh_ui_current(&polled);
-                }
+                let _ = tokio::task::spawn_blocking(move || ui.poll()).await;
             }
         });
         tokio::spawn(async move {
@@ -369,224 +301,10 @@ impl Drop for HostServer {
         }
     }
 }
-pub(super) fn annotate_live_sessions(sessions: &mut Value, statuses: Vec<RuntimeStatus>) {
-    let Some(items) = sessions.as_array_mut() else {
-        return;
-    };
-    for session in items {
-        let Some(session_id) = session.get("id").and_then(Value::as_str) else {
-            continue;
-        };
-        let Some(status) = statuses
-            .iter()
-            .find(|status| status.target.session_id == session_id)
-        else {
-            continue;
-        };
-        session["target"] = json!(status.target);
-        session["status"] = json!(status.state);
-    }
-}
-
-pub(super) fn messages_from_entries_response(response: &Value) -> Value {
-    let Some(entries) = response.pointer("/data/entries").and_then(Value::as_array) else {
-        return json!([]);
-    };
-    let leaf_id = response.pointer("/data/leafId").and_then(Value::as_str);
-    let mut id_to_index = HashMap::new();
-    for (index, entry) in entries.iter().enumerate() {
-        if let Some(id) = entry.get("id").and_then(Value::as_str) {
-            id_to_index.insert(id, index);
-        }
-    }
-
-    let mut branch = Vec::new();
-    let mut current = leaf_id.and_then(|id| id_to_index.get(id).copied());
-    let mut visited = HashSet::new();
-    while let Some(index) = current {
-        if !visited.insert(index) {
-            break;
-        }
-        let entry = &entries[index];
-        if entry.get("type").and_then(Value::as_str) == Some("message") {
-            if let Some(message) = entry.get("message") {
-                branch.push(message_with_entry_id(
-                    message.clone(),
-                    entry.get("id").and_then(Value::as_str),
-                ));
-            }
-        }
-        current = entry
-            .get("parentId")
-            .and_then(Value::as_str)
-            .and_then(|parent_id| id_to_index.get(parent_id).copied());
-    }
-
-    branch.reverse();
-    Value::Array(branch)
-}
-
-pub(super) fn message_with_entry_id(mut message: Value, entry_id: Option<&str>) -> Value {
-    let role = message.get("role").and_then(Value::as_str);
-    if role != Some("user") && role != Some("assistant") {
-        return message;
-    }
-    let Some(entry_id) = entry_id else {
-        return message;
-    };
-    if let Some(object) = message.as_object_mut() {
-        object.insert("entryId".to_owned(), Value::String(entry_id.to_owned()));
-    }
-    message
-}
-
-fn preference_key(frame: &Value) -> Result<String, (&'static str, String)> {
-    let key = frame
-        .get("key")
-        .and_then(Value::as_str)
-        .map(str::trim)
-        .filter(|value| !value.is_empty())
-        .ok_or(("invalid_preference", "key is required".into()))?;
-    if !key.starts_with("ui.") {
-        return Err((
-            "invalid_preference",
-            "Only ui.* preference keys are supported".into(),
-        ));
-    }
-    Ok(key.to_owned())
-}
-
-pub(super) fn dispatch_preference_operation(
-    state: &HostState,
-    request_id: &str,
-    operation: &str,
-    frame: &Value,
-) -> Result<Value, (&'static str, String)> {
-    let store = state.metadata.as_ref().ok_or((
-        "host_operation_failed",
-        "Preference store is not available".into(),
-    ))?;
-    let response = |operation: &str, fields: &[(&str, Value)]| {
-        let mut object = serde_json::Map::new();
-        object.insert("type".into(), Value::from("host_response"));
-        object.insert("requestId".into(), Value::from(request_id));
-        object.insert("operation".into(), Value::from(operation));
-        for (name, value) in fields {
-            object.insert((*name).into(), value.clone());
-        }
-        Value::Object(object)
-    };
-    if operation == "list_preferences" {
-        let prefix = frame
-            .get("prefix")
-            .and_then(Value::as_str)
-            .map(str::trim)
-            .filter(|value| !value.is_empty())
-            .ok_or(("invalid_preference", "prefix is required".into()))?;
-        if !prefix.starts_with("ui.") {
-            return Err((
-                "invalid_preference",
-                "Only ui.* preference keys are supported".into(),
-            ));
-        }
-        let rows = store
-            .lock()
-            .map_err(|_| {
-                (
-                    "host_operation_failed",
-                    "Preference store is poisoned".into(),
-                )
-            })?
-            .preference_list(prefix)
-            .map_err(|message| ("host_operation_failed", message))?;
-        let mut entries = serde_json::Map::new();
-        for (key, value) in rows {
-            entries.insert(key, value);
-        }
-        return Ok(response(operation, &[("entries", Value::Object(entries))]));
-    }
-    let key = preference_key(frame)?;
-    match operation {
-        "get_preference" => {
-            let value = store
-                .lock()
-                .map_err(|_| {
-                    (
-                        "host_operation_failed",
-                        "Preference store is poisoned".into(),
-                    )
-                })?
-                .preference_get(&key)
-                .map_err(|message| ("host_operation_failed", message))?;
-            Ok(response(
-                operation,
-                &[
-                    ("key", Value::from(key)),
-                    ("value", value.unwrap_or(Value::Null)),
-                ],
-            ))
-        }
-        "set_preference" => {
-            let value = frame
-                .get("value")
-                .cloned()
-                .filter(|value| !value.is_null())
-                .ok_or(("invalid_preference", "value is required".into()))?;
-            store
-                .lock()
-                .map_err(|_| {
-                    (
-                        "host_operation_failed",
-                        "Preference store is poisoned".into(),
-                    )
-                })?
-                .preference_set(&key, &value)
-                .map_err(|message| ("host_operation_failed", message))?;
-            Ok(response(
-                operation,
-                &[("key", Value::from(key)), ("value", value)],
-            ))
-        }
-        "remove_preference" => {
-            let removed = store
-                .lock()
-                .map_err(|_| {
-                    (
-                        "host_operation_failed",
-                        "Preference store is poisoned".into(),
-                    )
-                })?
-                .preference_remove(&key)
-                .map_err(|message| ("host_operation_failed", message))?;
-            Ok(response(
-                operation,
-                &[("key", Value::from(key)), ("removed", Value::from(removed))],
-            ))
-        }
-        _ => unreachable!("dispatch_preference_operation called with unknown operation"),
-    }
-}
 
 pub(super) fn host_data_error(error: HostDataError) -> (&'static str, String) {
-    match error {
-        HostDataError::UnknownWorkspace => {
-            ("workspace_not_found", "Workspace is not registered".into())
-        }
-        HostDataError::InvalidRelativePath | HostDataError::OutsideWorkspace => (
-            "path_outside_workspace",
-            "Requested path is outside the registered workspace".into(),
-        ),
-        HostDataError::NotDirectory => (
-            "not_a_directory",
-            "Requested path is not a directory".into(),
-        ),
-        HostDataError::NotFile => ("not_a_file", "Requested path is not a file".into()),
-        HostDataError::InvalidMentionQuery => (
-            "invalid_mention_query",
-            "File mention query is invalid".into(),
-        ),
-        HostDataError::Io(message) => ("file_access_failed", message),
-    }
+    let error = OpError::from(error);
+    (error.code, error.message)
 }
 
 pub(super) fn host_data_http_error(error: HostDataError) -> (StatusCode, Json<Value>) {

@@ -20,6 +20,26 @@ export function settingsPage(title, titleKey, children) {
 }
 
 /**
+ * One group of settings: a card with a title. Every Settings page is a stack of these.
+ * @param {string} title translated title, or "" for an untitled card
+ * @param {string} titleKey
+ * @param {Array<Node | string | false | null | undefined>} children
+ * @param {{ id?: string, className?: string }} [options]
+ */
+export function settingsCard(title, titleKey, children, { id, className } = {}) {
+  return /** @type {HTMLElement} */ (
+    el(
+      "section",
+      {
+        class: className ? `settings-section ui-card ${className}` : "settings-section ui-card",
+        id,
+      },
+      [title ? sectionTitle(title, { i18n: titleKey }) : null, ...children],
+    )
+  );
+}
+
+/**
  * @param {string} label
  * @param {{ i18n?: string }} [options]
  */
@@ -167,7 +187,7 @@ export function segmentedLevel({
 export function toggle({ id, checked = false, onChange, label } = {}) {
   const button = /** @type {HTMLButtonElement} */ (
     el("button", {
-      class: checked ? "settings-toggle on" : "settings-toggle",
+      class: checked ? "ui-toggle settings-toggle on" : "ui-toggle settings-toggle",
       type: "button",
       id,
       role: "switch",

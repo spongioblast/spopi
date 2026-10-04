@@ -300,8 +300,8 @@ export function dedupeConfiguredPackages(
 }
 
 /**
- * Build a package skill inventory for the requested scope. Task 2 produces
- * source/identity/root cards only; Task 3 fills in candidates via the shared
+ * Build a package skill inventory for the requested scope: one card per
+ * configured package that contributes skills, with candidates from the shared
  * discovery collector.
  *
  * For untrusted project scope, returns `{ trusted:false, packages:[] }`

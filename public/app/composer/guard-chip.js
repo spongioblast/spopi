@@ -13,7 +13,7 @@ const LABELS = {
 };
 
 /**
- * @typedef {{ call: (op: string, params?: Record<string, unknown>) => Promise<{ ok?: boolean, error?: string, data?: { mode?: string } } | undefined> }} GuardGateway
+ * @typedef {{ call: (op: string, params?: Record<string, unknown>) => Promise<{ ok?: boolean, error?: string, data?: { mode?: string, stale?: boolean } } | undefined> }} GuardGateway
  */
 
 /** @type {string} */
@@ -103,7 +103,15 @@ export function mountGuardChip(configGateway) {
   }
   void gateway
     ?.call("get_permission_mode")
-    .then((result) => showGuardMode(result?.data?.mode))
+    .then((result) => {
+      showGuardMode(result?.data?.mode);
+      if (result?.data?.stale !== true) return;
+      document.dispatchEvent(
+        new CustomEvent("spopi-notice", {
+          detail: { message: t("composer.guardStale"), notifyType: "warning" },
+        }),
+      );
+    })
     .catch((error) => console.warn("[guard-chip]", error));
 }
 

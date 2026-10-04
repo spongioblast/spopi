@@ -324,6 +324,224 @@
   }
 }
 
+/* On/off switch: a button[role="switch"] with aria-checked, or a checkbox input. */
+.ui-toggle {
+  appearance: none;
+  position: relative;
+  flex: 0 0 auto;
+  width: 36px;
+  height: 20px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--bg-glass-strong);
+  cursor: pointer;
+  transition:
+    background var(--duration) var(--ease),
+    border-color var(--duration) var(--ease);
+}
+
+.ui-toggle::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--text-secondary);
+  transition:
+    transform 0.25s var(--spring),
+    background 0.25s var(--spring);
+}
+
+.ui-toggle[aria-checked="true"],
+.ui-toggle:checked {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.ui-toggle[aria-checked="true"]::after,
+.ui-toggle:checked::after {
+  transform: translateX(16px);
+  background: var(--on-accent);
+}
+
+.ui-toggle:focus-visible {
+  outline: var(--space-0-5) solid var(--accent);
+  outline-offset: var(--space-0-5);
+}
+
+.ui-toggle:disabled {
+  cursor: not-allowed;
+  opacity: var(--disabled-opacity);
+}
+
+.ui-toggle[aria-busy="true"] {
+  cursor: progress;
+}
+
+.ui-toggle--sm {
+  width: 30px;
+  height: 17px;
+}
+
+.ui-toggle--sm::after {
+  width: 11px;
+  height: 11px;
+}
+
+.ui-toggle--sm[aria-checked="true"]::after,
+.ui-toggle--sm:checked::after {
+  transform: translateX(13px);
+}
+
+/* Tab strip: role="tablist" with role="tab" buttons; aria-selected or .active marks the open tab. */
+.ui-tabs {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.ui-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 22px;
+  padding: 0 var(--space-2);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background var(--duration) var(--ease),
+    color var(--duration) var(--ease);
+}
+
+.ui-tab:hover {
+  color: var(--text-primary);
+}
+
+.ui-tab[aria-selected="true"],
+.ui-tab.active {
+  color: var(--text-primary);
+  background: var(--bg-glass-hover);
+}
+
+.ui-tab:focus-visible {
+  outline: var(--space-0-5) solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* Page-level tabs: an underline instead of a fill. */
+.ui-tabs--underline {
+  gap: var(--space-4);
+  border-bottom: 1px solid var(--border);
+}
+
+.ui-tabs--underline .ui-tab {
+  padding: var(--space-2) 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  font-size: var(--font-size-md);
+}
+
+.ui-tabs--underline .ui-tab[aria-selected="true"],
+.ui-tabs--underline .ui-tab.active {
+  background: transparent;
+  border-bottom-color: var(--accent);
+}
+
+/* Small count or status label. */
+.ui-badge {
+  display: inline-flex;
+  align-items: center;
+  min-width: var(--space-4);
+  height: var(--space-4);
+  padding: 0 var(--space-1-5);
+  border-radius: var(--radius-pill);
+  background: var(--bg-glass-active);
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.ui-badge--accent {
+  background: var(--accent-quiet);
+  color: var(--accent-text);
+}
+
+/* Empty, error, and unavailable states (see app/ui/settings-states.js). */
+.ui-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-3) 0;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.ui-empty-title {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: var(--font-size-md);
+}
+
+.ui-empty-hint {
+  margin: 0;
+}
+
+.ui-empty--error .ui-empty-title {
+  color: var(--error);
+}
+
+.ui-card {
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-glass);
+}
+
+/* Placeholder block while content loads. */
+.ui-skeleton {
+  display: block;
+  min-height: var(--space-3);
+  border-radius: var(--radius-xs);
+  background: linear-gradient(
+    90deg,
+    var(--bg-glass) 25%,
+    var(--bg-glass-active) 50%,
+    var(--bg-glass) 75%
+  );
+  background-size: 200% 100%;
+  animation: ui-skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes ui-skeleton-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-skeleton {
+    animation: none;
+  }
+}
+
 /* ═══════════════════════════════════════════════════════════════
    Dialog overlay + panel primitives
 
@@ -336,7 +554,7 @@
 
    Dark themes ship no shadow tokens and a frosted background that matches
    the page tone, so an undifferentiated modal disappears. These primitives
-   apply an explicit elevation shadow and a #3a3a3a border in dark themes
+   apply an explicit elevation shadow and the raised `--dialog-border` in dark themes
    so every dialog reads clearly above the dimmed backdrop. Light themes
    keep the standard shadow tokens and border.
    ═══════════════════════════════════════════════════════════════ */
@@ -349,7 +567,7 @@
 .provider-picker-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.35);
+  background: var(--overlay-scrim);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
 }
@@ -393,17 +611,15 @@
 }
 
 /* Dark themes: lift the panel off the equally-dark backdrop with a real
-   shadow and a #3a3a3a border (see comment above). */
+   shadow and a raised border (see comment above). */
 :root:not([data-scheme="light"]) .ui-dialog,
 :root:not([data-scheme="light"]) .dialog,
 :root:not([data-scheme="light"]) .settings-panel.resource-dialog,
 :root:not([data-scheme="light"]) .session-search-dialog,
 :root:not([data-scheme="light"]) .provider-picker-dialog,
 :root:not([data-scheme="light"]) .provider-setup-dialog {
-  border-color: #3a3a3a;
-  box-shadow:
-    0 20px 60px rgba(0, 0, 0, 0.55),
-    0 8px 24px rgba(0, 0, 0, 0.4);
+  border-color: var(--dialog-border);
+  box-shadow: var(--elevation-lg);
 }
 
 .ui-reload-banner {

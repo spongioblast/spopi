@@ -5,7 +5,7 @@
   flex: 0 0 var(--dock-height, 300px);
   display: flex;
   flex-direction: column;
-  min-height: 28px;
+  min-height: var(--control-height-sm);
   border-top: 1px solid var(--border);
   background: var(--bg-solid);
 }
@@ -14,7 +14,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-1);
-  min-height: 28px;
+  min-height: var(--control-height-sm);
   padding: var(--space-1) var(--space-2);
 }
 
@@ -28,23 +28,6 @@
 
 .app-layout.spopi-shell .spopi-dock-tools {
   margin-left: auto;
-}
-
-.app-layout.spopi-shell .spopi-dock-tab {
-  height: 22px;
-  padding: 0 var(--space-2);
-  border: none;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--text-secondary);
-  font: inherit;
-  font-size: var(--font-size-sm);
-  cursor: pointer;
-}
-
-.app-layout.spopi-shell .spopi-dock-tab.active {
-  color: var(--text-primary);
-  background: var(--bg-glass-hover);
 }
 
 .app-layout.spopi-shell .spopi-dock-tab.has-activity::after {

@@ -3,6 +3,7 @@
 
 import { t } from "../i18n/i18n.js";
 import { confirmDialog } from "../ui/dialog.js";
+import { appKeybindings, formatChord } from "../ui/keybindings.js";
 
 /** One restart notice per app start, and only for a tab that was actually running. */
 let restartNoticeShown = false;
@@ -107,8 +108,8 @@ export class TerminalPanel {
     this._restartNoticeShown = false;
     /** @type {ReturnType<typeof setTimeout> | 0} */
     this._dragRefitTimer = 0;
-    /** @type {((event: KeyboardEvent) => void) | null} */
-    this._terminalKeydownHandler = null;
+    /** @type {(() => void) | null} */
+    this._unbindTerminalShortcut = null;
     /** @type {boolean} */
     this.enlarged = false;
     /** @type {(() => void) | null} */
@@ -155,12 +156,13 @@ export class TerminalPanel {
     this.toggleEl.setAttribute("title", t("terminal.toggle"));
     this.toggleEl.innerHTML = `<svg width="16" height="16" ${SVG_BASE}><rect x="3.5" y="4.5" width="17" height="15" rx="3"/><path d="M7 15h10"/></svg>`;
     this.toggleEl.addEventListener("click", () => this.toggle());
-    this._terminalKeydownHandler = (event) => {
-      if (!isTerminalShortcut(event)) return;
-      event.preventDefault();
-      this.toggle();
-    };
-    document.addEventListener("keydown", this._terminalKeydownHandler);
+    this._unbindTerminalShortcut = appKeybindings().register({
+      id: "dock.terminal",
+      keys: "Mod+`",
+      labelKey: "terminal.toggle",
+      when: (event) => isTerminalShortcut(event),
+      run: () => this.toggle(),
+    });
 
     this.root = document.createElement("section");
     this.root.id = "terminal-panel";
@@ -194,6 +196,7 @@ export class TerminalPanel {
     newTabButton.dataset.terminalNewTab = "";
     newTabButton.innerHTML = PLUS_ICON_SVG;
     newTabButton.title = t("terminal.newTab");
+    newTabButton.setAttribute("aria-label", t("terminal.newTab"));
     newTabButton.addEventListener("click", () => {
       if (!this.locked) this.client?.create?.(this.getDefaultProfile());
     });
@@ -632,10 +635,8 @@ export class TerminalPanel {
     this.root = null;
     this.tabBarEl = null;
     this.bodyEl = null;
-    if (this._terminalKeydownHandler) {
-      document.removeEventListener("keydown", this._terminalKeydownHandler);
-      this._terminalKeydownHandler = null;
-    }
+    this._unbindTerminalShortcut?.();
+    this._unbindTerminalShortcut = null;
   }
 
   layoutHeight() {
@@ -782,7 +783,7 @@ export class TerminalPanel {
   applyLocale() {
     const toggleLabel = t("terminal.toggle");
     this.toggleEl?.setAttribute("aria-label", toggleLabel);
-    this.toggleEl?.setAttribute("title", `${toggleLabel} (Ctrl+\u0060)`);
+    this.toggleEl?.setAttribute("title", `${toggleLabel} (${formatChord("Mod+`")})`);
     this._renderTabBar();
   }
 }
@@ -792,18 +793,8 @@ export class TerminalPanel {
  */
 function isTerminalShortcut(event) {
   if (event.defaultPrevented || event.isComposing) return false;
-  if (event.metaKey || event.altKey || event.shiftKey) return false;
-  if (event.key !== "`") return false;
-  if (!event.ctrlKey) return false;
   const target = event.target;
-  if (
-    !target ||
-    typeof target !== "object" ||
-    !("closest" in target) ||
-    typeof target.closest !== "function"
-  ) {
-    return false;
-  }
+  if (!(target instanceof Element)) return true;
   if (target.closest("input, textarea, select, .terminal-body")) return false;
   if (target.closest('[contenteditable="true"]') !== null) return false;
   return true;

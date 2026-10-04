@@ -1,4 +1,4 @@
-// ABOUTME: Desktop HTTP for phone access: settings, pairing, devices, and UI accept.
+// ABOUTME: Desktop HTTP for phone access: settings, pairing, and devices.
 // ABOUTME: The phone browser uses the HTTPS listener, not these loopback routes.
 
 use super::super::HostState;
@@ -6,42 +6,16 @@ use crate::host::capabilities::capability_names;
 use crate::host::phone::listen;
 use crate::host::phone::{self, new_token, now_secs, token_hash};
 use crate::host::router::{ClientKind, Tier};
-use axum::extract::{ConnectInfo, State};
+use axum::extract::State;
 use axum::Json;
 use qrcode::QrCode;
 use serde::Deserialize;
-use serde_json::{json, Map, Value};
-use std::collections::BTreeMap;
+use serde_json::{json, Value};
 use std::net::{IpAddr, SocketAddr};
 use std::sync::Arc;
 
 pub async fn status(State(state): State<Arc<HostState>>) -> Json<Value> {
-    let changes = ui_changes(&state);
-    state.phone.set_ui_current(changes.is_empty());
-    Json(json!({
-        "enabled": state.phone.ca_is_open(),
-        "changes": changes.iter().map(|c| json!({"path": c.path, "kind": c.kind})).collect::<Vec<_>>(),
-    }))
-}
-
-pub async fn accept(State(state): State<Arc<HostState>>) -> Json<Value> {
-    let current = current_map(&state);
-    if let Some(meta) = &state.metadata {
-        if let Ok(mut guard) = meta.lock() {
-            let value = Value::Object(
-                current
-                    .iter()
-                    .map(|(k, v)| (k.clone(), Value::String(v.clone())))
-                    .collect(),
-            );
-            let _ = guard.preference_set("phone.ui.accepted", &value);
-        }
-    }
-    state.phone.set_ui_current(true);
-    let _ = state
-        .fanout
-        .send(json!({"type": "ui_reload", "kind": "full"}));
-    Json(json!({"ok": true}))
+    Json(json!({ "enabled": state.phone.is_enabled() }))
 }
 
 #[derive(Deserialize)]
@@ -50,11 +24,13 @@ pub struct PairRequest {
     pub port: u16,
 }
 
+/// Each call mints a new pairing secret and invalidates the previous QR code.
 pub async fn pair(
-    State(_state): State<Arc<HostState>>,
+    State(state): State<Arc<HostState>>,
     Json(body): Json<PairRequest>,
 ) -> Json<Value> {
-    let url = format!("https://{}:{}/pair", body.host, body.port);
+    let secret = state.phone.issue_pair_code();
+    let url = format!("https://{}:{}/pair#{secret}", body.host, body.port);
     let svg = QrCode::new(url.as_bytes())
         .ok()
         .map(|code| {
@@ -63,7 +39,11 @@ pub async fn pair(
                 .build()
         })
         .unwrap_or_default();
-    Json(json!({"url": url, "svg": svg}))
+    Json(json!({
+        "url": url,
+        "svg": svg,
+        "expiresIn": phone::PAIR_CODE_TTL.as_secs(),
+    }))
 }
 
 #[derive(Deserialize)]
@@ -80,17 +60,13 @@ pub async fn decide(State(state): State<Arc<HostState>>, Json(body): Json<Decide
     };
     if body.deny.unwrap_or(false) {
         let _ = state.phone.deny_named(&body.claim_id);
+        settled(&state, &body.claim_id);
         return Json(
             json!({"ok": true, "denied": true, "name": name, "source": source.to_string()}),
         );
     }
     let token = new_token();
-    let tier_name = body.tier.unwrap_or_else(|| "control".into());
-    let tier = match tier_name.as_str() {
-        "observe" => Tier::Observe,
-        "full" => Tier::Full,
-        _ => Tier::Control,
-    };
+    let tier = Tier::from_name(body.tier.as_deref().unwrap_or_default());
     let device = ClientKind::Remote {
         device_id: body.claim_id.clone(),
         name: name.clone(),
@@ -101,14 +77,22 @@ pub async fn decide(State(state): State<Arc<HostState>>, Json(body): Json<Decide
         if let Ok(guard) = meta.lock() {
             let _ = guard.connection().execute(
                 "INSERT INTO devices (id, name, token_hash, tier, created_at, last_seen_at, revoked_at) VALUES (?1, ?2, ?3, ?4, ?5, ?5, NULL)",
-                rusqlite::params![body.claim_id, name, token_hash(&token), tier_name, now_secs()],
+                rusqlite::params![body.claim_id, name, token_hash(&token), tier.name(), now_secs()],
             );
         }
     }
     if !state.phone.approve_named(&body.claim_id, token) {
         return Json(json!({"error": "unknown_claim"}));
     }
+    settled(&state, &body.claim_id);
     Json(json!({"ok": true}))
+}
+
+/// Closes the request dialog in every other desktop window.
+fn settled(state: &HostState, claim_id: &str) {
+    let _ = state
+        .fanout
+        .send(json!({"type": "phone_claim_settled", "claimId": claim_id}));
 }
 
 pub async fn devices(State(state): State<Arc<HostState>>) -> Json<Value> {
@@ -160,6 +144,43 @@ pub async fn revoke(State(state): State<Arc<HostState>>, Json(body): Json<Revoke
     Json(json!({"ok": true}))
 }
 
+pub async fn firewall_status() -> Json<Value> {
+    let status = tokio::task::spawn_blocking(crate::platform::firewall::status)
+        .await
+        .unwrap_or_default();
+    Json(json!(status))
+}
+
+#[derive(Deserialize)]
+pub struct FirewallAllow {
+    pub port: u16,
+    pub allow: Vec<String>,
+}
+
+pub async fn firewall_allow(Json(body): Json<FirewallAllow>) -> Json<Value> {
+    let entries: Vec<&str> = body
+        .allow
+        .iter()
+        .map(|entry| entry.trim())
+        .filter(|entry| !entry.is_empty())
+        .collect();
+    if let Some(bad) = entries.iter().find(|e| !phone::allow_entry_valid(e)) {
+        return Json(json!({"ok": false, "error": "allow_invalid", "entry": bad}));
+    }
+    if entries.is_empty() {
+        return Json(json!({"ok": false, "error": "allow_empty"}));
+    }
+    let result = tokio::task::spawn_blocking(move || {
+        crate::platform::firewall::allow(body.port, &body.allow)
+    })
+    .await
+    .unwrap_or_else(|error| Err(error.to_string()));
+    match result {
+        Ok(()) => Json(json!({"ok": true})),
+        Err(error) => Json(json!({"ok": false, "error": error})),
+    }
+}
+
 #[derive(Deserialize)]
 pub struct Enable {
     pub enabled: bool,
@@ -168,92 +189,164 @@ pub struct Enable {
     pub allow: Vec<String>,
 }
 
-pub async fn enable(
-    State(state): State<Arc<HostState>>,
-    ConnectInfo(_peer): ConnectInfo<SocketAddr>,
-    Json(body): Json<Enable>,
-) -> Json<Value> {
-    state.phone.set_allow(body.allow);
-    state.phone.set_ca_open(body.enabled);
+const ENABLED_KEY: &str = "ui.phone.enabled";
+
+pub async fn enable(State(state): State<Arc<HostState>>, Json(body): Json<Enable>) -> Json<Value> {
+    let wanted = body.enabled;
+    let reply = apply_enable(&state, body).await;
+    if reply.get("ok").and_then(Value::as_bool) == Some(true) {
+        remember_enabled(&state, wanted);
+    }
+    Json(reply)
+}
+
+fn remember_enabled(state: &HostState, enabled: bool) {
+    let Some(store) = state.metadata.as_ref() else {
+        return;
+    };
+    if let Ok(mut store) = store.lock() {
+        if let Err(error) = store.preference_set(ENABLED_KEY, &Value::Bool(enabled)) {
+            log::warn!("[spopi-host] cannot save {ENABLED_KEY}: {error}");
+        }
+    }
+}
+
+/// Turns phone access back on at startup when it was on when SPOPI closed.
+pub(crate) async fn restore(state: Arc<HostState>) {
+    let Some(body) = saved_enable(&state) else {
+        return;
+    };
+    let address = format!("{}:{}", body.ip, body.port);
+    let reply = apply_enable(&state, body).await;
+    if reply.get("ok").and_then(Value::as_bool) != Some(true) {
+        log::warn!("[spopi-host] phone access did not come back on {address}: {reply}");
+    }
+}
+
+fn saved_enable(state: &HostState) -> Option<Enable> {
+    let store = state.metadata.as_ref()?.lock().ok()?;
+    let get = |key: &str| store.preference_get(key).ok().flatten();
+    if get(ENABLED_KEY).and_then(|value| value.as_bool()) != Some(true) {
+        return None;
+    }
+    let ip = get("ui.phone.ip")?.as_str()?.to_string();
+    let port = get("ui.phone.port")
+        .and_then(|value| value.as_u64())
+        .and_then(|value| u16::try_from(value).ok())
+        .unwrap_or(57640);
+    let allow = get("ui.phone.allow")?
+        .as_array()?
+        .iter()
+        .filter_map(|entry| entry.as_str().map(str::to_string))
+        .collect();
+    Some(Enable {
+        enabled: true,
+        ip,
+        port,
+        allow,
+    })
+}
+
+async fn apply_enable(state: &Arc<HostState>, body: Enable) -> Value {
+    let allow: Vec<String> = body
+        .allow
+        .iter()
+        .map(|entry| entry.trim().to_string())
+        .filter(|entry| !entry.is_empty())
+        .collect();
     if !body.enabled {
-        return Json(json!({"ok": true, "enabled": false}));
+        stop_listener(state);
+        state.phone.forget_pair_code();
+        state.phone.set_enabled(false);
+        state.phone.set_allow(
+            allow
+                .into_iter()
+                .filter(|e| phone::allow_entry_valid(e))
+                .collect(),
+        );
+        return json!({"ok": true, "enabled": false});
+    }
+    if let Some(bad) = allow.iter().find(|entry| !phone::allow_entry_valid(entry)) {
+        return json!({"error": "allow_invalid", "entry": bad});
+    }
+    if allow.is_empty() {
+        return json!({"error": "allow_empty"});
     }
     let Ok(ip) = body.ip.parse::<IpAddr>() else {
-        return Json(json!({"error": "bad_ip"}));
+        return json!({"error": "bad_ip"});
     };
     if ip.is_unspecified() {
-        return Json(json!({"error": "unspecified"}));
+        return json!({"error": "unspecified"});
     }
-    ensure_accepted_baseline(&state);
-    refresh_ui_current(&state);
-    let listener_state = Arc::clone(&state);
-    let static_dir = state.ui.shipped.clone();
-    let dir = crate::data::app_paths::config_dir().join("tls");
+    state.phone.set_allow(allow);
+    state.phone.set_enabled(true);
     let addr = SocketAddr::from((ip, body.port));
+    if state.phone.listener_addr() == Some(addr) {
+        return json!({"ok": true, "enabled": true});
+    }
+    stop_listener(state);
+    let dir = crate::data::app_paths::config_dir().join("tls");
+    match start_listener(state, addr, dir).await {
+        Ok(()) => json!({"ok": true, "enabled": true}),
+        Err(error) => {
+            state.phone.set_enabled(false);
+            json!({"error": "listen_failed", "detail": error})
+        }
+    }
+}
+
+fn stop_listener(state: &HostState) {
+    if let Some(running) = state.phone.replace_listener(None) {
+        running.handle.shutdown();
+    }
+}
+
+/// Waits until the listener is bound, so a busy port or a missing address is reported.
+pub(crate) async fn start_listener(
+    state: &Arc<HostState>,
+    addr: SocketAddr,
+    tls_dir: std::path::PathBuf,
+) -> Result<(), String> {
+    let handle = axum_server::Handle::new();
+    let mut task = tokio::spawn(listen::serve(
+        addr,
+        state.ui.shipped.clone(),
+        tls_dir,
+        Arc::clone(state),
+        handle.clone(),
+    ));
+    let started = tokio::time::timeout(std::time::Duration::from_secs(15), async {
+        tokio::select! {
+            bound = handle.listening() => match bound {
+                Some(_) => Ok(()),
+                None => Err(task_error((&mut task).await)),
+            },
+            done = &mut task => Err(task_error(done)),
+        }
+    })
+    .await
+    .unwrap_or_else(|_| Err("the listener did not start".into()));
+    if let Err(error) = started {
+        handle.shutdown();
+        task.abort();
+        log::warn!("[spopi-host] phone listener {addr}: {error}");
+        return Err(error);
+    }
+    state
+        .phone
+        .replace_listener(Some(phone::RunningListener { addr, handle }));
     tokio::spawn(async move {
-        if let Err(error) = listen::serve(addr, static_dir, dir, listener_state).await {
-            log::warn!("[spopi-host] phone listener: {error}");
+        if let Ok(Err(error)) = task.await {
+            log::warn!("[spopi-host] phone listener {addr}: {error}");
         }
     });
-    Json(json!({"ok": true, "enabled": true}))
+    Ok(())
 }
 
-fn current_map(state: &HostState) -> BTreeMap<String, String> {
-    let shipped = phone::hash_tree(&state.ui.shipped);
-    if state.ui.is_safe() {
-        return shipped;
+fn task_error(done: Result<Result<(), String>, tokio::task::JoinError>) -> String {
+    match done {
+        Ok(Err(error)) => error,
+        Ok(Ok(())) => "the listener stopped".into(),
+        Err(error) => error.to_string(),
     }
-    phone::effective(&shipped, &phone::hash_tree(&state.ui.root))
-}
-
-pub(crate) fn refresh_ui_current(state: &HostState) {
-    state.phone.set_ui_current(ui_changes(state).is_empty());
-}
-
-fn ui_changes(state: &HostState) -> Vec<phone::Change> {
-    let current = current_map(state);
-    let accepted = accepted_map(state);
-    phone::changes(&current, &accepted)
-}
-
-/// First enable records the tree phones are already allowed to see.
-fn ensure_accepted_baseline(state: &HostState) {
-    if !accepted_map(state).is_empty() {
-        return;
-    }
-    let current = current_map(state);
-    if current.is_empty() {
-        return;
-    }
-    if let Some(meta) = &state.metadata {
-        if let Ok(mut guard) = meta.lock() {
-            let value = Value::Object(
-                current
-                    .iter()
-                    .map(|(k, v)| (k.clone(), Value::String(v.clone())))
-                    .collect(),
-            );
-            let _ = guard.preference_set("phone.ui.accepted", &value);
-        }
-    }
-    state.phone.set_ui_current(true);
-}
-
-fn accepted_map(state: &HostState) -> BTreeMap<String, String> {
-    let Some(meta) = &state.metadata else {
-        return BTreeMap::new();
-    };
-    let Ok(guard) = meta.lock() else {
-        return BTreeMap::new();
-    };
-    let Ok(Some(Value::Object(map))) = guard.preference_get("phone.ui.accepted") else {
-        return BTreeMap::new();
-    };
-    json_map(map)
-}
-
-fn json_map(map: Map<String, Value>) -> BTreeMap<String, String> {
-    map.into_iter()
-        .filter_map(|(k, v)| v.as_str().map(|s| (k, s.to_string())))
-        .collect()
 }

@@ -143,7 +143,9 @@ export function mountModelControls({
     onModelStatusChange?.(status);
     if (!modelDropdownLabel) return;
     if (!missing) {
-      modelDropdownLabel.textContent = selectedModelName || "model";
+      const name = selectedModelName || "model";
+      modelDropdownLabel.textContent = name;
+      if (modelDropdownBtn instanceof HTMLElement) modelDropdownBtn.title = name;
     } else {
       modelDropdownLabel.textContent =
         status === "none" ? t("composer.noModel") : t("composer.chooseModel");

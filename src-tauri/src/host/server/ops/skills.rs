@@ -1,7 +1,7 @@
 // ABOUTME: Opens the OS folder dialog so Settings can install skills through Pi.
 // ABOUTME: Scanning and the settings write stay in the bridge, inside Pi.
 
-use super::super::HostState;
+use super::super::{HostState, OpError};
 use serde_json::{json, Value};
 use tauri_plugin_dialog::DialogExt;
 
@@ -11,13 +11,13 @@ pub(crate) async fn dispatch(
     request_id: &str,
     operation: &str,
     _frame: &Value,
-) -> Result<Value, (&'static str, String)> {
+) -> Result<Value, OpError> {
     match operation {
         "pick_skill_folder" => {
             let Some(app) = state.app_handle.clone() else {
-                return Err((
+                return Err(OpError::new(
                     "host_operation_failed",
-                    "Folder picker is not available".into(),
+                    "Folder picker is not available",
                 ));
             };
             let path =
@@ -36,9 +36,9 @@ pub(crate) async fn dispatch(
                 "path": path,
             }))
         }
-        _ => Err((
+        _ => Err(OpError::new(
             "host_operation_unimplemented",
-            "Host operation is not implemented on protocol v2".into(),
+            "Host operation is not implemented on protocol v2",
         )),
     }
 }

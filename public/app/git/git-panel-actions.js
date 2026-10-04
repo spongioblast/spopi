@@ -2,9 +2,16 @@
 // ABOUTME: The panel view stays in git-panel.js and paints the status tree.
 
 import { t } from "../i18n/i18n.js";
-import { bindModal } from "../ui/dialog.js";
+import { trapModal } from "../ui/dialog.js";
 import { openGitBranchMenu } from "./git-branch-menu.js";
+import {
+  beginIdentityEdit,
+  createIdentityState,
+  isIdentityError,
+  mountCommitIdentity,
+} from "./git-commit-identity.js";
 import { confirmGitAction } from "./git-confirm-dialog.js";
+import { openRemoteDialog } from "./git-remote-dialog.js";
 import { appendAmendCheckbox } from "./git-toolbar.js";
 
 /**
@@ -52,6 +59,7 @@ export const gitPanelActions = {
     this.aiSnapshot = snapshot || null;
     this.commitMessage = message || "";
     this.aiError = null;
+    this.identityState = createIdentityState();
     this.openCommitDialog();
   },
   /** @param {unknown} error */
@@ -71,6 +79,7 @@ export const gitPanelActions = {
     }
     this.commitMessage = this.commitMessage || "";
     this.aiError = /** @type {string} */ (error || t("git.aiFailed"));
+    this.identityState = createIdentityState();
     this.openCommitDialog();
   },
   /** @param {string | null | undefined} token */
@@ -90,18 +99,27 @@ export const gitPanelActions = {
     if (!this.aiSnapshot?.snapshotId) return;
     this.closeCommitDialog();
     const overlay = document.createElement("div");
-    overlay.className = "git-commit-dialog-overlay";
+    overlay.className = "ui-overlay git-commit-dialog-overlay";
     overlay.setAttribute("role", "dialog");
     overlay.setAttribute("aria-labelledby", "git-commit-dialog-title");
     const dialog = document.createElement("div");
-    dialog.className = "git-commit-dialog";
+    dialog.className = "ui-dialog git-commit-dialog";
     const title = document.createElement("h3");
     title.id = "git-commit-dialog-title";
+    title.className = "dialog-title";
     title.textContent = t("git.commit");
     dialog.append(title);
+    if (!this.identityState) this.identityState = createIdentityState();
+    const identity = mountCommitIdentity({
+      state: this.identityState,
+      service: this.identity,
+      onPaint: () => this.updateCommitDialogState(),
+    });
+    dialog.append(identity.element);
     if (this.aiError) {
       const error = document.createElement("p");
       error.className = "git-commit-error";
+      error.setAttribute("role", "alert");
       error.textContent = this.aiError;
       dialog.append(error);
     }
@@ -112,31 +130,37 @@ export const gitPanelActions = {
       dialog.append(notice);
     }
     const textarea = document.createElement("textarea");
-    textarea.className = "git-commit-textarea";
+    textarea.className = "ui-textarea git-commit-textarea";
     textarea.value = this.commitMessage || "";
     textarea.setAttribute("aria-label", t("git.commitMessageLabel"));
+    textarea.placeholder = t("git.commitMessageLabel");
     textarea.rows = 6;
     textarea.addEventListener("input", () => {
       this.commitMessage = textarea.value;
+      this.updateCommitDialogState();
     });
     dialog.append(textarea);
+    const footer = document.createElement("div");
+    footer.className = "git-commit-footer";
+    appendAmendCheckbox(footer, this, this.snapshot);
     const actions = document.createElement("div");
-    actions.className = "git-commit-actions";
+    actions.className = "dialog-actions git-commit-actions";
     const cancel = document.createElement("button");
     cancel.type = "button";
+    cancel.className = "ui-button ui-button--secondary";
     cancel.textContent = t("git.cancel");
     cancel.addEventListener("click", () => this.closeCommitDialog());
     const submit = document.createElement("button");
     submit.type = "button";
     submit.textContent = t("git.commit");
-    submit.className = "git-commit-submit";
+    submit.className = "ui-button ui-button--primary git-commit-submit";
     submit.addEventListener("click", () => {
       this.commitMessage = textarea.value;
-      this.commit();
+      void this.submitCommit();
     });
     actions.append(cancel, submit);
-    appendAmendCheckbox(dialog, this, this.snapshot);
-    dialog.append(actions);
+    footer.append(actions);
+    dialog.append(footer);
     overlay.append(dialog);
     overlay.addEventListener("click", () => {
       // Commit dialog is modal: do not close on overlay click. The user
@@ -147,7 +171,8 @@ export const gitPanelActions = {
       overlay,
       textarea,
       submit,
-      unbindEscape: bindModal(overlay, { onClose: () => this.closeCommitDialog() }),
+      identity,
+      unbindEscape: trapModal(overlay, { onClose: () => this.closeCommitDialog() }),
     };
     textarea.focus();
     this.updateCommitDialogState();
@@ -162,7 +187,10 @@ export const gitPanelActions = {
     if (!this.commitDialog) return;
     this.commitDialog.textarea.disabled = this.commitInProgress;
     this.commitDialog.submit.disabled =
-      this.commitInProgress || !this.commitDialog.textarea.value.trim();
+      this.commitInProgress ||
+      this.identityState?.loading ||
+      this.identityState?.saving ||
+      !this.commitDialog.textarea.value.trim();
     this.commitDialog.submit.textContent = this.commitInProgress
       ? t("git.committing")
       : t("git.commit");
@@ -198,7 +226,7 @@ export const gitPanelActions = {
     this.pendingCommitRequestId = null;
     if (status === "outcomeUnknown") {
       this.aiError = t("git.outcomeUnknown");
-    } else {
+    } else if (!this.showIdentityProblem(result?.error)) {
       this.aiError = result?.error || t("git.aiFailed");
     }
     if (this.commitDialog) this.openCommitDialog();
@@ -209,8 +237,31 @@ export const gitPanelActions = {
     // leave the dialog permanently disabled. End the in-progress state,
     // surface the error, and keep the user's message so they can retry.
     this.commitInProgress = false;
-    this.aiError = /** @type {string} */ (error || t("git.aiFailed"));
+    if (!this.showIdentityProblem(error)) {
+      this.aiError = /** @type {string} */ (error || t("git.aiFailed"));
+    }
     if (this.commitDialog) this.openCommitDialog();
+  },
+  /** A name and email typed into the dialog go to Git's config before the commit runs. */
+  async submitCommit() {
+    const dialog = this.commitDialog;
+    if (!dialog || this.commitInProgress) return null;
+    dialog.submit.disabled = true;
+    const saved = await dialog.identity.save();
+    if (this.commitDialog !== dialog) return null;
+    if (!saved) {
+      this.updateCommitDialogState();
+      return null;
+    }
+    if (this.aiError === t("git.identityMissing")) this.aiError = null;
+    return this.commit();
+  },
+  /** @param {unknown} error */
+  showIdentityProblem(error) {
+    if (!isIdentityError(error)) return false;
+    beginIdentityEdit(this.identityState);
+    this.aiError = t("git.identityMissing");
+    return true;
   },
   /**
    * @param {string} [message]
@@ -267,6 +318,7 @@ export const gitPanelActions = {
   pushErrorText(error) {
     if (error === "push_detached_head") return t("git.pushDetachedHead");
     if (error === "push_no_remote") return t("git.pushNoRemote");
+    if (error === "pull_no_upstream") return t("git.pullNoUpstream");
     if (error === "busy") return t("git.pushBusy");
     const text = typeof error === "string" ? error.trim() : "";
     return text || t("git.pushFailed");
@@ -316,6 +368,17 @@ export const gitPanelActions = {
       event,
       client: this.client,
       onError: (error) => this.applyRemoteError(error),
+      onEditRemote: (remote) => this.openRemoteDialog(remote),
+    });
+  },
+  /** @param {import("./git-remote-dialog.js").GitRemote | null} [remote] */
+  openRemoteDialog(remote = null) {
+    const snapshot = this.snapshot;
+    return openRemoteDialog({
+      client: this.client,
+      remote,
+      canPublish: !remote && Boolean(snapshot?.branch) && !snapshot?.upstream,
+      onPublish: () => this.push(),
     });
   },
   /**

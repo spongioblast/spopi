@@ -234,6 +234,55 @@ describe("GitPanel", () => {
     // The dialog must still be open with the error shown.
     expect(document.body.querySelector(".git-commit-dialog")).not.toBeNull();
     expect(document.body.querySelector(".git-commit-error").textContent).toContain("hook says no");
+    expect(document.body.querySelector(".ui-dialog.git-commit-dialog")).not.toBeNull();
+    expect(document.body.querySelector(".ui-button--primary.git-commit-submit")).not.toBeNull();
+    panel.closeCommitDialog();
+  });
+
+  it("turns Git's missing-author error into the name and email form", async () => {
+    const identity = {
+      load: vi.fn(async () => ({
+        name: "",
+        email: "",
+        global: { name: "", email: "" },
+        repository: { name: "", email: "" },
+      })),
+      save: vi.fn(async ({ name, email, scope }) => ({
+        name,
+        email,
+        global: { name, email },
+        repository: { name: "", email: "" },
+        scope,
+      })),
+    };
+    const commit = vi.fn();
+    const panel = new GitPanel({
+      container: document.querySelector("#panel"),
+      client: { command: vi.fn(), commit },
+      identity,
+    });
+    panel.aiSnapshot = { snapshotId: "ai-snap" };
+    panel.commitMessage = "feat: x";
+    panel.openCommitDialog();
+    await vi.waitFor(() =>
+      expect(document.body.querySelector(".git-identity-name")).not.toBeNull(),
+    );
+    panel.applyCommitResult({
+      status: "failed",
+      error: "Author identity unknown\n*** Please tell me who you are.",
+    });
+    expect(document.body.querySelector(".git-commit-error").textContent).toMatch(/name and email/i);
+    document.body.querySelector(".git-identity-name").value = "Ada";
+    document.body.querySelector(".git-identity-name").dispatchEvent(new Event("input"));
+    document.body.querySelector(".git-identity-email").value = "ada@example.com";
+    document.body.querySelector(".git-identity-email").dispatchEvent(new Event("input"));
+    await panel.submitCommit();
+    expect(identity.save).toHaveBeenCalledWith({
+      name: "Ada",
+      email: "ada@example.com",
+      scope: "global",
+    });
+    expect(commit).toHaveBeenCalled();
     panel.closeCommitDialog();
   });
 
@@ -561,13 +610,15 @@ describe("GitPanel push", () => {
 
   it("renders hover actions for each group and a publish pill without upstream", () => {
     const write = vi.fn();
+    const push = vi.fn().mockReturnValue("git-push");
     const panel = new GitPanel({
       container: document.querySelector("#panel"),
-      client: { command: vi.fn(), write },
+      client: { command: vi.fn(), write, push },
     });
     panel.setSnapshot({
       snapshotId: "snap",
       branch: "master",
+      remotes: ["origin"],
       entries: [
         { entryKind: "ordinary", xy: "M.", displayPath: "staged.js", pathBytesBase64: "c3Q=" },
         { entryKind: "ordinary", xy: ".M", displayPath: "changed.js", pathBytesBase64: "Y2g=" },
@@ -575,7 +626,12 @@ describe("GitPanel push", () => {
         { entryKind: "unmerged", displayPath: "conflict.js", pathBytesBase64: "Y28=" },
       ],
     });
-    expect(panel.container.querySelector(".git-publish-pill")?.textContent).toContain("publish");
+    const pill = /** @type {HTMLButtonElement} */ (
+      panel.container.querySelector(".git-publish-pill")
+    );
+    expect(pill.textContent).toContain("publish");
+    pill.click();
+    expect(push).toHaveBeenCalledOnce();
     expect(panel.container.querySelector(".git-group-changes .git-row-stage")).not.toBeNull();
     expect(panel.container.querySelector(".git-group-staged .git-row-unstage")).not.toBeNull();
     expect(panel.container.querySelector(".git-group-untracked .git-row-delete")).not.toBeNull();
@@ -586,6 +642,51 @@ describe("GitPanel push", () => {
       "snap",
       expect.arrayContaining([expect.objectContaining({ group: "changes" })]),
     );
+  });
+
+  it("offers Add remote without a remote, adds it, and publishes the branch", async () => {
+    const sendAndAwait = vi.fn(async (payload) =>
+      payload.type === "remote_add" && payload.url === "https://github.com/me/app.git"
+        ? { type: "git_command_ack" }
+        : { type: "git_command_failed", error: "a remote named origin already exists" },
+    );
+    const push = vi.fn().mockReturnValue("git-push");
+    const panel = new GitPanel({
+      container: document.querySelector("#panel"),
+      client: { command: vi.fn(), sendAndAwait, push },
+    });
+    panel.setSnapshot({ snapshotId: "snap", branch: "main", remotes: [], entries: [] });
+    const pill = /** @type {HTMLButtonElement} */ (
+      panel.container.querySelector(".git-publish-pill")
+    );
+    expect(pill.textContent).toBe("Add remote…");
+    pill.click();
+    const dialog = /** @type {HTMLElement} */ (document.querySelector(".git-remote-dialog"));
+    expect(dialog.querySelector(".dialog-title")?.textContent).toBe("Add remote");
+    const url = /** @type {HTMLInputElement} */ (dialog.querySelector(".git-remote-url"));
+    const save = /** @type {HTMLButtonElement} */ (dialog.querySelector(".git-remote-save"));
+
+    url.value = "ext::sh -c id";
+    save.click();
+    expect(dialog.querySelector(".git-remote-error")?.textContent).toContain("https://");
+    expect(sendAndAwait).not.toHaveBeenCalled();
+
+    url.value = "https://github.com/someone/else.git";
+    save.click();
+    await vi.waitFor(() =>
+      expect(dialog.querySelector(".git-remote-error")?.textContent).toContain("already exists"),
+    );
+    expect(dialog.isConnected).toBe(true);
+
+    url.value = "https://github.com/me/app.git";
+    save.click();
+    await vi.waitFor(() => expect(dialog.isConnected).toBe(false));
+    expect(sendAndAwait).toHaveBeenLastCalledWith({
+      type: "remote_add",
+      name: "origin",
+      url: "https://github.com/me/app.git",
+    });
+    expect(push).toHaveBeenCalledOnce();
   });
 
   it("opens a conflicted row via previewfile and confirms untracked delete", async () => {
@@ -610,8 +711,8 @@ describe("GitPanel push", () => {
     expect(opened).toEqual([{ type: "file.preview", path: "conflict.js", line: undefined }]);
     panel.container.querySelector(".git-group-untracked .git-row-delete").click();
     await vi.waitFor(() => expect(document.querySelector(".dialog")).not.toBeNull());
-    expect(document.querySelector(".git-confirm-message").textContent).toContain("untracked");
-    document.querySelector(".git-confirm-discard").click();
+    expect(document.querySelector(".dialog p")?.textContent).toContain("untracked");
+    document.querySelector(".ui-button--danger").click();
     await vi.waitFor(() => expect(write).toHaveBeenCalled());
     expect(write.mock.calls[0][0]).toBe("discard");
     expect(write.mock.calls[0][2][0].group).toBe("untracked");

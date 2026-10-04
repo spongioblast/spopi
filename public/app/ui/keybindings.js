@@ -119,7 +119,7 @@ export function appKeybindings() {
   return shared;
 }
 
-export function installKeybindingListener() {
+export function listenForKeybindings() {
   if (typeof document === "undefined" || listenedDocument === document) return;
   listenedDocument = document;
   document.addEventListener("keydown", (event) => {

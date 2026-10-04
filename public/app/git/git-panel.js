@@ -4,6 +4,7 @@
 import { createFileTypeIcon } from "../editor/file-type-icons.js";
 import { t } from "../i18n/i18n.js";
 import { createIcon } from "../ui/icons.js";
+import { createIdentityState } from "./git-commit-identity.js";
 import { GitHistoryPanel } from "./git-history-panel.js";
 import { renderNotGitRepo } from "./git-init-prompt.js";
 import { gitPanelActions } from "./git-panel-actions.js";
@@ -29,6 +30,7 @@ import { renderGitToolbar } from "./git-toolbar.js";
  *   indexTreeOid?: string,
  *   branch?: string | null,
  *   upstream?: string | null,
+ *   remotes?: string[] | null,
  *   ahead?: number,
  *   behind?: number,
  *   entries?: GitEntry[],
@@ -104,11 +106,13 @@ import { renderGitToolbar } from "./git-toolbar.js";
  *   onHistoryDiffRequest?: ((requestId: string, descriptor?: unknown) => void) | null,
  *   onStatus?: ((snapshot: GitSnapshot | null | undefined) => void) | null,
  *   fileList?: Element | null,
+ *   identity?: import("./git-commit-identity.js").GitIdentityService | null,
  * }} GitPanelOptions
  * @typedef {{
  *   overlay: HTMLElement,
  *   textarea: HTMLTextAreaElement,
  *   submit: HTMLButtonElement,
+ *   identity: { save: () => Promise<boolean> },
  *   unbindEscape?: (() => void) | null,
  * }} GitCommitDialog
  */
@@ -132,7 +136,15 @@ export class GitPanel {
   /**
    * @param {GitPanelOptions} [options]
    */
-  constructor({ container, client, onReviewFile, onHistoryDiffRequest, onStatus, fileList } = {}) {
+  constructor({
+    container,
+    client,
+    onReviewFile,
+    onHistoryDiffRequest,
+    onStatus,
+    fileList,
+    identity,
+  } = {}) {
     /** @type {Element} */
     this.outerContainer = /** @type {Element} */ (container);
     /** @type {GitClientLike | null | undefined} */
@@ -160,6 +172,7 @@ export class GitPanel {
     this.fileList = fileList;
     /** @type {GitSnapshot | null} */
     this.snapshot = null;
+    this.projectPath = "";
     this.notGitRepo = false;
     this.initInProgress = false;
     this.initError = "";
@@ -195,6 +208,9 @@ export class GitPanel {
     this.remoteError = null;
     /** @type {string | null} */
     this.pendingPushRequestId = null;
+    /** @type {import("./git-commit-identity.js").GitIdentityService | null} */
+    this.identity = identity || null;
+    this.identityState = createIdentityState();
   }
   /** @param {GitSnapshot | null | undefined} snapshot */
   setSnapshot(snapshot) {
@@ -222,6 +238,13 @@ export class GitPanel {
     );
     this.render();
     this.onStatus?.(snapshot);
+  }
+  /** @param {string | null | undefined} path */
+  setProjectPath(path) {
+    const next = path || "";
+    if (next === this.projectPath) return;
+    this.projectPath = next;
+    this.render();
   }
   /** @param {boolean} [value] */
   setNotGitRepo(value = true) {
@@ -302,6 +325,7 @@ export class GitPanel {
       renderNotGitRepo(this.container, {
         busy: this.initInProgress,
         error: this.initError,
+        projectPath: this.projectPath,
         onInit: () => this.initializeRepository(),
       });
       return;
@@ -609,6 +633,10 @@ export class GitPanel {
     return gitPanelActions.applyCommitFailure.apply(this, args);
   }
   /** @param {...any} args @returns {any} */
+  submitCommit(...args) {
+    return gitPanelActions.submitCommit.apply(this, args);
+  }
+  /** @param {...any} args @returns {any} */
   commit(...args) {
     return gitPanelActions.commit.apply(this, args);
   }
@@ -651,6 +679,10 @@ export class GitPanel {
   /** @param {...any} args @returns {any} */
   openBranchMenu(...args) {
     return gitPanelActions.openBranchMenu.apply(this, args);
+  }
+  /** @param {...any} args @returns {any} */
+  openRemoteDialog(...args) {
+    return gitPanelActions.openRemoteDialog.apply(this, args);
   }
   /** @param {...any} args @returns {any} */
   write(...args) {

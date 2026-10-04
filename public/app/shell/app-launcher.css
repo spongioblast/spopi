@@ -14,7 +14,7 @@
 .app-launcher .launcher-header-title {
   color: var(--text-primary);
   font-size: var(--font-size-lg);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
 }
 
 .app-launcher .messages {

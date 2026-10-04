@@ -2,7 +2,7 @@
 // ABOUTME: Grouping uses sourceInfo, not a peer range.
 import { describe, expect, it } from "vitest";
 import { classifyPackageHealth } from "./package-health";
-import { bindPackageHealth, handlers } from "./package-health-handlers";
+import { handlers, registerPackageHealth } from "./package-health-handlers";
 
 const ctx = {} as Parameters<(typeof handlers)["package_health"]>[0];
 
@@ -56,7 +56,7 @@ describe("classifyPackageHealth", () => {
   });
 
   it("reads live commands when the caller does not pass any", async () => {
-    bindPackageHealth({
+    registerPackageHealth({
       getCommands: () => [{ name: "undo", sourceInfo: { source: "npm:pi-workspace-history" } }],
       getAllTools: () => [],
     } as never);

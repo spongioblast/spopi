@@ -172,4 +172,13 @@ describe("native application module graph", () => {
 
     expect(collectBareImports(entryPath).filter((specifier) => !importMap[specifier])).toEqual([]);
   });
+
+  it("puts the import map before every module load, as Firefox requires", () => {
+    const indexHtml = readFileSync(resolve(process.cwd(), "public/index.html"), "utf8");
+    const map = indexHtml.indexOf('<script type="importmap">');
+    // The host inserts the modulepreload links just before style.css.
+    expect(map).toBeGreaterThan(-1);
+    expect(map).toBeLessThan(indexHtml.indexOf('<link rel="stylesheet" href="style.css" />'));
+    expect(map).toBeLessThan(indexHtml.indexOf('type="module"'));
+  });
 });

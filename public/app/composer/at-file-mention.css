@@ -42,7 +42,7 @@
 
 .at-file-mention-name {
   font-size: var(--font-size-md);
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
   white-space: nowrap;
 }
 
@@ -104,7 +104,7 @@
 }
 
 .composer-mention-name {
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
 }
 
 /* A small cross on the top-right corner removes the whole mention. */

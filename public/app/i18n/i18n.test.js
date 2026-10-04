@@ -72,6 +72,14 @@ describe("resolveLocale", () => {
     const { resolveLocale } = await importFreshI18n();
     expect(resolveLocale("zh", "en-US")).toBe("zh");
   });
+
+  it("resolves a German or Italian system language", async () => {
+    const { resolveLocale } = await importFreshI18n();
+    expect(resolveLocale("system", "de-DE")).toBe("de");
+    expect(resolveLocale("system", "it-IT")).toBe("it");
+    expect(resolveLocale("de", "en-US")).toBe("de");
+    expect(resolveLocale("it", "en-US")).toBe("it");
+  });
 });
 
 // ── t() fallback ──────────────────────────────────────────────────────

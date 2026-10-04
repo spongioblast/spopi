@@ -376,4 +376,48 @@ describe("mountGitPanel integration", () => {
     expect(result.panel.gitMissing).toBe(true);
     expect(result.panel.container.textContent).toMatch(/Git was not found|git\.missing/);
   });
+
+  it("names the project folder in the Git view, also before the repository exists", async () => {
+    const { mountGitPanel } = await import("./git-panel-integration.js");
+    const { container, fileList } = setupDom();
+    const runtime = createRuntime();
+    const result = mountGitPanel({
+      runtime,
+      getTarget: () => ({ workspaceId: "ws-1" }),
+      container,
+      fileList,
+      getProjectPath: async () => "D:\\work\\my-project",
+    });
+    result.setTab("git");
+    result.panel.setNotGitRepo(true);
+    await vi.waitFor(() =>
+      expect(result.panel.container.querySelector(".git-panel-project")?.textContent).toBe(
+        "my-project",
+      ),
+    );
+    runtime.emit({ type: "git_status", snapshot: { snapshotId: "s1", branch: "main" } });
+    expect(result.panel.container.querySelector(".git-panel-project")?.title).toBe(
+      "D:\\work\\my-project",
+    );
+  });
+
+  it("reports a repository that appears after the not-a-repo state, once", async () => {
+    const { mountGitPanel } = await import("./git-panel-integration.js");
+    const { container, fileList } = setupDom();
+    const runtime = createRuntime();
+    const onRepositoryFound = vi.fn();
+    const result = mountGitPanel({
+      runtime,
+      getTarget: () => ({ workspaceId: "ws-1" }),
+      container,
+      fileList,
+      onRepositoryFound,
+    });
+    runtime.emit({ type: "git_status", snapshot: { snapshotId: "s0", branch: "main" } });
+    expect(onRepositoryFound).not.toHaveBeenCalled();
+    result.panel.setNotGitRepo(true);
+    runtime.emit({ type: "git_status", snapshot: { snapshotId: "s1", branch: "main" } });
+    runtime.emit({ type: "git_status", snapshot: { snapshotId: "s2", branch: "main" } });
+    expect(onRepositoryFound).toHaveBeenCalledTimes(1);
+  });
 });

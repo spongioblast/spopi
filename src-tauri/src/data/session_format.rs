@@ -3,14 +3,27 @@
 
 use super::*;
 
+/// Lines of a session file. A line that is not UTF-8 is skipped (the reader has
+/// consumed it); any other read error ends the file, because `lines()` repeats
+/// it forever (for example a directory named `*.jsonl` on Linux and macOS).
+fn session_lines(file: std::fs::File) -> impl Iterator<Item = String> {
+    BufReader::new(file)
+        .lines()
+        .map_while(|line| match line {
+            Ok(line) => Some(Some(line)),
+            Err(error) if error.kind() == std::io::ErrorKind::InvalidData => Some(None),
+            Err(_) => None,
+        })
+        .flatten()
+}
+
 /// Every JSONL entry Pi writes: session header, message, thinking_level_change,
 /// model_change, usage, compaction, branch_summary, custom, custom_message,
 /// context_edit, label, and session_info. Callers interpret the values.
 pub(crate) fn read_jsonl_entries(path: &Path) -> Result<Vec<serde_json::Value>, HostDataError> {
     let file = std::fs::File::open(path).map_err(|error| HostDataError::Io(error.to_string()))?;
     let mut entries = Vec::new();
-    for line in BufReader::new(file).lines() {
-        let Ok(line) = line else { continue };
+    for line in session_lines(file) {
         if line.trim().is_empty() {
             continue;
         }
@@ -55,8 +68,7 @@ pub(crate) fn parse_session_metrics(
         model: "unknown".to_owned(),
         ..SessionMetrics::default()
     };
-    for line in BufReader::new(file).lines() {
-        let Ok(line) = line else { continue };
+    for line in session_lines(file) {
         if line.trim().is_empty() {
             continue;
         }
@@ -193,8 +205,7 @@ pub(crate) fn parse_session_metrics(
 /// which knows the workspace the sidebar is showing.
 pub(crate) fn parse_session_id(path: &Path) -> Result<Option<String>, HostDataError> {
     let file = std::fs::File::open(path).map_err(|error| HostDataError::Io(error.to_string()))?;
-    for line in BufReader::new(file).lines() {
-        let Ok(line) = line else { continue };
+    for line in session_lines(file) {
         if line.trim().is_empty() {
             continue;
         }
@@ -305,8 +316,7 @@ pub(crate) fn parse_session_summary_with_metadata(
     let mut last_user_message_at_ms = None;
     let mut user_message_count = 0;
     let mut line_count = 0;
-    for line in BufReader::new(file).lines() {
-        let Ok(line) = line else { continue };
+    for line in session_lines(file) {
         if line.trim().is_empty() {
             continue;
         }
@@ -396,6 +406,7 @@ pub(crate) fn parse_session_summary_with_metadata(
             .into_owned(),
         modified_at_ms,
         activity_at_ms,
+        worktree_of: None,
     }))
 }
 

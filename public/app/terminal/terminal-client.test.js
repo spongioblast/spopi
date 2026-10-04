@@ -1,6 +1,7 @@
 // ABOUTME: Tests for the terminal client replay state machine: checkpoint before
 // ABOUTME: strictly sequential journal, forward-gap pause, and envelope shape.
 import { describe, expect, test, vi } from "vitest";
+import { applyCapabilities } from "../shell/capabilities.js";
 import { TerminalClient } from "./terminal-client.js";
 
 function fakeTab() {
@@ -87,6 +88,16 @@ describe("TerminalClient replay", () => {
     client.setWorkspaceGeneration(0);
     client.command({ type: "terminal_list" });
     expect(send).toHaveBeenCalledTimes(1);
+  });
+
+  test("a phone without the terminal capability sends no terminal commands", () => {
+    const send = vi.fn();
+    const client = new TerminalClient({ send, createTab: fakeTab });
+    client.setWorkspaceGeneration(0);
+    applyCapabilities(["subscribe", "prompt"]);
+    expect(client.command({ type: "terminal_list" })).toBeNull();
+    expect(send).not.toHaveBeenCalled();
+    applyCapabilities(undefined);
   });
 
   test("rejects an invalid workspace generation without replacing the current token", () => {

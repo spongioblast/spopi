@@ -9,6 +9,6 @@ export const handlers = {
     return { ok: true, data: readQueueModes() };
   },
   set_queue_mode: async (_ctx, params) => {
-    return { ok: true, data: writeQueueMode(params.kind, params.mode) };
+    return { ok: true, data: await writeQueueMode(params.kind, params.mode) };
   },
 } satisfies BridgeHandlers;

@@ -59,7 +59,7 @@ export function editFromTree(entryId, text) {
 /**
  * @param {TreeModelDeps} deps
  */
-export function bindSessionTreeModel(deps) {
+export function startSessionTreeModel(deps) {
   model = createSessionTreeModel(deps);
   return model;
 }
@@ -93,7 +93,7 @@ export async function refreshSessionTree(ctx, { open = false } = {}) {
       ctx
     );
   if (!model && bag.runtime?.request && bag.getTarget) {
-    bindSessionTreeModel({
+    startSessionTreeModel({
       request: (cmd, target) => bag.runtime?.request?.(cmd, target) ?? Promise.resolve(null),
       getTarget: () => bag.getTarget?.(),
     });

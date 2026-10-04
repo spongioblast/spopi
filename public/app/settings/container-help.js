@@ -2,6 +2,7 @@
 // ABOUTME: Sandboxes and a Docker example. The Pi doc is optional.
 
 import { t } from "../i18n/i18n.js";
+import { copyText } from "../ui/clipboard.js";
 import { el } from "../ui/dom.js";
 
 const PI_CONTAINER_DOCS =
@@ -54,7 +55,7 @@ export function containerHelpBody({ openExternal = null } = {}) {
     ]),
     el("code", { text: DOCKER_RUN }),
     button(t("messages.copy"), "messages.copy", "ui-button ui-button--ghost ui-button--sm", () => {
-      void navigator.clipboard.writeText(DOCKER_RUN);
+      void copyText(DOCKER_RUN);
     }),
     line(t("settings.guard.container.mount"), "settings.guard.container.mount"),
     typeof openExternal === "function"

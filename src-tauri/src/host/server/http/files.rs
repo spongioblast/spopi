@@ -39,15 +39,27 @@ pub(crate) struct WriteFileContentRequest {
     force: Option<bool>,
 }
 
+async fn blocking<T: Send + 'static>(
+    work: impl FnOnce() -> Result<T, HostDataError> + Send + 'static,
+) -> Result<T, (StatusCode, Json<Value>)> {
+    tokio::task::spawn_blocking(work)
+        .await
+        .map_err(|_| api_error(StatusCode::INTERNAL_SERVER_ERROR, "file_join_failed"))?
+        .map_err(host_data_http_error)
+}
+
 pub(crate) async fn read_file_content(
     State(state): State<Arc<HostState>>,
     Query(query): Query<FilePreviewQuery>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    if let Some(source) = state
-        .data
-        .read_convertible_file(&query.workspace_id, &query.path)
-        .map_err(host_data_http_error)?
-    {
+    let data = state.data.clone();
+    let FilePreviewQuery { workspace_id, path } = query;
+    let convertible = blocking({
+        let (workspace_id, path) = (workspace_id.clone(), path.clone());
+        move || data.read_convertible_file(&workspace_id, &path)
+    })
+    .await?;
+    if let Some(source) = convertible {
         let mut response = json!({
             "path": source.path,
             "content": "",
@@ -95,10 +107,8 @@ pub(crate) async fn read_file_content(
         }
         return Ok(Json(response));
     }
-    let content = state
-        .data
-        .read_file_content(&query.workspace_id, &query.path)
-        .map_err(host_data_http_error)?;
+    let data = state.data.clone();
+    let content = blocking(move || data.read_file_content(&workspace_id, &path)).await?;
     serde_json::to_value(content)
         .map(Json)
         .map_err(|_| api_error(StatusCode::INTERNAL_SERVER_ERROR, "serialization_failed"))
@@ -108,10 +118,8 @@ pub(crate) async fn raw_file_content(
     State(state): State<Arc<HostState>>,
     Query(query): Query<FilePreviewQuery>,
 ) -> Result<Response, (StatusCode, Json<Value>)> {
-    let raw = state
-        .data
-        .raw_file_content(&query.workspace_id, &query.path)
-        .map_err(host_data_http_error)?;
+    let data = state.data.clone();
+    let raw = blocking(move || data.raw_file_content(&query.workspace_id, &query.path)).await?;
     let mut response = Response::new(Body::from(raw.bytes));
     *response.status_mut() = StatusCode::OK;
     let headers = response.headers_mut();
@@ -136,10 +144,9 @@ pub(crate) async fn file_mentions(
     State(state): State<Arc<HostState>>,
     Query(query): Query<FileMentionQuery>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let result = state
-        .data
-        .search_file_mentions(&query.workspace_id, &query.query)
-        .map_err(host_data_http_error)?;
+    let data = state.data.clone();
+    let result =
+        blocking(move || data.search_file_mentions(&query.workspace_id, &query.query)).await?;
     serde_json::to_value(result)
         .map(Json)
         .map_err(|_| api_error(StatusCode::INTERNAL_SERVER_ERROR, "serialization_failed"))
@@ -159,14 +166,17 @@ pub(crate) async fn workspace_info_handler(
     // The sidebar passes the workspace's on-disk path (projectPath), not
     // the internal workspace ID. Try both: first by workspace_id (when
     // available), then fall back to treating workspace_path as the root.
-    let result = if let Some(ws_id) = &query.workspace_id {
-        state.data.workspace_info(ws_id)
-    } else if let Some(ws_path) = &query.workspace_path {
-        state.data.workspace_info_by_path(ws_path)
-    } else {
-        Err(HostDataError::UnknownWorkspace)
-    }
-    .map_err(host_data_http_error)?;
+    let data = state.data.clone();
+    let result = blocking(move || {
+        if let Some(ws_id) = &query.workspace_id {
+            data.workspace_info(ws_id)
+        } else if let Some(ws_path) = &query.workspace_path {
+            data.workspace_info_by_path(ws_path)
+        } else {
+            Err(HostDataError::UnknownWorkspace)
+        }
+    })
+    .await?;
     serde_json::to_value(result)
         .map(Json)
         .map_err(|_| api_error(StatusCode::INTERNAL_SERVER_ERROR, "serialization_failed"))
@@ -183,19 +193,21 @@ pub(crate) async fn write_file_content(
             "expected_mtime_ms_required",
         ));
     };
-    match state
-        .data
-        .write_file_content(
-            &body.workspace_id,
-            &body.path,
-            &body.content,
-            expected_mtime_ms,
-            force,
-        )
-        .map_err(host_data_http_error)?
-    {
+    let data = state.data.clone();
+    let WriteFileContentRequest {
+        workspace_id,
+        path,
+        content,
+        ..
+    } = body;
+    let written = blocking({
+        let path = path.clone();
+        move || data.write_file_content(&workspace_id, &path, &content, expected_mtime_ms, force)
+    })
+    .await?;
+    match written {
         WriteFileResult::Saved { size, mtime_ms } => Ok(Json(json!({
-            "path": body.path,
+            "path": path,
             "size": size,
             "mtimeMs": mtime_ms,
         }))),

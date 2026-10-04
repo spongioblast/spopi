@@ -1,6 +1,6 @@
 // ABOUTME: Tests createRuntimeEventHandler and the deferred queue.
 // ABOUTME: A lens result is recorded only when that tool execution ends.
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { mountProblemsDock } from "../dock/problems-dock.js";
 import { createDeferredRuntimeHandler, createRuntimeEventHandler } from "./runtime-events.js";
 
@@ -80,6 +80,92 @@ describe("lens tool results", () => {
     expect(root.textContent).not.toContain("[object Object]");
     await handle({ type: "tool_execution_end", toolName: "read", result: diagnostics });
     expect(noted).toHaveLength(1);
+  });
+});
+
+describe("nested tool calls", () => {
+  it("draws a codemode call on its parent card and still follows its write", async () => {
+    /** @type {string[]} */
+    const seen = [];
+    const handle = createRuntimeEventHandler({
+      metricsOverlay: { onRuntimeEvent() {}, phase: () => "idle" },
+      workbench: {},
+      getTarget: () => ({}),
+      sessionStatus: { isWaiting: () => false },
+      t: (key) => key,
+      toolRenderer: {
+        createToolCard: () => seen.push("card"),
+        updateToolCard: () => seen.push("card"),
+        finalizeToolCard: () => seen.push("card"),
+        upsertNestedCall: (parentId, call) => seen.push(`${parentId}:${call.id}:${call.status}`),
+      },
+      filePreviewFollow: {
+        onToolStart: () => seen.push("follow-start"),
+        onToolEnd: () => {
+          seen.push("follow-end");
+          return Promise.resolve();
+        },
+      },
+      textFromResult: () => "",
+    });
+    const nested = { toolCallId: "p/1", toolName: "write", parentToolCallId: "p" };
+    await handle({ type: "tool_execution_start", ...nested, args: { path: "a.txt" } });
+    await handle({ type: "tool_execution_end", ...nested, result: {}, isError: false });
+    expect(seen).toEqual(["p:p/1:pending", "follow-start", "p:p/1:done", "follow-end"]);
+  });
+});
+
+describe("turn meta", () => {
+  it("measures TTFT from turn_start to the first update, and t/s over the decode window", async () => {
+    vi.useFakeTimers({ now: 0 });
+    try {
+      /** @type {Record<string, unknown>[]} */
+      const metas = [];
+      /** @type {{ element?: unknown, startedAt?: number | null }} */
+      let streaming = {};
+      const message = { role: "assistant", content: [{ type: "text", text: "hi" }] };
+      const handle = createRuntimeEventHandler({
+        metricsOverlay: { onRuntimeEvent() {}, phase: () => "idle" },
+        workbench: { noteTurnMeta: (_el, meta) => metas.push(meta) },
+        getTarget: () => ({}),
+        sessionStatus: { isWaiting: () => false },
+        t: (key) => key,
+        showLiveProcessIndicator() {},
+        messageRenderer: {
+          renderAssistantMessage: () => document.createElement("div"),
+          updateStreamingMessage() {},
+          finalizeStreamingMessage() {},
+        },
+        assistantMessageStream: {
+          start: () => message,
+          update: () => message,
+          finish: () => ({ ...message, usage: { output: 100 } }),
+        },
+        getStreaming: () => streaming,
+        setStreaming: (startedAt, element) => {
+          streaming = { startedAt, element };
+        },
+        contextUsage: { setUsage() {} },
+        getCurrentModelContextWindow: () => 0,
+        getCurrentModelId: () => "m",
+        hydrateHeaderSessionStats() {},
+        convNav: { notifyNewMessage() {} },
+        showProviderErrorIfNeeded() {},
+        getInfoSidebar: () => null,
+      });
+      await handle({ type: "turn_start" });
+      vi.setSystemTime(500);
+      await handle({ type: "message_start", message });
+      vi.setSystemTime(800);
+      await handle({ type: "message_update", message });
+      vi.setSystemTime(2800);
+      await handle({ type: "message_end", message: { role: "assistant", stopReason: "stop" } });
+      expect(metas).toHaveLength(1);
+      expect(metas[0]?.ttftMs).toBe(800);
+      expect(metas[0]?.tokensPerSec).toBe(50);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 

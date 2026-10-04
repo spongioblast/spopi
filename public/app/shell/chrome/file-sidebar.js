@@ -46,7 +46,7 @@ export function mountFileSidebarChrome(root) {
             "data-i18n-title": "files.showHiddenFiles",
             "data-i18n-aria-label": "files.showHiddenFilesAria",
           },
-          [createIcon("eye", { size: 14 })],
+          [createIcon("eye-off", { size: 14 })],
         ),
         el(
           "button",

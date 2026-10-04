@@ -14,7 +14,7 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
-  margin-bottom: 18px;
+  margin-bottom: var(--space-4);
 }
 
 .cost-dash-topbar-actions {
@@ -31,7 +31,7 @@
 }
 
 .cost-dash-range-chip {
-  height: 32px;
+  height: var(--control-height-md);
   min-width: 54px;
   border: 1px solid transparent;
   border-radius: var(--radius-md);
@@ -61,7 +61,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
-  min-height: 320px;
+  min-height: clamp(14rem, 40vh, 320px);
 }
 
 .cost-dash-panel {
@@ -80,7 +80,7 @@
 }
 
 .cost-dash-cost-block + .cost-dash-cost-block {
-  margin-top: 20px;
+  margin-top: var(--space-5);
 }
 
 .cost-dash-section-row > .cost-dash-panel > .cost-dash-cost-block {
@@ -99,7 +99,7 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
-  margin-bottom: 12px;
+  margin-bottom: var(--space-3);
 }
 
 .cost-dash-subsection-head h3,
@@ -119,28 +119,22 @@
 }
 
 .cost-dash-card-tone-green {
-  --card-tone: #5fbf76;
-  --card-tone-bg: rgba(95, 191, 118, 0.06);
+  --card-tone: var(--chart-2);
 }
 .cost-dash-card-tone-blue {
-  --card-tone: #5b8def;
-  --card-tone-bg: rgba(91, 141, 239, 0.06);
+  --card-tone: var(--chart-1);
 }
 .cost-dash-card-tone-violet {
-  --card-tone: #8e6ad8;
-  --card-tone-bg: rgba(142, 106, 216, 0.06);
+  --card-tone: var(--chart-4);
 }
 .cost-dash-card-tone-amber {
-  --card-tone: #d39a46;
-  --card-tone-bg: rgba(211, 154, 70, 0.06);
+  --card-tone: var(--chart-3);
 }
 .cost-dash-card-tone-teal {
-  --card-tone: #38a89d;
-  --card-tone-bg: rgba(56, 168, 157, 0.06);
+  --card-tone: var(--chart-6);
 }
 .cost-dash-card-tone-rose {
-  --card-tone: #cf6a7a;
-  --card-tone-bg: rgba(207, 106, 122, 0.06);
+  --card-tone: var(--chart-5);
 }
 
 .cost-dash-stat-card {
@@ -157,7 +151,7 @@
   gap: var(--space-1);
   font-size: var(--font-size-sm);
   letter-spacing: -0.01em;
-  line-height: 1.2;
+  line-height: var(--line-height-tight);
 }
 
 .cost-dash-stat-icon {
@@ -174,14 +168,14 @@
 }
 
 .cost-dash-stat-value {
-  margin-top: 8px;
+  margin-top: var(--space-2);
   font-size: var(--font-size-2xl);
   letter-spacing: -0.03em;
   line-height: 1;
 }
 
 .cost-dash-activity-wrap {
-  margin-top: 22px;
+  margin-top: var(--space-5);
   max-width: 100%;
   overflow: hidden;
 }
@@ -203,7 +197,7 @@
   grid-template-columns: repeat(var(--activity-columns), minmax(0, 1fr));
   gap: var(--activity-cell-gap);
   padding-left: var(--space-12);
-  margin-bottom: 6px;
+  margin-bottom: var(--space-1-5);
   color: var(--text-secondary);
   font-size: var(--font-size-sm);
 }
@@ -280,7 +274,7 @@
   align-items: center;
   justify-content: flex-end;
   gap: var(--space-1-5);
-  margin-top: 12px;
+  margin-top: var(--space-3);
   color: var(--text-secondary);
   font-size: var(--font-size-sm);
 }
@@ -291,7 +285,7 @@
 }
 
 .cost-dash-overview-note {
-  margin: 10px 0 0;
+  margin: var(--space-2) 0 0;
   font-size: var(--font-size-sm);
   letter-spacing: -0.01em;
 }
@@ -314,14 +308,14 @@
 
 .cost-dash-models-chart-wrap {
   position: relative;
-  height: 300px;
+  height: clamp(12rem, 36vh, 300px);
   overflow: hidden;
 }
 
 .cost-dash-models-legend {
   display: grid;
   gap: var(--space-2);
-  margin-top: 14px;
+  margin-top: var(--space-3);
 }
 
 .cost-dash-model-legend-row {
@@ -406,34 +400,34 @@
 
 .cost-dash-tool-legend-dot[data-tool-color="0"],
 .cost-dash-model-color-1 {
-  background: #3b82f6;
+  background: var(--chart-1);
 }
 
 .cost-dash-tool-legend-dot[data-tool-color="1"],
 .cost-dash-model-color-2 {
-  background: #10b981;
+  background: var(--chart-2);
 }
 
 .cost-dash-tool-legend-dot[data-tool-color="2"],
 .cost-dash-model-color-3 {
-  background: #f59e0b;
+  background: var(--chart-3);
 }
 
 .cost-dash-tool-legend-dot[data-tool-color="3"] {
-  background: #8b5cf6;
+  background: var(--chart-4);
 }
 
 .cost-dash-tool-legend-dot[data-tool-color="4"] {
-  background: #fb7185;
+  background: var(--chart-5);
 }
 
 .cost-dash-tool-legend-dot[data-tool-color="5"] {
-  background: #06b6d4;
+  background: var(--chart-6);
 }
 
 .cost-dash-tool-legend-title {
   font-size: var(--font-size-sm);
-  line-height: 1.1;
+  line-height: var(--line-height-tight);
 }
 
 .cost-dash-tool-legend-subtitle {
@@ -495,7 +489,7 @@
 }
 
 .cost-dash-sessions-workspace {
-  margin-top: 2px;
+  margin-top: var(--space-0-5);
   font-size: var(--font-size-sm);
   white-space: nowrap;
   overflow: hidden;

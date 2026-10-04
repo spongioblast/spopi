@@ -60,7 +60,7 @@ export function mountModelsSettings(root, deps) {
         el(
           "div",
           {
-            class: "settings-section",
+            class: "settings-section ui-card",
           },
           [
             sectionTitle("Providers", { i18n: "settings.authentication" }),
@@ -126,7 +126,7 @@ export function mountModelsSettings(root, deps) {
         el(
           "div",
           {
-            class: "settings-section",
+            class: "settings-section ui-card",
           },
           [
             sectionTitle("LLM providers", { i18n: "settings.llmProviders" }),

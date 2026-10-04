@@ -2,6 +2,7 @@
 // ABOUTME: Session JSONL stays owned by Pi under the agent directory.
 // ABOUTME: Session list/read/delete/search for the data plane.
 use super::*;
+use std::collections::HashMap;
 
 impl HostDataPlane {
     pub fn resolve_session_path(
@@ -202,6 +203,17 @@ impl HostDataPlane {
         current: Option<(&str, PathBuf)>,
     ) -> Result<Vec<SessionSummary>, HostDataError> {
         let mut sessions = self.collect_sessions(None)?;
+        let mut mains = HashMap::<String, Option<String>>::new();
+        for session in &mut sessions {
+            let main = mains
+                .entry(session.project_path.clone())
+                .or_insert_with(|| {
+                    crate::git::worktree_link::main_checkout_of(Path::new(&session.project_path))
+                        .map(|path| path.to_string_lossy().into_owned())
+                })
+                .clone();
+            session.worktree_of = main;
+        }
         if let Some((workspace_id, root)) = current {
             for session in &mut sessions {
                 if same_dir(&root, Path::new(&session.project_path)) {

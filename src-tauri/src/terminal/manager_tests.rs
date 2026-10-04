@@ -409,6 +409,41 @@ fn pty_round_trips_utf8_input_to_output_and_resizes() {
 }
 
 #[test]
+fn a_named_tab_keeps_its_name_and_a_plain_tab_shows_its_shell() {
+    let mgr = manager();
+    let owner = owner("t-label");
+    let create = |payload: Value| mgr.dispatch(&owner, Path::new("/ws"), &payload);
+    let Ok(named) =
+        create(json!({ "type": "terminal_create", "profileId": "default", "label": " Pi " }))
+    else {
+        return; // host without a usable shell — skip
+    };
+    let plain = create(json!({ "type": "terminal_create", "profileId": "default", "label": "" }))
+        .expect("second tab");
+    let listed = mgr
+        .dispatch(
+            &owner,
+            Path::new("/ws"),
+            &json!({ "type": "terminal_list" }),
+        )
+        .unwrap();
+    let labels: Vec<&str> = listed["tabs"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|tab| tab["label"].as_str().unwrap())
+        .collect();
+    assert_eq!(labels, ["Pi", "Default"]);
+    for tab in [named, plain] {
+        let _ = mgr.dispatch(
+            &owner,
+            Path::new("/ws"),
+            &json!({ "type": "terminal_close", "terminalId": tab["terminalId"], "generation": tab["generation"] }),
+        );
+    }
+}
+
+#[test]
 fn unknown_profile_id_is_rejected() {
     let mgr = manager();
     let owner = owner("t-profile");

@@ -9,13 +9,14 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ConfigContext, SpopiConfigResult } from "./paths";
 import type { BridgeHandler } from "./types";
 
-vi.mock("@earendil-works/pi-coding-agent", () => ({
+vi.mock("@earendil-works/pi-coding-agent", async (importOriginal) => ({
   createAgentSession: vi.fn(),
   ModelRuntime: { create: vi.fn() },
   SessionManager: { inMemory: vi.fn(), listAll: vi.fn(), open: vi.fn() },
   getAgentDir: () =>
     process.env.PI_CODING_AGENT_DIR?.trim() || join(process.env.HOME || "", ".pi", "agent"),
-  SettingsManager: { create: vi.fn() },
+  SettingsManager: (await importOriginal<typeof import("@earendil-works/pi-coding-agent")>())
+    .SettingsManager,
 }));
 vi.mock("./session-title", () => ({
   generateTitleForSession: vi.fn().mockResolvedValue("Generated title"),

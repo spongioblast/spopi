@@ -1,12 +1,11 @@
 #!/usr/bin/env node
 // ABOUTME: Requires two ABOUTME lines at the top of source files.
-// ABOUTME: An empty baseline file is deleted; a missing file means every source has a header.
+// ABOUTME: Any source file without them fails the check; CSS files of 40 lines or fewer are exempt.
 
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 
 const root = join(import.meta.dirname, "..");
-const baselinePath = join(root, "scripts", "aboutme-baseline.txt");
 const skipDir = new Set(["node_modules", "vendor", "dist", "target", "gen", "resources"]);
 
 function walk(dir, out = []) {
@@ -60,21 +59,8 @@ for (const file of roots.flatMap((dir) => walk(dir))) {
 }
 missing.sort();
 
-const baseline = existsSync(baselinePath)
-  ? readFileSync(baselinePath, "utf8")
-      .split(/\r?\n/)
-      .map((line) => line.trim())
-      .filter((line) => line && !line.startsWith("#"))
-      .sort()
-  : [];
-
-const missingSet = new Set(missing);
-const baselineSet = new Set(baseline);
-const added = missing.filter((path) => !baselineSet.has(path));
-const stale = baseline.filter((path) => !missingSet.has(path));
-if (added.length || stale.length) {
-  for (const path of added) console.error(`missing ABOUTME header: ${path}`);
-  for (const path of stale) console.error(`ABOUTME baseline can shrink: ${path}`);
+if (missing.length) {
+  for (const path of missing) console.error(`missing ABOUTME header: ${path}`);
   process.exit(1);
 }
-console.log(`aboutme ok (${missing.length} files still in the baseline)`);
+console.log("aboutme ok");

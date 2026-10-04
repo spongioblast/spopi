@@ -1,7 +1,7 @@
 // ABOUTME: Enables or disables a skill by writing Pi's exact + and - rules.
-// ABOUTME: The write holds the settings lock, then rebuilds the inventory.
+// ABOUTME: The write goes through Pi's SettingsManager, then rebuilds the inventory.
 
-import { readSettingsObject, withSettingsLock, writeSettingsAtomically } from "./settings-io.ts";
+import { stringList, updatePiSettings } from "./pi-settings.ts";
 import { settingsPathFor } from "./skill-discover.ts";
 import { buildSkillInventory } from "./skill-inventory.ts";
 import { toPosix } from "./skill-paths.ts";
@@ -157,14 +157,21 @@ export async function mutateSkillEnabled(
       }
     }
 
-    await withSettingsLock(settingsPath, () => {
-      const original = readSettingsObject(settingsPath);
-      const currentSkills = Array.isArray(original.skills)
-        ? (original.skills.filter((s) => typeof s === "string") as string[])
-        : [];
-      const nextSkills = computeNextSkills(currentSkills, pre, opts.target, opts.enabled);
-      writeSettingsAtomically(settingsPath, { ...original, skills: nextSkills });
-    });
+    await updatePiSettings(
+      (manager) => {
+        const scoped =
+          opts.scope === "global" ? manager.getGlobalSettings() : manager.getProjectSettings();
+        const nextSkills = computeNextSkills(
+          stringList(scoped.skills),
+          pre,
+          opts.target,
+          opts.enabled,
+        );
+        if (opts.scope === "global") manager.setSkillPaths(nextSkills);
+        else manager.setProjectSkillPaths(nextSkills);
+      },
+      { scope: opts.scope, cwd: opts.cwd, agentDir: opts.agentDir },
+    );
 
     const inventory = buildSkillInventory(opts);
     return { inventory, runtimeRestartRequired: true };

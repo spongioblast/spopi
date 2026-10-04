@@ -2,8 +2,12 @@
 // ABOUTME: scripts/check-host-ops.mjs reads the operation names from these arms.
 
 use super::super::http::engine;
-use super::super::{dispatch_preference_operation, HostState};
-use super::{dependencies, os, packages, projects, sessions, skills};
+use super::super::{HostState, OpError};
+use crate::host::capabilities::may_register_workspace;
+use super::{
+    dependencies, git_identity, mcp, os, packages, preferences, projects, review_drafts, sessions,
+    skills, worktrees,
+};
 use serde_json::Value;
 
 pub(crate) async fn dispatch_host_operation(
@@ -12,10 +16,10 @@ pub(crate) async fn dispatch_host_operation(
     request_id: &str,
     operation: &str,
     frame: &Value,
-) -> Result<Value, (&'static str, String)> {
+) -> Result<Value, OpError> {
     match operation {
         "get_preference" | "set_preference" | "remove_preference" | "list_preferences" => {
-            dispatch_preference_operation(state, request_id, operation, frame)
+            preferences::dispatch(state, request_id, operation, frame)
         }
         "list_pi_packages"
         | "browse_pi_packages"
@@ -23,9 +27,11 @@ pub(crate) async fn dispatch_host_operation(
         | "install_pi_package"
         | "remove_pi_package"
         | "update_pi_package" => packages::dispatch(state, request_id, operation, frame).await,
-        "list_installed_apps"
-        | "list_local_addresses"
-        | "open_in_app"
+        "list_mcp_servers" | "add_mcp_server" | "remove_mcp_server" => {
+            mcp::dispatch(state, request_id, operation, frame).await
+        }
+        "list_local_addresses"
+        | "open_path"
         | "reveal_path"
         | "open_external"
         | "shadow_history_files"
@@ -37,12 +43,29 @@ pub(crate) async fn dispatch_host_operation(
         | "keep_chats_in_project"
         | "rename_project"
         | "close_project" => projects::dispatch(state, request_id, operation, frame).await,
-        "resolve_workspace"
-        | "forget_workspace"
+        "resolve_workspace" => {
+            let register = state
+                .router
+                .lock()
+                .ok()
+                .and_then(|router| router.client_kind(client_id))
+                .is_none_or(|kind| may_register_workspace(&kind));
+            sessions::resolve_workspace(state, request_id, frame, register)
+        }
+        "forget_workspace"
         | "delete_sessions"
         | "session_ui_profile_load"
         | "session_ui_profile_save"
         | "restart_runtime" => sessions::dispatch(state, request_id, operation, frame).await,
+        "review_drafts_load" | "review_drafts_save" => {
+            review_drafts::dispatch(state, request_id, operation, frame).await
+        }
+        "git_identity_get" | "git_identity_set" => {
+            git_identity::dispatch(state, request_id, operation, frame).await
+        }
+        "create_worktree" | "merge_worktree" | "remove_worktree" => {
+            worktrees::dispatch(state, request_id, operation, frame).await
+        }
         "pick_skill_folder" => {
             skills::dispatch(state, client_id, request_id, operation, frame).await
         }
@@ -56,9 +79,9 @@ pub(crate) async fn dispatch_host_operation(
         | "open_browser_extensions" => {
             dependencies::dispatch(state, request_id, operation, frame).await
         }
-        _ => Err((
+        _ => Err(OpError::new(
             "host_operation_unimplemented",
-            "Host operation is not implemented on protocol v2".into(),
+            "Host operation is not implemented on protocol v2",
         )),
     }
 }

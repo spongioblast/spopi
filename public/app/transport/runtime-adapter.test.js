@@ -78,6 +78,11 @@ describe("HostRuntimeAdapter", () => {
 
     socket.receive({ type: "runtime_event", target, sequence: 1, event: { type: "agent_start" } });
     expect(events).toHaveLength(1);
+
+    const changed = [];
+    document.addEventListener("spopi-pi-config-changed", () => changed.push("yes"));
+    socket.receive({ type: "mcp_config_changed" });
+    expect(changed).toEqual(["yes"]);
   });
 
   it("sends a desktop hello and resubscribes after reconnect", () => {
@@ -135,6 +140,36 @@ describe("HostRuntimeAdapter", () => {
       socket.receive({ type: "hello_ack", protocolVersion: 2 });
       expect(socket.sent[1]).toMatchObject({ type: "runtime_subscribe", target });
     } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("tells a reconnect to the same host from one to a restarted host", async () => {
+    vi.useFakeTimers();
+    const seen = [];
+    const record = (/** @type {Event} */ event) =>
+      seen.push(/** @type {CustomEvent} */ (event).detail.restarted);
+    document.addEventListener("spopi-host-reconnected", record);
+    try {
+      FakeWebSocket.instances.length = 0;
+      const adapter = new HostRuntimeAdapter({
+        url: "ws://host/v2/ws",
+        WebSocketImpl: FakeWebSocket,
+        clientId: "phone-a",
+        reconnectBaseDelayMs: 10,
+      });
+      adapter.connect();
+      const hosts = ["run-1", "run-1", "run-2"];
+      for (const [index, hostId] of hosts.entries()) {
+        const socket = FakeWebSocket.instances[index];
+        socket.open();
+        socket.receive({ type: "hello_ack", protocolVersion: 2, hostId });
+        socket.close();
+        await vi.advanceTimersByTimeAsync(10);
+      }
+      expect(seen).toEqual([false, true]);
+    } finally {
+      document.removeEventListener("spopi-host-reconnected", record);
       vi.useRealTimers();
     }
   });

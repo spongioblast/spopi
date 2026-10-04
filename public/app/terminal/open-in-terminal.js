@@ -1,31 +1,12 @@
-// ABOUTME: Builds the `pi -r <session>` command for the dock terminal twin.
-// ABOUTME: The GUI releases the session first so Pi's lock has one writer.
+// ABOUTME: Opens the bundled Pi in a dock tab named "Pi" that closes when Pi quits.
+// ABOUTME: Its close reloads SPOPI's Pi, so packages and settings changed there apply.
 
-import { onSessionCreated } from "../session/session-created-action.js";
+import { defaultTerminalProfile } from "../dock/terminal-profile-menu.js";
+import { t } from "../i18n/i18n.js";
+import { selectedShellProfile } from "../settings/appearance-preferences.js";
 import { writeCommandToPty } from "./run-file.js";
 
 /**
- * @typedef {{
- *   getElementById?: (
- *     id: string,
- *   ) => { textContent?: string | null, click: () => void } | null,
- * }} StatusDocLike
- *
- * @typedef {{
- *   sameProcess?: boolean,
- *   held?: boolean,
- * }} SessionLockState
- *
- * @typedef {{
- *   timeoutMs?: number,
- *   fromSessionId?: string | null,
- * }} AwaitSessionSwitchOptions
- *
- * @typedef {{
- *   switched: boolean,
- *   sessionId: string | null,
- * }} SessionSwitchResult
- *
  * @typedef {{
  *   lastAppliedSequence?: number,
  *   generation?: number,
@@ -61,63 +42,63 @@ import { writeCommandToPty } from "./run-file.js";
  *
  * @typedef {{
  *   dock?: { setTab?: (name: string) => void },
- *   shell?: { applyHidden?: (state: { dockHidden?: boolean }) => void },
+ *   shell?: {
+ *     applyHidden?: (state: { dockHidden?: boolean }) => void,
+ *     showCenter?: () => void,
+ *   },
  * }} WorkbenchLike
  *
  * @typedef {{
  *   setActiveTerminalId?: (terminalId: string) => void,
+ *   expand?: () => unknown,
+ *   activateWhenListed?: (terminalId: string) => void,
  * }} TerminalPanelLike
  *
  * @typedef {{
  *   __spopiOpenInTerminalLast?: unknown,
  * }} OpenInTerminalWindow
- *
- * @typedef {{
- *   workbench?: WorkbenchLike | null,
- *   sessionPath?: unknown,
- *   currentSessionId?: string | null,
- *   client?: TerminalClientLike | null,
- *   panel?: TerminalPanelLike | null,
- *   getClient?: (() => TerminalClientLike | null | undefined) | null,
- *   getPanel?: (() => TerminalPanelLike | null | undefined) | null,
- *   win?: OpenInTerminalWindow | null,
- *   doc?: StatusDocLike | null,
- * }} OpenSessionInPtyTwinOptions
  */
-
-/** Forward slashes survive Git Bash, PowerShell and cmd; backslashes do not. */
-/**
- * @param {unknown} sessionPath
- * @returns {string}
- */
-export function normalizeSessionPath(sessionPath) {
-  return String(sessionPath || "")
-    .trim()
-    .replace(/\\/g, "/");
-}
 
 /**
  * Quote a pi path that contains spaces. A bare `pi` stays a PATH command only
- * when the host has not reported the bundled binary.
+ * when the host has not reported the bundled binary. Forward slashes, because
+ * Git Bash drops the backslashes of an unquoted Windows path.
  * @param {unknown} piBin
  * @returns {string}
  */
 function quotePiBin(piBin) {
-  const text = String(piBin || "pi").trim() || "pi";
+  const text = String(piBin || "")
+    .trim()
+    .replace(/\\/g, "/");
+  if (!text) return "pi";
   if (!/[\s"]/.test(text)) return text;
   return `"${text.replaceAll('"', '\\"')}"`;
 }
 
+/** @param {string} arg */
+function quoteShellArg(arg) {
+  if (!/[\s"]/.test(arg)) return arg;
+  return `"${arg.replaceAll('"', '\\"')}"`;
+}
+
 /**
- * @param {unknown} sessionPath
- * @param {unknown} [piBin]
- * @returns {string}
+ * The Pi command line for a Pi tab. PowerShell treats a quoted path as a
+ * string, so a quoted pi path there is prefixed with `& `. The shell closes
+ * once Pi quits cleanly, so a Pi tab never turns into a plain shell; a failed
+ * start leaves Pi's error on screen. Git Bash would rewrite a `/command`
+ * argument into a Windows path unless path conversion is off.
+ * @param {unknown} piBin
+ * @param {string} profileId
+ * @param {string[]} [args]
  */
-export function resumeSessionCommand(sessionPath, piBin = "pi") {
+export function piTabCommand(piBin, profileId, args = []) {
   const bin = quotePiBin(piBin);
-  const path = normalizeSessionPath(sessionPath);
-  if (!path) return bin;
-  return `${bin} -r "${path}"`;
+  const prefix = profileId === "powershell" && bin.startsWith('"') ? "& " : "";
+  const rest = args.map(quoteShellArg).join(" ");
+  const run = `${prefix}${bin}${rest ? ` ${rest}` : ""}`;
+  if (profileId === "powershell") return `${run}; if ($LASTEXITCODE -eq 0) { exit }`;
+  if (profileId === "git-bash") return `MSYS_NO_PATHCONV=1 ${run} && exit`;
+  return `${run} && exit`;
 }
 
 /** Ask the host for the bundled pi binary. Fall back to `pi` if it is missing. */
@@ -135,97 +116,6 @@ async function resolveBundledPiBin() {
   }
 }
 
-/** Prefer the path we already have; otherwise ask Pi for the session file. */
-/**
- * @param {unknown} sessionPath
- * @param {(() => Promise<unknown>) | null | undefined} [requestStats]
- * @returns {Promise<string>}
- */
-export async function resolveResumePath(sessionPath, requestStats) {
-  const direct = normalizeSessionPath(sessionPath);
-  if (direct) return direct;
-  if (!requestStats) return "";
-  try {
-    const frame = await requestStats();
-    const root =
-      frame && typeof frame === "object" ? /** @type {Record<string, unknown>} */ (frame) : null;
-    const resultRaw = root ? (root.response ?? root) : frame;
-    const result =
-      resultRaw && typeof resultRaw === "object"
-        ? /** @type {Record<string, unknown>} */ (resultRaw)
-        : null;
-    const data =
-      result?.data && typeof result.data === "object"
-        ? /** @type {Record<string, unknown>} */ (result.data)
-        : null;
-    return normalizeSessionPath(data?.sessionFile || "");
-  } catch {
-    return "";
-  }
-}
-
-/** After a GUI session switch the host WS is mid-reconnect; wait for Connected. */
-/**
- * @param {StatusDocLike | null | undefined} [doc]
- * @param {object} [options]
- * @param {number} [options.timeoutMs]
- * @returns {Promise<boolean>}
- */
-export async function waitUntilConnected(doc = globalThis.document, { timeoutMs = 20_000 } = {}) {
-  const started = Date.now();
-  while (Date.now() - started < timeoutMs) {
-    const text = (doc?.getElementById?.("status-text")?.textContent || "").trim();
-    if (/^connected$/i.test(text)) return true;
-    await new Promise((resolve) => setTimeout(resolve, 150));
-  }
-  return false;
-}
-
-/**
- * The GUI always holds the session it is showing, so the default answer is
- * "switch"; `sameProcess` is the only opt-out (the PTY twin is the GUI's own
- * Pi, which never happens today).
- * @param {SessionLockState} [lockState]
- * @returns {boolean}
- */
-export function shouldSwitchToFreshSession(lockState = {}) {
-  if (lockState.sameProcess === true) return false;
-  return lockState.held !== false;
-}
-
-/** Resolve once the page adopts a new session target, or after `timeoutMs`. */
-/**
- * @param {unknown} [_win]
- * @param {AwaitSessionSwitchOptions} [options]
- * @returns {Promise<SessionSwitchResult>}
- */
-export function awaitSessionSwitch(_win = globalThis, { timeoutMs = 5000, fromSessionId } = {}) {
-  return new Promise((resolve) => {
-    let done = false;
-    let unbind = () => {};
-    /**
-     * @param {SessionSwitchResult} value
-     */
-    const finish = (value) => {
-      if (done) return;
-      done = true;
-      clearTimeout(timer);
-      unbind();
-      resolve(value);
-    };
-    /**
-     * @param {{ sessionId?: string }} detail
-     */
-    const onCreated = (detail) => {
-      const sessionId = detail?.sessionId;
-      if (!sessionId || sessionId === fromSessionId) return;
-      finish({ switched: true, sessionId });
-    };
-    const timer = setTimeout(() => finish({ switched: false, sessionId: null }), timeoutMs);
-    unbind = onSessionCreated(onCreated);
-  });
-}
-
 /**
  * @param {TerminalClientLike | null | undefined} client
  * @param {string | null | undefined} terminalId
@@ -236,17 +126,6 @@ function pickTab(client, terminalId) {
   const tabs = client.tabs;
   const id = terminalId && tabs.has(terminalId) ? terminalId : [...tabs.keys()].at(-1);
   return { terminalId: id, entry: tabs.get(/** @type {string} */ (id)) };
-}
-
-/**
- * @param {TerminalClientLike | null | undefined} client
- * @param {unknown} sessionPath
- * @param {string | null} [terminalId]
- * @param {unknown} [piBin]
- * @returns {WriteCommandResult}
- */
-export function writeResumeToPty(client, sessionPath, terminalId = null, piBin = "pi") {
-  return writeCommandToPty(client, resumeSessionCommand(sessionPath, piBin), terminalId);
 }
 
 /**
@@ -300,71 +179,122 @@ export async function waitForShellPrompt(
 }
 
 /**
- * Open a dedicated PTY tab (never type into a shell the user may be using),
- * wait for its prompt, then write `pi -r`. Never sends a chat prompt.
- * @param {TerminalClientLike | null | undefined} client
- * @param {unknown} sessionPath
- * @param {{ piBin?: unknown }} [options]
- * @returns {Promise<WriteCommandResult>}
+ * Show the dock terminal. The overlay and a hidden dock would cover the PTY.
+ * @param {WorkbenchLike | null | undefined} workbench
  */
-export async function ensureResumeInPty(client, sessionPath, { piBin = "pi" } = {}) {
-  const command = resumeSessionCommand(sessionPath, piBin);
-  if (!client?.command) return { wrote: false, command };
-  if (!(client.tabs instanceof Map)) return { wrote: false, command };
-  const tabs = client.tabs;
-  const before = new Set(tabs.keys());
-  let terminalId = /** @type {string | null} */ (null);
-  if (typeof client.sendAndAwait === "function") {
-    const sendAndAwait = client.sendAndAwait;
-    const created = await sendAndAwait(
-      { type: "terminal_create", profileId: "default" },
-      (message) => message.type === "terminal_created",
-    );
-    await sendAndAwait({ type: "terminal_list" }, (message) => message.type === "terminal_listed");
-    terminalId = created?.terminalId || [...tabs.keys()].find((id) => !before.has(id)) || null;
-  } else {
-    client.command({ type: "terminal_create", profileId: "default" });
-  }
-  await waitForShellPrompt(client, { terminalId });
-  return writeResumeToPty(client, sessionPath, terminalId, piBin);
+export function showDockTerminal(workbench) {
+  workbench?.dock?.setTab?.("terminal");
+  workbench?.shell?.showCenter?.();
+  workbench?.shell?.applyHidden?.({ dockHidden: false });
 }
 
 /**
- * Header "Open in terminal": show the dock terminal, move the GUI to a fresh
- * session (Pi's lock allows one writer per session file), wait for adoption,
- * then let the PTY twin resume the old session.
- * @param {OpenSessionInPtyTwinOptions} [options]
- * @returns {Promise<WriteCommandResult & SessionSwitchResult>}
+ * The shell a new tab really runs, so a command's syntax matches it. "default"
+ * stays only where the host lists no named shells (the Unix system shell).
+ * @param {TerminalClientLike} client
+ * @returns {Promise<string>}
  */
-export async function openSessionInPtyTwin({
-  workbench,
-  sessionPath,
-  currentSessionId,
-  client,
-  panel,
-  getClient,
-  getPanel,
-  win = /** @type {OpenInTerminalWindow} */ (globalThis),
-  doc = globalThis.document,
-} = {}) {
-  workbench?.dock?.setTab?.("terminal");
-  workbench?.shell?.applyHidden?.({ dockHidden: false });
-  let switched = /** @type {SessionSwitchResult} */ ({ switched: false, sessionId: null });
-  if (shouldSwitchToFreshSession({ held: true })) {
-    const pending = awaitSessionSwitch(win, { fromSessionId: currentSessionId });
-    doc?.getElementById?.("new-session-btn")?.click();
-    switched = await pending;
+async function newTabProfile(client) {
+  const listed = /** @type {{ profiles?: unknown } | null | undefined} */ (
+    await client.sendAndAwait?.(
+      { type: "terminal_profiles" },
+      (message) => message.type === "terminal_profiles",
+    )
+  );
+  const profiles = Array.isArray(listed?.profiles) ? listed.profiles : [];
+  return profiles.length ? selectedShellProfile(defaultTerminalProfile(), profiles) : "default";
+}
+
+/** @type {Map<string, TerminalClientLike>} */
+const openPiTabs = new Map();
+
+/** @param {Event} event */
+function onTerminalClosed(event) {
+  const detail = /** @type {CustomEvent} */ (event).detail;
+  const client = openPiTabs.get(detail?.terminalId);
+  if (!client) return;
+  openPiTabs.delete(detail.terminalId);
+  if (!openPiTabs.size) document.removeEventListener("spopi-terminal-closed", onTerminalClosed);
+  if (typeof detail.generation === "number") {
+    client.command?.({
+      type: "terminal_close",
+      terminalId: detail.terminalId,
+      generation: detail.generation,
+    });
   }
-  if (switched.switched) await waitUntilConnected(doc);
-  const piBin = await resolveBundledPiBin();
-  const liveClient = getClient?.() || client;
-  const livePanel = getPanel?.() || panel;
-  const written = liveClient
-    ? await ensureResumeInPty(liveClient, sessionPath, { piBin })
-    : /** @type {WriteCommandResult} */ ({ wrote: false });
-  const writtenTerminalId = written.terminalId;
-  if (writtenTerminalId) livePanel?.setActiveTerminalId?.(writtenTerminalId);
-  const result = { ...written, ...switched };
-  if (win) win.__spopiOpenInTerminalLast = { sessionPath, result };
+  document.dispatchEvent(new CustomEvent("spopi-pi-config-changed"));
+}
+
+/**
+ * @param {string} terminalId
+ * @param {TerminalClientLike} client
+ */
+function reloadWhenClosed(terminalId, client) {
+  if (!openPiTabs.size) document.addEventListener("spopi-terminal-closed", onTerminalClosed);
+  openPiTabs.set(terminalId, client);
+}
+
+/**
+ * Run the bundled Pi in a new tab named "Pi" in the user's shell (never in a
+ * shell the user may be using). It shares `~/.pi/agent` with SPOPI's Pi; when
+ * the tab closes, SPOPI's Pi reloads.
+ * @param {{
+ *   client?: TerminalClientLike | null,
+ *   panel?: TerminalPanelLike | null,
+ *   workbench?: WorkbenchLike | null,
+ *   args?: string[],
+ * }} options
+ * @returns {Promise<WriteCommandResult>}
+ */
+export async function openPiTab({ client, panel, workbench, args = [] }) {
+  if (!(client?.command && client.sendAndAwait && client.tabs instanceof Map)) {
+    return { wrote: false };
+  }
+  showDockTerminal(workbench);
+  const [piBin, profileId] = await Promise.all([resolveBundledPiBin(), newTabProfile(client)]);
+  const command = piTabCommand(piBin, profileId, args);
+  await panel?.expand?.();
+  const tabs = client.tabs;
+  const before = new Set(tabs.keys());
+  const created = await client.sendAndAwait(
+    { type: "terminal_create", profileId, label: "Pi" },
+    (message) => message.type === "terminal_created",
+  );
+  const terminalId = created?.terminalId || [...tabs.keys()].find((id) => !before.has(id)) || null;
+  if (terminalId) panel?.activateWhenListed?.(terminalId);
+  await client.sendAndAwait(
+    { type: "terminal_list" },
+    (message) => message.type === "terminal_listed",
+  );
+  await waitForShellPrompt(client, { terminalId });
+  const written = writeCommandToPty(client, command, terminalId);
+  if (written.wrote && written.terminalId) {
+    panel?.setActiveTerminalId?.(written.terminalId);
+    reloadWhenClosed(written.terminalId, client);
+  }
+  return written;
+}
+
+/**
+ * Header π: Pi in the terminal on a new session of this project. The chat
+ * stays as it is.
+ * @param {{
+ *   client?: TerminalClientLike | null,
+ *   panel?: TerminalPanelLike | null,
+ *   workbench?: WorkbenchLike | null,
+ *   notify?: (notice: { type?: string, title?: string, message?: string }) => void,
+ *   win?: OpenInTerminalWindow,
+ * }} options
+ */
+export async function openPiInTerminal({
+  notify,
+  win = /** @type {OpenInTerminalWindow} */ (/** @type {unknown} */ (globalThis)),
+  ...tab
+}) {
+  const result = await openPiTab(tab);
+  if (!result.wrote) {
+    notify?.({ type: "error", title: t("header.openPi"), message: t("terminal.piTabFailed") });
+  }
+  win.__spopiOpenInTerminalLast = { result };
   return result;
 }

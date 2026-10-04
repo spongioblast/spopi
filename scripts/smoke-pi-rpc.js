@@ -13,7 +13,7 @@ const binary = join(
   "pi",
   process.platform === "win32" ? "pi.exe" : "pi",
 );
-const fixtureDir = join(root, "tests", "fixtures", "pi-rpc", piVersion);
+const fixtureDir = join(root, "tests", "fixtures", "pi-rpc");
 const update = process.argv.includes("--update");
 const temp = await mkdtemp(join(tmpdir(), "spopi-rpc-smoke-"));
 const extension = join(temp, "smoke-extension.ts");
@@ -30,6 +30,7 @@ await writeFile(
 
 const subprocess = Bun.spawn([binary, "--mode", "rpc", "--no-session", "--extension", extension], {
   cwd: temp,
+  env: { ...process.env, PI_CODING_AGENT_DIR: join(temp, "agent") },
   stdin: "pipe",
   stdout: "pipe",
   stderr: "pipe",
@@ -116,7 +117,10 @@ try {
     stateFields: Object.keys(state.data ?? {}).sort(),
     commandSources: [...new Set((commands.data?.commands ?? []).map((item) => item.source))].sort(),
     eventTypes: [...new Set(observedEvents.map((event) => event.type))].sort(),
-    promptAcceptance: prompt.success,
+    promptAcceptance: {
+      success: prompt.success === true,
+      disposition: prompt.data?.disposition ?? null,
+    },
   };
   const fixture = join(fixtureDir, "contract.json");
   if (update) {

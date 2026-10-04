@@ -27,7 +27,7 @@ import { matchCatalogCommand, resolveComposerInput } from "./slash-commands.js";
  *   messageRenderer: { renderSystemMessage: (text: string) => void },
  *   settingsButton?: HTMLElement | null,
  *   showError: (error: unknown) => void,
- *   getStore: () => { lifecycle?: string },
+ *   isWorking: () => boolean,
  *   getTarget: () => unknown,
  *   getCommandCatalog: () => Map<string, SlashCommand>,
  *   clearPendingFork: () => void,
@@ -45,7 +45,7 @@ export function mountComposer({
   messageRenderer,
   settingsButton,
   showError,
-  getStore,
+  isWorking,
   getTarget,
   getCommandCatalog,
   clearPendingFork,
@@ -61,7 +61,7 @@ export function mountComposer({
     const value = input.value;
     const commandCatalog = getCommandCatalog();
     const intent = resolveComposerInput(value, commandCatalog, {
-      working: getStore().lifecycle === "working",
+      working: isWorking(),
       altKey,
       images,
     });

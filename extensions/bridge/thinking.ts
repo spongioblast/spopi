@@ -27,7 +27,7 @@ export const handlers = {
     return { ok: true, data: getDefaultThinkingLevel(params.scope, ctx) };
   },
   set_default_thinking_level: async (ctx, params) => {
-    return { ok: true, data: setDefaultThinkingLevel(params.level, params.scope, ctx) };
+    return { ok: true, data: await setDefaultThinkingLevel(params.level, params.scope, ctx) };
   },
   get_model_thinking_level: async (_ctx, params) => {
     return { ok: true, data: getModelThinkingLevel(params.provider, params.modelId) };
@@ -35,7 +35,7 @@ export const handlers = {
   set_model_thinking_level: async (_ctx, params) => {
     return {
       ok: true,
-      data: setModelThinkingLevel(params.provider, params.modelId, params.level ?? null),
+      data: await setModelThinkingLevel(params.provider, params.modelId, params.level ?? null),
     };
   },
   get_thinking_budgets: async (ctx, _params) => {
@@ -48,13 +48,13 @@ export const handlers = {
     return { ok: true, data: getDefaultAutoCompaction(params.scope, ctx) };
   },
   set_default_auto_compaction: async (ctx, params) => {
-    return { ok: true, data: setDefaultAutoCompaction(params.enabled, params.scope, ctx) };
+    return { ok: true, data: await setDefaultAutoCompaction(params.enabled, params.scope, ctx) };
   },
   get_default_auto_retry: async (ctx, params) => {
     return { ok: true, data: getDefaultAutoRetry(params.scope, ctx) };
   },
   set_default_auto_retry: async (ctx, params) => {
-    return { ok: true, data: setDefaultAutoRetry(params.enabled, params.scope, ctx) };
+    return { ok: true, data: await setDefaultAutoRetry(params.enabled, params.scope, ctx) };
   },
   get_show_thinking: async (ctx, _params) => {
     return { ok: true, data: { enabled: !settingsFor(ctx).getHideThinkingBlock() } };

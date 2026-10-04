@@ -46,7 +46,7 @@
   color: var(--git-tone, var(--text-muted));
   font-family: var(--font-mono);
   font-size: var(--font-size-xs);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   text-align: center;
   opacity: 0.85;
 }

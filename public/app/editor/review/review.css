@@ -69,6 +69,27 @@
   gap: var(--space-2);
 }
 
+.review-draft-bar,
+.review-draft-note {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2);
+}
+
+.review-draft-note {
+  border-top: 1px solid var(--border);
+}
+
+.review-draft-note p,
+.review-draft-error {
+  margin: 0;
+}
+
+.review-draft-error {
+  color: var(--danger);
+}
+
 .review-inline-list {
   display: none;
 }
@@ -144,6 +165,14 @@ body:not([data-layout="wide"]) .review-inline-list {
   padding: var(--space-3);
 }
 
+.review-sidebar-empty p {
+  margin: 0;
+}
+
+.review-open-packages {
+  margin-top: var(--space-2);
+}
+
 /* The diff body already says why the scope is empty. */
 .review-inline-list .review-sidebar-empty {
   display: none;
@@ -180,6 +209,11 @@ body:not([data-layout="wide"]) .review-inline-list {
   flex: 1;
 }
 
+.review-empty {
+  margin: 0;
+  padding-inline: var(--space-3);
+}
+
 .review-file-notice {
   margin: var(--space-2) var(--space-3);
   color: var(--text-muted);
@@ -190,6 +224,27 @@ body:not([data-layout="wide"]) .review-inline-list {
   align-items: baseline;
   gap: var(--space-1-5);
   min-width: 0;
+}
+
+.review-file-nav,
+.review-open-editor,
+.review-view-head button {
+  flex: none;
+  white-space: nowrap;
+}
+
+body[data-layout="phone"] .review-view-head,
+body[data-layout="phone"] .review-file-head {
+  flex-wrap: wrap;
+}
+
+body[data-layout="phone"] .review-view-title {
+  white-space: nowrap;
+}
+
+/* The list above the diff already names the folder. */
+body[data-layout="phone"] .review-file-head .review-dir {
+  display: none;
 }
 
 .review-file-path .add {

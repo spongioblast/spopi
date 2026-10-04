@@ -1,4 +1,4 @@
-// ABOUTME: Declares OS helpers: hex, loopback, window ownership, file openers, and WebView capture.
+// ABOUTME: Declares OS helpers: hex, loopback, window ownership, openers, firewall, and WebView capture.
 // ABOUTME: Windows-only child setup lives in windows_child.
 //! OS-specific process and window helpers.
 //!
@@ -6,6 +6,7 @@
 //! WebView screenshots, and the model's live-debugging port.
 
 pub(crate) mod appimage_env;
+pub(crate) mod firewall;
 pub(crate) mod hex;
 pub(crate) mod live_debug;
 pub(crate) mod loopback;

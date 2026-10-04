@@ -18,17 +18,6 @@ const route = parseAppRoute(window.location.pathname);
 
 if (route.name === "launcher" || route.name === "settings" || route.name === "not_found") {
   window.location.replace("/app");
-} else if (route.name === "pair") {
-  import("./app/pair/pair-screen.js")
-    .then((mod) => {
-      const root = document.createElement("main");
-      document.body.append(root);
-      mod.mountPairScreen(root);
-      sessionStorage.removeItem(RELOAD_GUARD_KEY);
-    })
-    .catch((error) => {
-      console.error("[bootstrap] failed to load pair screen", error);
-    });
 } else {
   const entry = route.name === "app_launcher" ? "./app/shell/app-launcher.js" : "./app/app.js";
   import(entry)

@@ -1,7 +1,15 @@
 // ABOUTME: Tests the adaptive center paint.
 // ABOUTME: A running turn with no touched files keeps the home actions.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { paintAdaptiveCenter } from "./center-paint.js";
+import { isLoopbackPage, paintAdaptiveCenter } from "./center-paint.js";
+
+describe("isLoopbackPage", () => {
+  it("probes local model servers only from the desktop window", () => {
+    expect(isLoopbackPage("127.0.0.1")).toBe(true);
+    expect(isLoopbackPage("localhost")).toBe(true);
+    expect(isLoopbackPage("192.168.80.57")).toBe(false);
+  });
+});
 
 describe("paintAdaptiveCenter", () => {
   beforeEach(() => {

@@ -6,7 +6,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { getAgentDir, SessionManager } from "@earendil-works/pi-coding-agent";
 import type { CatalogRegistry } from "./model-catalog";
-import type { SkillScope, SkillTarget } from "./skill-inventory";
+import type { SkillScope } from "./skill-inventory";
 
 export type ConfigContext = {
   modelRegistry?: CatalogRegistry;
@@ -64,12 +64,6 @@ export async function renameHistoricalSession(filePath: unknown, requestedName: 
   return { filePath: canonicalTarget, name };
 }
 
-export type SkillInventoryMutation = {
-  scope?: unknown;
-  target?: unknown;
-  enabled?: unknown;
-};
-
 export type SpopiConfigResult =
   | { ok: true; data?: unknown; postResponse?: () => Promise<void> }
   | { ok: false; error: string };
@@ -121,18 +115,6 @@ export const PROJECT_CONFIG_DIR_NAME = ".pi";
 export function parseSkillScope(value: unknown): SkillScope {
   if (value === "global" || value === "project") return value;
   throw new Error("Invalid skill inventory scope");
-}
-
-export function parseSkillTarget(value: unknown): SkillTarget {
-  if (!value || typeof value !== "object") throw new Error("Invalid skill inventory mutation");
-  const target = value as { kind?: unknown; id?: unknown };
-  if (target.kind !== "skill" && target.kind !== "group") {
-    throw new Error("Invalid skill inventory mutation");
-  }
-  if (typeof target.id !== "string" || target.id.length === 0) {
-    throw new Error("Invalid skill inventory mutation");
-  }
-  return { kind: target.kind, id: target.id };
 }
 
 export function skillInventoryOptions(scope: SkillScope, ctx: ConfigContext) {

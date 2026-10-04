@@ -30,7 +30,10 @@ describe("mountHeaderChrome", () => {
         <button id="file-sidebar-toggle"></button>
       </div>
     `;
-    mountHeaderChrome({ t: (key, fallback) => fallback || key });
+    mountHeaderChrome({
+      header: document.querySelector(".header-right"),
+      t: (key, fallback) => fallback || key,
+    });
     const metrics = document.getElementById("header-metrics");
     expect(metrics?.tagName).toBe("BUTTON");
     expect(metrics?.getAttribute("aria-label")).toBeTruthy();

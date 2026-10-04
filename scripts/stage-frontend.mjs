@@ -1,8 +1,11 @@
-// ABOUTME: Copies public/ into the Tauri frontend stage without tests or fixtures.
+// ABOUTME: Copies public/ into the Tauri frontend stage without tests, fixtures, or test helpers.
 // ABOUTME: Debug builds still serve the live public/ folder.
 
 import { cp, rm } from "node:fs/promises";
 import path from "node:path";
+
+const TEST_FILE = /\.test\.(js|mjs|ts)$/;
+const TEST_DIRS = new Set(["fixtures", "test-utils"]);
 
 const destination = path.resolve("src-tauri/target/frontend-stage/public");
 await rm(destination, { recursive: true, force: true });
@@ -12,7 +15,7 @@ await cp("public", destination, {
   recursive: true,
   filter(source) {
     const name = path.basename(source);
-    if (name.endsWith(".test.js") || name === "fixtures") {
+    if (TEST_FILE.test(name) || TEST_DIRS.has(name)) {
       skipped += 1;
       return false;
     }

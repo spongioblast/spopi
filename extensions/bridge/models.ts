@@ -72,7 +72,7 @@ export const handlers = {
   set_scoped_model: async (_ctx, params) => {
     return {
       ok: true,
-      data: setScopedModel(params.provider, params.modelId, params.enabled),
+      data: await setScopedModel(params.provider, params.modelId, params.enabled),
     };
   },
   read_models_config: async (_ctx, _params) => {

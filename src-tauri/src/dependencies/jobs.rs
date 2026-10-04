@@ -52,6 +52,21 @@ pub struct JobCommand {
     pub path_env: Option<String>,
 }
 
+#[derive(Debug, Clone)]
+pub enum JobWork {
+    Command(JobCommand),
+    /// Node.js from nodejs.org into this folder, where no package manager can install it without sudo.
+    DownloadNode(PathBuf),
+}
+
+impl From<JobCommand> for JobWork {
+    fn from(command: JobCommand) -> Self {
+        Self::Command(command)
+    }
+}
+
+const NODE_DOWNLOAD_TIMEOUT: Duration = Duration::from_secs(20 * 60);
+
 #[derive(Debug, Clone, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct JobSnapshot {
@@ -107,7 +122,8 @@ impl DependencyJobs {
         true
     }
 
-    pub async fn start(&self, kind: JobKind, command: JobCommand) -> JobSnapshot {
+    pub async fn start(&self, kind: JobKind, work: impl Into<JobWork>) -> JobSnapshot {
+        let work = work.into();
         let cancel = Arc::new(Notify::new());
         {
             let mut guard = self.inner.lock().unwrap_or_else(|error| error.into_inner());
@@ -130,7 +146,10 @@ impl DependencyJobs {
         }
         let jobs = self.clone();
         tokio::spawn(async move {
-            run_job(jobs, kind, command, cancel).await;
+            match work {
+                JobWork::Command(command) => run_job(jobs, kind, command, cancel).await,
+                JobWork::DownloadNode(dest) => run_node_download(jobs, kind, dest, cancel).await,
+            }
         });
         self.snapshot(kind).expect("job was inserted")
     }
@@ -160,11 +179,11 @@ impl DependencyJobs {
     }
 }
 
-pub fn command_for(kind: JobKind, static_dir: &Path) -> Result<JobCommand, String> {
+pub fn command_for(kind: JobKind, static_dir: &Path) -> Result<JobWork, String> {
     if cfg!(debug_assertions)
         && std::env::var("SPOPI_DEPENDENCY_FAKE_JOB").ok().as_deref() == Some("1")
     {
-        return Ok(fake_command());
+        return Ok(fake_command().into());
     }
     let path_env = crate::pi::binary::build_augmented_path();
     match kind {
@@ -176,9 +195,10 @@ pub fn command_for(kind: JobKind, static_dir: &Path) -> Result<JobCommand, Strin
                 args: vec!["install".into()],
                 timeout: Duration::from_secs(15 * 60),
                 path_env: Some(path_env),
-            })
+            }
+            .into())
         }
-        JobKind::Node => node_command(&path_env),
+        JobKind::Node => node_work(&path_env),
         JobKind::Surf => {
             let program = PiLaunchResolver::new(static_dir.to_path_buf()).resolve_bundled_pi()?;
             Ok(JobCommand {
@@ -186,16 +206,31 @@ pub fn command_for(kind: JobKind, static_dir: &Path) -> Result<JobCommand, Strin
                 args: vec!["install".into(), "npm:surf-cli".into()],
                 timeout: Duration::from_secs(5 * 60),
                 path_env: Some(path_env),
-            })
+            }
+            .into())
         }
     }
 }
 
-fn node_command(path_env: &str) -> Result<JobCommand, String> {
+/// winget on Windows, Homebrew on macOS when it is there, otherwise the nodejs.org download.
+fn node_work(path_env: &str) -> Result<JobWork, String> {
+    if let Some(command) = node_command(path_env) {
+        return Ok(command.into());
+    }
     if cfg!(windows) {
-        let program =
-            resolve_executable("winget", path_env).ok_or_else(|| "not_supported".to_string())?;
-        return Ok(JobCommand {
+        return Err("not_supported".into());
+    }
+    super::node_download::platform_suffix(std::env::consts::OS, std::env::consts::ARCH)
+        .ok_or_else(|| "not_supported".to_string())?;
+    super::node_download::install_dir()
+        .map(JobWork::DownloadNode)
+        .ok_or_else(|| "not_supported".to_string())
+}
+
+fn node_command(path_env: &str) -> Option<JobCommand> {
+    if cfg!(windows) {
+        let program = resolve_executable("winget", path_env)?;
+        return Some(JobCommand {
             program,
             args: vec![
                 "install".into(),
@@ -214,16 +249,15 @@ fn node_command(path_env: &str) -> Result<JobCommand, String> {
         let program = ["/opt/homebrew/bin/brew", "/usr/local/bin/brew"]
             .into_iter()
             .map(PathBuf::from)
-            .find(|path| path.is_file())
-            .ok_or_else(|| "not_supported".to_string())?;
-        return Ok(JobCommand {
+            .find(|path| path.is_file())?;
+        return Some(JobCommand {
             program,
             args: vec!["install".into(), "node".into()],
             timeout: Duration::from_secs(20 * 60),
             path_env: Some(path_env.to_string()),
         });
     }
-    Err("not_supported".into())
+    None
 }
 
 fn fake_command() -> JobCommand {
@@ -317,6 +351,42 @@ async fn run_job(jobs: DependencyJobs, kind: JobKind, command: JobCommand, cance
     }
 }
 
+async fn run_node_download(
+    jobs: DependencyJobs,
+    kind: JobKind,
+    dest: PathBuf,
+    cancel: Arc<Notify>,
+) {
+    let log_jobs = jobs.clone();
+    // The install future is dropped at the end of this block, which kills a running
+    // `tar`, before its partial files are removed.
+    let timed_out = {
+        let install =
+            super::node_download::install(&dest, move |line| log_jobs.push_line(kind, line));
+        tokio::select! {
+            result = install => {
+                match result {
+                    Ok(()) => jobs.finish(kind, "succeeded", Some(0)),
+                    Err(error) => {
+                        jobs.push_line(kind, error);
+                        jobs.finish(kind, "failed", None);
+                    }
+                }
+                return;
+            }
+            _ = cancel.notified() => false,
+            _ = tokio::time::sleep(NODE_DOWNLOAD_TIMEOUT) => true,
+        }
+    };
+    super::node_download::discard_partial(&dest).await;
+    if timed_out {
+        jobs.push_line(kind, "timed out".into());
+        jobs.finish(kind, "timed_out", None);
+    } else {
+        jobs.finish(kind, "cancelled", None);
+    }
+}
+
 async fn pump<R>(reader: R, jobs: DependencyJobs, kind: JobKind)
 where
     R: tokio::io::AsyncRead + Unpin,
@@ -331,7 +401,7 @@ where
     }
 }
 
-fn scrub_tokio(command: &mut Command) {
+pub(super) fn scrub_tokio(command: &mut Command) {
     use crate::platform::appimage_env::{plan, EnvAction};
     for (key, action) in plan() {
         match action {
@@ -460,10 +530,13 @@ mod tests {
         let _ = wait_until(|| jobs.snapshot(JobKind::Surf)).await;
     }
 
-    #[cfg(not(any(windows, target_os = "macos")))]
+    #[cfg(target_os = "linux")]
     #[test]
-    fn node_install_is_not_supported_without_a_package_manager() {
-        let error = command_for(JobKind::Node, Path::new(".")).unwrap_err();
-        assert_eq!(error, "not_supported");
+    fn node_installs_on_linux_by_download() {
+        let work = command_for(JobKind::Node, Path::new(".")).unwrap();
+        let JobWork::DownloadNode(dest) = work else {
+            panic!("expected the nodejs.org download, got {work:?}");
+        };
+        assert!(dest.ends_with("spopi/node"), "{}", dest.display());
     }
 }

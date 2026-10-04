@@ -4,9 +4,14 @@
 .retry-banner {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-1-5);
+  gap: var(--space-1) var(--space-2);
   align-items: center;
-  margin: var(--space-2) 0;
+  margin: 0 var(--space-1) var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid color-mix(in srgb, var(--warning) 35%, var(--border));
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--warning) 8%, transparent);
+  color: var(--text-secondary);
   font-size: var(--font-size-sm);
 }
 
@@ -18,4 +23,30 @@
 .retry-banner-message,
 .retry-banner-count {
   margin: 0;
+}
+
+.retry-banner-title {
+  color: var(--text-primary);
+}
+
+.retry-banner-message {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.retry-banner-message:empty {
+  display: none;
+}
+
+.retry-banner-count {
+  color: var(--text-muted);
+}
+
+.retry-banner .retry-banner-abort {
+  margin-left: auto;
+  padding: 0 var(--space-2);
+  font-size: var(--font-size-sm);
 }

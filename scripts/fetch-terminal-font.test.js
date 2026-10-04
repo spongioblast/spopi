@@ -27,7 +27,6 @@ describe("terminal font distribution", () => {
   test("fetches the font before Tauri dev and distributable builds", () => {
     expect(read("package.json")).toContain('"fetch:terminal-font"');
     expect(read("src-tauri/tauri.conf.json")).toContain("bun run fetch:terminal-font");
-    expect(read("scripts/release-macos-dmg.sh")).toContain("fetch-terminal-font.js");
     expect(read("scripts/fetch-terminal-font.js")).toContain("ttf2woff2");
     expect(read("public/style.css")).toContain(".woff2");
     expect(read("package.json")).toContain('"ttf2woff2"');

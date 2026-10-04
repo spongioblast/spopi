@@ -2,7 +2,7 @@
 // ABOUTME: Never sends a chat prompt; Agent/virtual tabs are not used as targets.
 
 import { defaultTerminalProfile } from "../dock/terminal-profile-menu.js";
-import { shellShowsText, waitForShellPrompt } from "./open-in-terminal.js";
+import { shellShowsText, showDockTerminal, waitForShellPrompt } from "./open-in-terminal.js";
 
 const LABELS = {
   python: "Python",
@@ -185,8 +185,7 @@ export async function runFileInTerminal({
 } = {}) {
   const spec = runCommandForFile(path);
   if (!spec || !client) return { wrote: false, command: spec?.command };
-  workbench?.dock?.setTab?.("terminal");
-  workbench?.shell?.applyHidden?.({ dockHidden: false });
+  showDockTerminal(workbench);
   let target = pickRunningShell(panel);
   if (!target) {
     const created = await client.sendAndAwait?.(

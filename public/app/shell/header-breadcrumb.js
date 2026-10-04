@@ -2,10 +2,15 @@
 // ABOUTME: A status dot follows whether a turn is running.
 
 /**
- * @param {{ project?: string, branch?: string, session?: string, working?: boolean }} parts
+ * @param {{ header?: Element | null, project?: string, branch?: string, session?: string, working?: boolean }} parts
  */
-export function paintBreadcrumb({ project = "", branch = "", session = "", working = false } = {}) {
-  const header = document.querySelector(".header");
+export function paintBreadcrumb({
+  header,
+  project = "",
+  branch = "",
+  session = "",
+  working = false,
+} = {}) {
   if (!header) return;
   let crumb = header.querySelector("#header-breadcrumb");
   if (!crumb) {

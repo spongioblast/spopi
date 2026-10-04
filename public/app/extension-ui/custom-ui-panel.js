@@ -9,7 +9,7 @@ import {
 } from "../terminal/terminal-font.js";
 import { spopiThemeToXterm } from "../terminal/terminal-tab.js";
 import { onThemeChange } from "../theme/themes.js";
-import { bindModal } from "../ui/dialog.js";
+import { trapModal } from "../ui/dialog.js";
 import { ensureXterm } from "../utils/load-vendor.js";
 
 // The extension side (extensions/custom-ui-bridge.ts) drives a pi-tui component
@@ -201,7 +201,7 @@ export class CustomUiPanel {
     overlay.appendChild(surface);
     (this.#container ?? document.body).appendChild(overlay);
     this.#host = overlay;
-    this.#unbindModal = bindModal(overlay, { onClose: () => this.close() });
+    this.#unbindModal = trapModal(overlay, { onClose: () => this.close() });
 
     // Clicking the backdrop asks the component to close via its own key, the
     // same path the panel's on-screen "esc" hint describes.

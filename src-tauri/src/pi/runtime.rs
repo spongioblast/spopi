@@ -1,5 +1,5 @@
 // ABOUTME: Supervises one pi process per session and forwards RPC.
-// ABOUTME: Session binding and snapshots live in session_bind.rs.
+// ABOUTME: Session binding is in session_bind.rs, warm standby in standby.rs, reaping in idle.rs.
 
 use super::launch::NativeLaunchSpec;
 use crate::pi::coordinator::{MutationAcceptance, RuntimeCoordinator, RuntimeState, RuntimeTarget};
@@ -23,7 +23,7 @@ fn ui_method(event: &Value) -> &str {
 }
 
 /// A request that waits for the user's answer (select, confirm, input, editor, ...).
-fn is_dialog(event: &Value) -> bool {
+pub(in crate::pi) fn is_dialog(event: &Value) -> bool {
     let method = ui_method(event);
     !UI_STATE_METHODS.contains(&method) && !UI_ONE_OFF_METHODS.contains(&method)
 }
@@ -65,10 +65,10 @@ pub(in crate::pi) struct PiRuntimeInner {
     pub(in crate::pi) events: broadcast::Sender<NativeRuntimeEvent>,
     pub(in crate::pi) pending_ui: Mutex<HashMap<String, Vec<NativeRuntimeEvent>>>,
     /// instance id -> last request, snapshot, or finished turn. Feeds the idle reaper.
-    last_used: Mutex<HashMap<String, Instant>>,
+    pub(in crate::pi) last_used: Mutex<HashMap<String, Instant>>,
     /// client id -> the instance that client last subscribed to (its open chat).
-    foreground: Mutex<HashMap<String, String>>,
-    standby: Mutex<HashMap<String, RuntimeTarget>>,
+    pub(in crate::pi) foreground: Mutex<HashMap<String, String>>,
+    pub(in crate::pi) standby: Mutex<HashMap<String, RuntimeTarget>>,
 }
 
 impl PiRuntimeInner {
@@ -109,7 +109,7 @@ impl PiRuntime {
     }
 
     #[cfg(test)]
-    fn in_memory(idempotency_capacity: usize) -> Self {
+    pub(in crate::pi) fn in_memory(idempotency_capacity: usize) -> Self {
         Self::new(idempotency_capacity)
     }
 
@@ -356,58 +356,6 @@ impl PiRuntime {
         Ok(response)
     }
 
-    pub fn standby_for(&self, workspace_id: &str) -> Option<RuntimeTarget> {
-        self.inner.standby.lock().ok()?.get(workspace_id).cloned()
-    }
-
-    /// Host-only. Client `switch_session` stays rejected by `validate_command`.
-    pub async fn host_switch_session(
-        &self,
-        target: &RuntimeTarget,
-        session_path: &str,
-    ) -> Result<Value, String> {
-        self.inner
-            .coordinator
-            .lock()
-            .map_err(|_| "Runtime coordinator lock poisoned".to_string())?
-            .validate(target)
-            .map_err(|error| format!("Cannot switch a standby: {error:?}"))?;
-        let bridge = self
-            .inner
-            .runtimes
-            .lock()
-            .map_err(|_| "Native runtime registry lock poisoned".to_string())?
-            .get(&target.instance_id)
-            .map(|runtime| runtime.bridge.clone())
-            .ok_or_else(|| "Standby runtime is not running".to_string())?;
-        bridge
-            .request(
-                serde_json::json!({ "type": "switch_session", "sessionPath": session_path }),
-                Duration::from_secs(5),
-            )
-            .await
-            .map_err(|error| format!("Pi RPC request failed: {error:?}"))
-    }
-
-    /// Session id Pi already assigned to a fresh standby. `None` when that
-    /// field is missing, so the caller can keep a temporary id until a later
-    /// snapshot binds the real one.
-    pub async fn host_session_id(&self, target: &RuntimeTarget) -> Result<Option<String>, String> {
-        let response = self
-            .request(
-                target,
-                serde_json::json!({ "type": "get_state" }),
-                None,
-                Duration::from_secs(5),
-            )
-            .await?;
-        Ok(response
-            .pointer("/data/sessionId")
-            .and_then(Value::as_str)
-            .filter(|session_id| !session_id.is_empty())
-            .map(str::to_owned))
-    }
-
     /// Pull whatever `pi` wrote to stderr, so a dead runtime reports why it
     /// died instead of a bare transport error.
     fn drain_diagnostics(&self, instance_id: &str) -> Option<String> {
@@ -480,150 +428,6 @@ impl PiRuntime {
         for target in targets {
             let _ = self.stop(&target);
         }
-    }
-
-    /// Remember which runtime a client is looking at. Its process is never
-    /// reaped while any client has it in the foreground.
-    pub fn set_foreground(&self, client_id: &str, target: &RuntimeTarget) {
-        if let Ok(mut foreground) = self.inner.foreground.lock() {
-            foreground.insert(client_id.to_owned(), target.instance_id.clone());
-        }
-        self.inner.touch(&target.instance_id);
-    }
-
-    pub fn clear_foreground(&self, client_id: &str) {
-        if let Ok(mut foreground) = self.inner.foreground.lock() {
-            foreground.remove(client_id);
-        }
-    }
-
-    /// Runtimes nobody is looking at, not mid-turn, not waiting on a dialog,
-    /// and untouched for at least `idle_for`. Empty when `idle_for` is zero
-    /// (the "never" setting).
-    pub fn idle_targets(&self, idle_for: Duration) -> Vec<RuntimeTarget> {
-        if idle_for.is_zero() {
-            return Vec::new();
-        }
-        self.reapable_targets(|target| {
-            self.inner
-                .last_used
-                .lock()
-                .ok()
-                .and_then(|used| used.get(&target.instance_id).map(|at| at.elapsed()))
-                .is_some_and(|elapsed| elapsed >= idle_for)
-        })
-    }
-
-    /// Stop every idle runtime; returns what was stopped.
-    pub fn reap_idle(&self, idle_for: Duration) -> Vec<RuntimeTarget> {
-        let targets = self.idle_targets(idle_for);
-        for target in &targets {
-            let _ = self.stop(target);
-        }
-        targets
-    }
-
-    /// Stop a workspace's runtimes that are not busy or in the foreground.
-    /// Used when a window navigates to another project; busy ones stay for the
-    /// idle reaper.
-    pub fn park_standby(&self, target: &RuntimeTarget) -> Result<(), String> {
-        let mut slots = self
-            .inner
-            .standby
-            .lock()
-            .map_err(|_| "standby lock poisoned".to_string())?;
-        if slots.contains_key(&target.workspace_id) {
-            return Err("standby already exists".into());
-        }
-        slots.insert(target.workspace_id.clone(), target.clone());
-        Ok(())
-    }
-
-    pub fn adopt_standby(
-        &self,
-        workspace_id: &str,
-        session_id: &str,
-    ) -> Result<Option<RuntimeTarget>, String> {
-        let parked = self
-            .inner
-            .standby
-            .lock()
-            .map_err(|_| "standby lock poisoned".to_string())?
-            .remove(workspace_id);
-        let Some(parked) = parked else {
-            return Ok(None);
-        };
-        let updated = self
-            .inner
-            .coordinator
-            .lock()
-            .map_err(|_| "Runtime coordinator lock poisoned".to_string())?
-            .rekey_session(&parked.instance_id, session_id)
-            .map_err(|error| format!("Cannot adopt standby: {error:?}"))?;
-        if let Some(runtime) = self
-            .inner
-            .runtimes
-            .lock()
-            .map_err(|_| "Native runtime registry lock poisoned".to_string())?
-            .get(&parked.instance_id)
-        {
-            if let Ok(mut target) = runtime.target.lock() {
-                *target = updated.clone();
-            }
-        }
-        Ok(Some(updated))
-    }
-
-    pub fn stop_standby(&self, workspace_id: &str) -> Option<RuntimeTarget> {
-        let parked = self.inner.standby.lock().ok()?.remove(workspace_id)?;
-        let _ = self.stop(&parked);
-        Some(parked)
-    }
-
-    pub fn stop_idle_workspace(&self, workspace_id: &str) -> Vec<RuntimeTarget> {
-        let mut targets = self.reapable_targets(|target| target.workspace_id == workspace_id);
-        for target in &targets {
-            let _ = self.stop(target);
-        }
-        if let Some(standby) = self.stop_standby(workspace_id) {
-            if !targets
-                .iter()
-                .any(|target| target.instance_id == standby.instance_id)
-            {
-                targets.push(standby);
-            }
-        }
-        targets
-    }
-
-    fn reapable_targets(&self, keep_if: impl Fn(&RuntimeTarget) -> bool) -> Vec<RuntimeTarget> {
-        let foreground: std::collections::HashSet<String> = self
-            .inner
-            .foreground
-            .lock()
-            .map(|map| map.values().cloned().collect())
-            .unwrap_or_default();
-        let waiting_on_dialog: std::collections::HashSet<String> = self
-            .inner
-            .pending_ui
-            .lock()
-            .map(|pending| {
-                pending
-                    .iter()
-                    .filter(|(_, events)| events.iter().any(|event| is_dialog(&event.event)))
-                    .map(|(id, _)| id.clone())
-                    .collect()
-            })
-            .unwrap_or_default();
-        self.statuses()
-            .unwrap_or_default()
-            .into_iter()
-            .filter(|status| status.state != RuntimeState::Working)
-            .map(|status| status.target)
-            .filter(|target| !foreground.contains(&target.instance_id))
-            .filter(|target| !waiting_on_dialog.contains(&target.instance_id))
-            .filter(|target| keep_if(target))
-            .collect()
     }
 
     /// Stop the runtime for `target` and spawn a fresh one that resumes the same

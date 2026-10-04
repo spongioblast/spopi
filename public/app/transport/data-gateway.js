@@ -107,7 +107,7 @@ export class HostDataGateway {
     const traceSessionLoad = operation === "read_session_messages";
     const startedAt = performance.now();
     if (traceSessionLoad) {
-      console.info("[SESSION-LOAD] disk request waiting for Host connection", {
+      console.info("[spopi] session load: disk request waiting for Host connection", {
         sessionId: parameters.sessionId,
       });
     }
@@ -119,7 +119,7 @@ export class HostDataGateway {
       );
     }
     if (traceSessionLoad) {
-      console.info("[SESSION-LOAD] Host ready; sending disk request", {
+      console.info("[spopi] session load: Host ready; sending disk request", {
         sessionId: parameters.sessionId,
         elapsedMs: Math.round(performance.now() - startedAt),
       });
@@ -292,7 +292,7 @@ export class HostDataGateway {
     this.#pending.delete(requestId);
     if (pending.timeout) clearTimeout(pending.timeout);
     if (pending.operation === "read_session_messages") {
-      console.info("[SESSION-LOAD] disk response received", {
+      console.info("[spopi] session load: disk response received", {
         sessionId: pending.sessionId,
         messageCount: frame.messages?.length ?? 0,
         elapsedMs: Math.round(performance.now() - pending.startedAt),

@@ -3,10 +3,10 @@
 import { describe, expect, it } from "vitest";
 import { renderDockStatus } from "../dock/dock.js";
 import {
-  bindStatusCatalog,
   paintStatusFooter,
   registerProblemsLanguageStatus,
   registerStatusFooter,
+  setStatusCatalog,
 } from "./status-footer.js";
 
 describe("paintStatusFooter", () => {
@@ -34,14 +34,14 @@ describe("paintStatusFooter", () => {
     });
     expect(root.querySelector('[data-status-key="build"]')).not.toBeNull();
     expect(root.querySelector('[data-status-key="pi-permission-system"]')).toBeNull();
-    bindStatusCatalog(() => ({
+    setStatusCatalog(() => ({
       commands: [{ sourceInfo: { source: "npm:pi-web-access" } }],
     }));
     paintStatusFooter({ "pi-web-access": "ready" });
     expect(root.querySelector('[data-status-key="pi-web-access"]')?.getAttribute("title")).toBe(
       "pi-web-access · pi-web-access",
     );
-    bindStatusCatalog(null);
+    setStatusCatalog(null);
     unregister();
     root.remove();
   });

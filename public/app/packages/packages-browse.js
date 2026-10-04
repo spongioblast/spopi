@@ -3,9 +3,9 @@
 
 import { onLocaleChange, t } from "../i18n/i18n.js";
 import { extensionsSettingsRefs } from "../settings/extensions-settings.js";
-import { createLoadingPlaceholder } from "../ui/loading-placeholder.js";
 import { escapeHtml } from "../ui/sanitize-markup.js";
 import { enhanceSelect } from "../ui/select-menu.js";
+import { settingsState } from "../ui/settings-states.js";
 import { getPackageInstallFailure } from "./install-status.js";
 
 // Community package browser for the Settings → Extensions tab.
@@ -345,7 +345,7 @@ export function mountPackageBrowse(control, { notify } = {}) {
     badges.className = "pkg-browse-badges";
     for (const type of pkg.types || []) {
       const badge = document.createElement("span");
-      badge.className = "pkg-browse-badge";
+      badge.className = "ui-badge ui-badge--accent pkg-browse-badge";
       badge.dataset.type = type;
       badge.textContent = type;
       badges.appendChild(badge);
@@ -511,7 +511,13 @@ export function mountPackageBrowse(control, { notify } = {}) {
 
     listRoot.innerHTML = "";
     if (!results.length) {
-      listRoot.innerHTML = `<div class="settings-api-keys-empty pkg-browse-full-row">${escapeHtml(t("extensions.noPackagesMatch"))}</div>`;
+      listRoot.replaceChildren(
+        settingsState({
+          kind: "empty",
+          text: t("extensions.noPackagesMatch"),
+          className: "settings-api-keys-empty pkg-browse-full-row",
+        }),
+      );
       renderPagination(totalPages);
       return;
     }
@@ -530,9 +536,10 @@ export function mountPackageBrowse(control, { notify } = {}) {
     }
     loading = true;
     listRoot.replaceChildren(
-      createLoadingPlaceholder({
+      settingsState({
+        kind: "loading",
+        text: t("extensions.loadingPackages"),
         className: "settings-api-keys-loading pkg-browse-full-row",
-        label: t("extensions.loadingPackages"),
       }),
     );
     try {
@@ -557,8 +564,14 @@ export function mountPackageBrowse(control, { notify } = {}) {
           ? err.message
           : err || t("extensions.failedToLoadPackages"),
       );
-      listRoot.innerHTML = `<div class="settings-api-keys-empty pkg-browse-full-row">${escapeHtml(message)} <button type="button" class="settings-value-btn" id="pkg-browse-retry">${escapeHtml(t("actions.retry"))}</button></div>`;
-      document.getElementById("pkg-browse-retry")?.addEventListener("click", () => load(true));
+      listRoot.replaceChildren(
+        settingsState({
+          kind: "error",
+          text: message,
+          className: "settings-api-keys-empty pkg-browse-full-row",
+          onRetry: () => void load(true),
+        }),
+      );
     } finally {
       loading = false;
     }

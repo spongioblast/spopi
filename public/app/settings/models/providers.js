@@ -195,7 +195,7 @@ export function createProviderList(deps) {
     const allModelsEnabled = models.every((model) => model.visible === true);
     const visibilityToggle = document.createElement("input");
     visibilityToggle.type = "checkbox";
-    visibilityToggle.className = "api-model-select-all-toggle";
+    visibilityToggle.className = "ui-toggle api-model-select-all-toggle";
     visibilityToggle.checked = allModelsEnabled;
     visibilityToggle.setAttribute(
       "aria-label",
@@ -317,7 +317,7 @@ export function createProviderList(deps) {
     visibilityLabel.className = "api-model-visibility";
     const visibility = document.createElement("input");
     visibility.type = "checkbox";
-    visibility.className = "api-model-visibility-toggle";
+    visibility.className = "ui-toggle api-model-visibility-toggle";
     visibility.setAttribute(
       "aria-label",
       t("settings.apiKeys.enableModel", { model: model.name || model.id || "" }),

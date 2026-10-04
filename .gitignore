@@ -9,6 +9,8 @@ package-lock.json
 # Tauri build artifacts (the cargo workspace is src-tauri/)
 src-tauri/target/
 src-tauri/gen/
+# a relative CARGO_TARGET_DIR run from the repo root
+/target/
 
 # Pi extension bundles (produced by scripts/build-extensions.js)
 extensions/dist/

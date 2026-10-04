@@ -25,11 +25,28 @@ describe("queue prefs", () => {
     const { readQueueModes, writeQueueMode } = await import("./queue-prefs.ts");
     mkdirSync(join(home, ".pi", "agent"), { recursive: true });
     writeFileSync(join(home, ".pi", "agent", "settings.json"), "{}\n");
-    expect(writeQueueMode("steering", "all")).toMatchObject({ kind: "steering", mode: "all" });
+    await expect(writeQueueMode("steering", "all")).resolves.toMatchObject({
+      kind: "steering",
+      mode: "all",
+    });
     expect(readQueueModes().steeringMode).toBe("all");
     expect(readQueueModes().followUpMode).toBe("one-at-a-time");
     expect(JSON.parse(readFileSync(join(home, ".pi", "agent", "settings.json"), "utf8"))).toEqual({
       steeringMode: "all",
     });
+  });
+
+  it("refuses to write over an unreadable settings.json", async () => {
+    const home = mkdtempSync(join(tmpdir(), "spopi-queue-"));
+    homes.push(home);
+    process.env.HOME = home;
+    process.env.USERPROFILE = home;
+    process.env.PI_CODING_AGENT_DIR = join(home, ".pi", "agent");
+    vi.resetModules();
+    const { writeQueueMode } = await import("./queue-prefs.ts");
+    mkdirSync(join(home, ".pi", "agent"), { recursive: true });
+    writeFileSync(join(home, ".pi", "agent", "settings.json"), "{ not json");
+    await expect(writeQueueMode("followUp", "all")).rejects.toThrow();
+    expect(readFileSync(join(home, ".pi", "agent", "settings.json"), "utf8")).toBe("{ not json");
   });
 });

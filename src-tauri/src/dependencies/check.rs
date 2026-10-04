@@ -38,6 +38,8 @@ pub struct DependencyStatus {
     pub installed: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub browsers: Option<Vec<super::browsers::InstalledBrowser>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub no_sandbox: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
@@ -95,6 +97,7 @@ fn plain(state: &str) -> DependencyStatus {
         downloadable: None,
         installed: None,
         browsers: None,
+        no_sandbox: None,
     }
 }
 
@@ -237,6 +240,7 @@ async fn check_browser(static_dir: &Path, enabled: bool) -> DependencyStatus {
         source: probe.source,
         detail: probe.detail,
         downloadable: Some(true),
+        no_sandbox: super::agent_browser::runs_without_sandbox().then_some(true),
         ..plain(probe.state)
     }
 }
@@ -327,7 +331,7 @@ mod tests {
             npm: DependencyStatus {
                 detail: Some("npm was not found on PATH".into()),
                 install: Some(crate::dependencies::npm::npm_install_offer_for(
-                    "linux", false, false,
+                    "linux", "x86_64", false, false,
                 )),
                 ..plain("missing")
             },
@@ -339,7 +343,8 @@ mod tests {
         assert_eq!(value["agentBrowser"]["repair"], "reinstall");
         assert_eq!(value["browser"]["state"], "unknown");
         assert_eq!(value["surf"]["state"], "unknown");
-        assert_eq!(value["npm"]["install"]["oneClick"], false);
+        assert_eq!(value["npm"]["install"]["oneClick"], true);
+        assert_eq!(value["npm"]["install"]["method"], "download");
         assert!(value["browser"].get("browsers").is_none());
     }
 }

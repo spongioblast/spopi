@@ -23,14 +23,14 @@
 .skill-slash-heading {
   padding: var(--space-2) var(--space-2) var(--space-2);
   font-size: var(--font-size-md);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
 }
 
 .skill-slash-option {
   display: grid;
   grid-template-columns: 24px minmax(0, max-content) minmax(0, 1fr) max-content max-content;
   width: 100%;
-  min-height: 40px;
+  min-height: var(--control-height-lg);
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-2) var(--space-2);
@@ -64,7 +64,7 @@
 .skill-slash-name {
   overflow: hidden;
   font-size: var(--font-size-md);
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
   text-overflow: ellipsis;
   white-space: nowrap;
 }

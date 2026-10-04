@@ -15,15 +15,23 @@ import { headerChromeRefs } from "./chrome/chat.js";
 import { composerChromeRefs } from "./chrome/composer.js";
 import { sidebarChromeRefs } from "./chrome/sidebar.js";
 
-document.body.classList.add("app-launcher");
-clearSessionSwapOverlay();
+/** @type {{ sidebar: HTMLElement | null, header: HTMLElement | null } | null} */
+let launcherChrome = null;
 
 function ensureLauncherChrome() {
   // The session app mounts this shell. The launcher entry is a different module,
   // so an empty #app-layout would otherwise stay on the "Starting session" overlay.
-  mountAppChrome(document.querySelector(".app-layout"));
+  if (launcherChrome) return launcherChrome;
+  const refs =
+    /** @type {{ sidebar?: { sidebar?: HTMLElement }, chat?: { header?: HTMLElement } }} */ (
+      mountAppChrome(document.querySelector(".app-layout")).refs
+    );
+  launcherChrome = { sidebar: refs.sidebar?.sidebar ?? null, header: refs.chat?.header ?? null };
+  return launcherChrome;
 }
 
+document.body.classList.add("app-launcher");
+clearSessionSwapOverlay();
 try {
   applyTheme(getCurrentTheme());
   await createI18n();
@@ -180,10 +188,10 @@ export function mountLauncherNewProject(
 }
 
 function prepareLauncherShell() {
-  document.querySelector(".sidebar-primary-nav")?.classList.add("hidden");
-  document.querySelector(".sidebar-footer")?.classList.add("hidden");
+  const { sidebar, header } = ensureLauncherChrome();
+  sidebar?.querySelector(".sidebar-primary-nav")?.classList.add("hidden");
+  sidebar?.querySelector(".sidebar-footer")?.classList.add("hidden");
 
-  const header = document.querySelector(".session-header");
   const headerLeft = header?.querySelector(".header-left");
   const toggle = headerChromeRefs().sidebarToggle;
   if (headerLeft && toggle) {

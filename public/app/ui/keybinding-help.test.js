@@ -14,8 +14,11 @@ describe("keybinding help", () => {
     expect(formatChord("Escape")).toBe("Escape");
     expect(showKeybindingHelp()).toBe(true);
     const rows = document.querySelectorAll(".keybinding-help-row");
-    expect(rows).toHaveLength(1);
     expect(rows[0]?.querySelector("kbd")?.textContent).toBe("Escape");
+    expect(document.querySelector(".keybinding-help-heading")?.textContent).toBe(
+      "keybindings.slashCommands",
+    );
+    expect([...rows].some((row) => row.querySelector("kbd")?.textContent === "/review")).toBe(true);
     const close = [...document.querySelectorAll("button")].find(
       (button) => button.textContent === "keybindings.close",
     );

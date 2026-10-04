@@ -15,7 +15,7 @@ import { FilePreviewPanel } from "./file-preview-panel.js";
  * @param {HTMLElement | null | undefined} options.mainContainer
  * @param {() => string} options.getWorkspaceId
  * @param {{ workspaceInfo: (id: string) => Promise<{ path?: string } | null | undefined> }} options.data
- * @param {{ openInApp: (path: string) => Promise<unknown> | unknown }} options.control
+ * @param {{ openPath: (path: string) => Promise<unknown> | unknown }} options.control
  * @param {(error: unknown) => void} options.showError
  * @param {((collapsed: boolean) => void) | null | undefined} [options.onToggleChat]
  */
@@ -41,7 +41,7 @@ export function mountFilePreview({
     const root = info?.path ?? "";
     const normalizedRelative = String(relativePath || "").replace(/^\/+/, "");
     const absolutePath = normalizedRelative ? `${root}/${normalizedRelative}` : root;
-    await control.openInApp(absolutePath);
+    await control.openPath(absolutePath);
   }
 
   if (!panel || !resizer || !tabBar || !content || !mainContainer) {

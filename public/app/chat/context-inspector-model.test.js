@@ -22,4 +22,15 @@ describe("bucketMessages", () => {
     expect(buckets[0].name).toBe("history");
     expect(sumBucketTokens(buckets)).toBe(55);
   });
+
+  it("reports unknown instead of guessing from text length", () => {
+    const buckets = bucketMessages([
+      { role: "user", tokens: 40 },
+      { role: "user", content: "a message with no token count" },
+      { role: "system", tokens: 10 },
+    ]);
+    expect(buckets.find((bucket) => bucket.name === "history")?.tokens).toBeNull();
+    expect(buckets.find((bucket) => bucket.name === "system")?.tokens).toBe(10);
+    expect(sumBucketTokens(buckets)).toBeNull();
+  });
 });

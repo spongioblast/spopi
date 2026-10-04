@@ -2,6 +2,7 @@
 // ABOUTME: replay (checkpoint before strictly sequential journal), and reconnect.
 // ABOUTME: Owns no DOM; visual rendering belongs to terminal-tab.js.
 
+import { canHere } from "../shell/capabilities.js";
 import { createRequestIds } from "../transport/request-id.js";
 
 /**
@@ -92,7 +93,7 @@ export class TerminalClient {
    * @returns {string | null | undefined}
    */
   command(payload) {
-    if (this.workspaceGeneration === null) return null;
+    if (this.workspaceGeneration === null || !canHere("terminal")) return null;
     const requestId = this.nextId();
     const envelope = {
       type: "terminal_command",

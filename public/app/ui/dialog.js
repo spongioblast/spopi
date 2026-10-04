@@ -83,12 +83,23 @@ function focusable(dialog) {
 }
 
 /**
+ * The shared modal root, unless the caller brings its own container.
+ * @param {HTMLElement | null} [container]
+ * @returns {HTMLElement | null}
+ */
+export function getDialogRoot(container) {
+  return container || document.getElementById("dialog-container");
+}
+
+/**
  * Open a modal inside `#dialog-container` (or `container`).
- * Returns `{ close, element }`.
+ * Returns `{ close, element }`. Focus goes back to the element that had it
+ * when the dialog opened. Enter runs the `primary` action unless focus is in a
+ * text field or on a button.
  * @param {{
  *   title?: string,
  *   body?: Node,
- *   actions?: { label: string, className?: string, onClick?: () => void }[],
+ *   actions?: { label: string, className?: string, onClick?: () => void, primary?: boolean }[],
  *   onClose?: () => void,
  *   initialFocus?: HTMLElement,
  *   container?: HTMLElement | null,
@@ -106,9 +117,10 @@ export function openDialog({
   className,
   closeOnBackdrop = true,
 } = {}) {
-  const root = container || document.getElementById("dialog-container");
+  const root = getDialogRoot(container);
   if (!root) throw new Error("dialog container is missing");
   const dialogRoot = root;
+  const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
   dialogRoot.classList.remove("hidden");
   const dialog = document.createElement("div");
   dialog.className = className ? `dialog ${className}` : "dialog";
@@ -123,6 +135,8 @@ export function openDialog({
     dialog.append(heading);
   }
   if (body) dialog.append(body);
+  /** @type {HTMLButtonElement | null} */
+  let primaryButton = null;
   if (actions.length > 0) {
     const bar = document.createElement("div");
     bar.className = "dialog-actions";
@@ -132,6 +146,7 @@ export function openDialog({
       button.className = action.className || "dialog-button";
       button.textContent = action.label;
       button.addEventListener("click", () => action.onClick?.());
+      if (action.primary) primaryButton = button;
       bar.append(button);
     }
     dialog.append(bar);
@@ -146,6 +161,18 @@ export function openDialog({
     if (!closeOnBackdrop) return;
     if (event.target === dialogRoot) close();
   };
+  /** @param {KeyboardEvent} event */
+  const onEnter = (event) => {
+    if (event.key !== "Enter" || event.isComposing || event.defaultPrevented) return;
+    if (!primaryButton || primaryButton.disabled) return;
+    const target = event.target;
+    if (target instanceof HTMLElement && target.closest("button, a, textarea, select, input")) {
+      return;
+    }
+    event.preventDefault();
+    primaryButton.click();
+  };
+  dialog.addEventListener("keydown", onEnter);
 
   function close() {
     if (closed) return;
@@ -153,15 +180,17 @@ export function openDialog({
     unbind();
     unbindTrap();
     dialogRoot.removeEventListener("mousedown", onPointer);
+    dialog.removeEventListener("keydown", onEnter);
     dialog.remove();
     if (!dialogRoot.querySelector(".dialog")) dialogRoot.classList.add("hidden");
     onClose?.();
+    if (opener?.isConnected && !dialogRoot.querySelector(".dialog")) opener.focus();
   }
 
   unbind = createDialogEscape(close, {
     isActive: () => !closed && !dialogRoot.classList.contains("hidden"),
   });
-  unbindTrap = bindFocusTrap(dialog);
+  unbindTrap = trapFocus(dialog);
   dialogRoot.addEventListener("mousedown", onPointer);
 
   const target = initialFocus || focusable(dialog)[0];
@@ -173,7 +202,7 @@ export function openDialog({
  * Trap Tab inside a dialog. Returns an unbind function.
  * @param {HTMLElement} dialog
  */
-export function bindFocusTrap(dialog) {
+export function trapFocus(dialog) {
   /** @param {KeyboardEvent} event */
   const onTab = (event) => {
     if (event.key !== "Tab") return;
@@ -198,10 +227,10 @@ export function bindFocusTrap(dialog) {
  * @param {HTMLElement} element
  * @param {{ onClose?: () => void, isActive?: () => boolean }} [options]
  */
-export function bindModal(element, { onClose, isActive } = {}) {
+export function trapModal(element, { onClose, isActive } = {}) {
   if (!element.getAttribute("role")) element.setAttribute("role", "dialog");
   element.setAttribute("aria-modal", "true");
-  const unbindTrap = bindFocusTrap(element);
+  const unbindTrap = trapFocus(element);
   const unbindEscape = onClose
     ? createDialogEscape(onClose, {
         isActive: () => {
@@ -251,6 +280,7 @@ export function confirmDialog({
         {
           label: okLabel,
           className: danger ? "ui-button ui-button--danger" : "ui-button ui-button--primary",
+          primary: true,
           onClick: () => {
             accepted = true;
             handle.close();
@@ -259,5 +289,67 @@ export function confirmDialog({
       ],
       onClose: () => finish(accepted),
     });
+  });
+}
+
+/**
+ * A one-field text dialog. Resolves to the trimmed text, or null on cancel.
+ * @param {{ title?: string, label?: string, value?: string, placeholder?: string, confirmLabel?: string }} [options]
+ * @returns {Promise<string | null>}
+ */
+export function promptDialog({
+  title = "",
+  label = "",
+  value = "",
+  placeholder = "",
+  confirmLabel,
+} = {}) {
+  return new Promise((resolve) => {
+    /** @type {string | null} */
+    let result = null;
+    const body = document.createElement("label");
+    body.className = "dialog-field";
+    if (label) {
+      const caption = document.createElement("span");
+      caption.className = "dialog-field-label";
+      caption.textContent = label;
+      body.append(caption);
+    }
+    const input = document.createElement("input");
+    input.type = "text";
+    input.className = "ui-input";
+    input.value = value;
+    input.placeholder = placeholder;
+    input.spellcheck = false;
+    body.append(input);
+    const submit = () => {
+      result = input.value.trim();
+      handle.close();
+    };
+    input.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" || event.isComposing) return;
+      event.preventDefault();
+      submit();
+    });
+    const handle = openDialog({
+      title,
+      body,
+      initialFocus: input,
+      actions: [
+        {
+          label: t("actions.cancel"),
+          className: "ui-button ui-button--secondary",
+          onClick: () => handle.close(),
+        },
+        {
+          label: confirmLabel || t("actions.confirm"),
+          className: "ui-button ui-button--primary",
+          primary: true,
+          onClick: submit,
+        },
+      ],
+      onClose: () => resolve(result),
+    });
+    input.select();
   });
 }

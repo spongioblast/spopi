@@ -19,6 +19,7 @@ const DOCK_TABS = ["terminal", "problems", "cockpit"];
  *   t?: (key: string) => string,
  *   initialTab?: string,
  *   onTabChange?: (id: string) => void,
+ *   terminal?: HTMLElement | null,
  * }} CreateDockHostOptions
  *
  * @typedef {{
@@ -54,7 +55,10 @@ const DOCK_TABS = ["terminal", "problems", "cockpit"];
  * @param {CreateDockHostOptions} [options]
  * @returns {DockHostElement}
  */
-export function createDockHost(paneCenter, { t = (key) => key, initialTab, onTabChange } = {}) {
+export function createDockHost(
+  paneCenter,
+  { t = (key) => key, initialTab, onTabChange, terminal } = {},
+) {
   /** @type {DockHostElement | null} */
   let dock = /** @type {DockHostElement | null} */ (document.getElementById("spopi-dock"));
   if (dock?.panels) return dock;
@@ -66,7 +70,7 @@ export function createDockHost(paneCenter, { t = (key) => key, initialTab, onTab
   host.dataset.terminalTheme = "system";
 
   const tabs = document.createElement("div");
-  tabs.className = "spopi-dock-tabs";
+  tabs.className = "ui-tabs spopi-dock-tabs";
   tabs.setAttribute("role", "tablist");
   tabs.setAttribute("aria-label", t("dock.tabs"));
   /** @type {DockPanels} */
@@ -88,10 +92,7 @@ export function createDockHost(paneCenter, { t = (key) => key, initialTab, onTab
   actions.className = "spopi-dock-actions";
   actions.id = "spopi-dock-actions";
 
-  const terminal =
-    document.getElementById("terminal-panel") || document.querySelector(".terminal-panel");
   if (terminal) {
-    terminal.id = "terminal-panel";
     terminal.classList.remove("hidden");
     panels.terminal.replaceChildren(terminal);
     const newTab = terminal.querySelector("[data-terminal-new-tab]");
@@ -143,7 +144,7 @@ export function createDockHost(paneCenter, { t = (key) => key, initialTab, onTab
   for (const id of DOCK_TABS) {
     const button = document.createElement("button");
     button.type = "button";
-    button.className = "spopi-dock-tab";
+    button.className = "ui-tab spopi-dock-tab";
     button.dataset.dock = id;
     button.id = `spopi-dock-tab-${id}`;
     button.setAttribute("role", "tab");
@@ -163,11 +164,7 @@ export function createDockHost(paneCenter, { t = (key) => key, initialTab, onTab
   host.append(bar, ...Object.values(panels));
   (paneCenter || filePreviewRefs().panel?.parentElement || document.body).appendChild(host);
 
-  const defaultTab =
-    initialTab ||
-    (panels.terminal.querySelector(".terminal-panel, #terminal-panel, [data-terminal-panel]")
-      ? "terminal"
-      : "cockpit");
+  const defaultTab = initialTab || (terminal ? "terminal" : "cockpit");
   setTab(defaultTab);
   host.panels = panels;
   host.setTab = setTab;

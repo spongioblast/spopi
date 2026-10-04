@@ -6,7 +6,7 @@
 }
 
 .session-info-panel {
-  z-index: 1001;
+  z-index: var(--z-popover);
   width: min(420px, calc(100vw - var(--space-6)));
   padding: var(--space-4);
   background: var(--bg-solid);

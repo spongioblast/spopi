@@ -4686,7 +4686,7 @@ dependencies = [
 
 [[package]]
 name = "spopi"
-version = "0.7.0"
+version = "0.7.2"
 dependencies = [
  "axum",
  "axum-server",

@@ -2,7 +2,7 @@
 // ABOUTME: A drop asks first, then the bridge, then dims that message.
 
 import { t } from "../i18n/i18n.js";
-import { openDialog } from "../ui/dialog.js";
+import { confirmDialog } from "../ui/dialog.js";
 
 /** @type {Map<string, Map<string, { id: string, text: string }>>} */
 const pinsBySession = new Map();
@@ -70,63 +70,21 @@ export function compactPreserveInstructions(sessionId) {
   return `Preserve verbatim:\n${lines.join("\n")}`;
 }
 
-/** @returns {Promise<boolean>} */
-function confirmDrop() {
-  const root = document.getElementById("dialog-container");
-  if (!root) return Promise.resolve(false);
-  return new Promise((resolve) => {
-    let settled = false;
-    /** @param {boolean} value */
-    const finish = (value) => {
-      if (settled) return;
-      settled = true;
-      resolve(value);
-    };
-    const body = document.createElement("p");
-    body.textContent = t("contextInspector.dropConfirm");
-    const dialog = openDialog({
-      title: t("contextInspector.drop"),
-      body,
-      actions: [
-        {
-          label: t("actions.cancel"),
-          onClick: () => {
-            finish(false);
-            dialog.close();
-          },
-        },
-        {
-          label: t("contextInspector.drop"),
-          onClick: () => {
-            finish(true);
-            dialog.close();
-          },
-        },
-      ],
-      onClose: () => finish(false),
-    });
-  });
-}
-
-/**
- * @param {string} entryId
- */
-function markContextDropped(entryId) {
-  if (!entryId) return;
-  const selector = `[data-entry-id="${CSS.escape(entryId)}"]`;
-  for (const node of document.querySelectorAll(selector)) {
-    node.classList.add("context-dropped");
-  }
-}
-
 /**
  * @param {unknown} item
  * @param {(entryId: string) => Promise<unknown>} request
+ * @param {ParentNode | null} messages the chat list whose rows get dimmed
  */
-export async function dropContext(item, request) {
+export async function dropContext(item, request, messages) {
   const id = entryIdOf(item);
   if (!id) return;
-  if (!(await confirmDrop())) return;
+  const confirmed = await confirmDialog({
+    title: t("contextInspector.drop"),
+    message: t("contextInspector.dropConfirm"),
+    confirmLabel: t("contextInspector.drop"),
+    danger: true,
+  });
+  if (!confirmed) return;
   const result = await request(id);
   if (
     result &&
@@ -136,5 +94,7 @@ export async function dropContext(item, request) {
     const error = /** @type {{ error?: unknown }} */ (result).error;
     throw new Error(typeof error === "string" ? error : "Drop failed");
   }
-  markContextDropped(id);
+  for (const node of messages?.querySelectorAll(`[data-entry-id="${CSS.escape(id)}"]`) ?? []) {
+    node.classList.add("context-dropped");
+  }
 }

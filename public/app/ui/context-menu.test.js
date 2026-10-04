@@ -1,7 +1,12 @@
 // ABOUTME: Tests showContextMenu.
 // ABOUTME: Includes "opens one menu and replaces the previous".
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { closeContextMenu, registerContextMenuHost, showContextMenu } from "./context-menu.js";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  closeContextMenu,
+  createLongPress,
+  registerContextMenuHost,
+  showContextMenu,
+} from "./context-menu.js";
 
 function openAt(x, y, items) {
   return showContextMenu({
@@ -40,10 +45,33 @@ describe("showContextMenu", () => {
     document.dispatchEvent(new MouseEvent("pointerdown", { bubbles: true }));
     expect(document.querySelector(".session-context-menu")).toBeNull();
   });
+
+  it("moves with the arrows and runs Enter on the focused item", async () => {
+    const first = vi.fn();
+    const second = vi.fn();
+    openAt(16, 16, [
+      { label: "Open", action: first },
+      { label: "Rename", action: second },
+    ]);
+    await Promise.resolve();
+    const items = [...document.querySelectorAll(".context-menu-item")];
+    expect(document.activeElement).toBe(items[0]);
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
+    expect(document.activeElement).toBe(items[1]);
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    expect(second).toHaveBeenCalledTimes(1);
+    expect(first).not.toHaveBeenCalled();
+    expect(document.querySelector(".session-context-menu")).toBeNull();
+  });
 });
 
 describe("long press", () => {
+  let longPress;
+  beforeEach(() => {
+    longPress = createLongPress();
+  });
   afterEach(() => {
+    longPress.destroy();
     vi.useRealTimers();
     delete document.body.dataset.pointer;
   });

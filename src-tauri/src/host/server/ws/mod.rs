@@ -4,7 +4,7 @@
 pub(super) mod route;
 
 use super::auth::trusted_loopback_request;
-use super::{send_error, structured_error, HostState, MAX_WS_MESSAGE_BYTES};
+use super::{send_error, structured_error, HostState, OpError, MAX_WS_MESSAGE_BYTES};
 use crate::host::capabilities::capability_names;
 use crate::host::router::{ClientKind, RoutedAction, PROTOCOL_VERSION};
 use crate::pi::coordinator::RuntimeTarget;
@@ -93,6 +93,7 @@ pub(super) async fn handle_websocket(
                 "type": "hello_ack",
                 "protocolVersion": PROTOCOL_VERSION,
                 "capabilities": capability_names(&kind),
+                "hostId": state.host_id,
             })
             .to_string()
             .into(),
@@ -203,7 +204,7 @@ pub(super) async fn handle_websocket(
                         tokio::spawn(async move {
                             let outgoing = match dispatch(action, &state).await {
                                 Ok(value) => value,
-                                Err((code, message)) => {
+                                Err(OpError { code, message }) => {
                                     structured_error(request_id.as_deref(), code, &message)
                                 }
                             };
@@ -260,6 +261,9 @@ pub(super) async fn handle_websocket(
             }
             event = fanout.recv() => {
                 if let Ok(frame) = event {
+                    if !fanout_reaches(&kind, &frame) {
+                        continue;
+                    }
                     if send_frame(frame).is_err() {
                         break;
                     }
@@ -302,6 +306,15 @@ pub(super) async fn handle_websocket(
     if last_socket {
         schedule_terminal_reap(state, client_id, terminal_owner);
     }
+}
+
+/// Pairing requests are answered on the desktop only; a paired phone never sees them.
+fn fanout_reaches(kind: &ClientKind, frame: &Value) -> bool {
+    let desktop_only = matches!(
+        frame.get("type").and_then(Value::as_str),
+        Some("phone_claim_pending" | "phone_claim_settled")
+    );
+    !(desktop_only && matches!(kind, ClientKind::Remote { .. }))
 }
 
 /// Grace before an owner's PTYs are reaped after its last socket closes. A
@@ -405,7 +418,7 @@ impl DeviceSockets {
         let id = self.next.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         self.sockets
             .lock()
-            .expect("device sockets")
+            .unwrap_or_else(|e| e.into_inner())
             .entry(device_id.to_string())
             .or_default()
             .push((id, tx));
@@ -413,7 +426,7 @@ impl DeviceSockets {
     }
 
     pub(crate) fn unregister(&self, device_id: &str, id: u64) {
-        let mut sockets = self.sockets.lock().expect("device sockets");
+        let mut sockets = self.sockets.lock().unwrap_or_else(|e| e.into_inner());
         if let Some(list) = sockets.get_mut(device_id) {
             list.retain(|(socket_id, _)| *socket_id != id);
             if list.is_empty() {
@@ -425,14 +438,32 @@ impl DeviceSockets {
     pub(crate) fn close(&self, device_id: &str) {
         self.sockets
             .lock()
-            .expect("device sockets")
+            .unwrap_or_else(|e| e.into_inner())
             .remove(device_id);
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::DeviceSockets;
+    use super::{fanout_reaches, DeviceSockets};
+    use crate::host::router::{ClientKind, Tier};
+    use serde_json::json;
+
+    #[test]
+    fn pairing_requests_reach_the_desktop_only() {
+        let phone = ClientKind::Remote {
+            device_id: "d".into(),
+            name: "Pixel".into(),
+            tier: Tier::Full,
+        };
+        let claim = json!({"type": "phone_claim_pending", "claimId": "c"});
+        assert!(fanout_reaches(&ClientKind::Desktop, &claim));
+        assert!(!fanout_reaches(&phone, &claim));
+        let settled = json!({"type": "phone_claim_settled", "claimId": "c"});
+        assert!(fanout_reaches(&ClientKind::Desktop, &settled));
+        assert!(!fanout_reaches(&phone, &settled));
+        assert!(fanout_reaches(&phone, &json!({"type": "ui_reload"})));
+    }
 
     #[tokio::test]
     async fn revoke_closes_a_registered_socket() {

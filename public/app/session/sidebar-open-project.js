@@ -4,8 +4,8 @@
 import { isHiddenPath } from "./missing-workspace.js";
 
 /**
- * @typedef {{ workspaceId: string, projectPath: string, projectName: string }} OpenProject
- * @typedef {{ path: string, name: string, isCurrent: boolean, sessions: unknown[], archivedSessions?: unknown[] }} ProjectGroup
+ * @typedef {{ workspaceId: string, projectPath: string, projectName: string, isGit?: boolean, worktreeOf?: string, branch?: string }} OpenProject
+ * @typedef {{ path: string, name: string, isCurrent?: boolean, worktreeOf?: string, sessions?: unknown[], archivedSessions?: unknown[], worktrees?: unknown[] }} ProjectGroup
  */
 
 /**
@@ -33,12 +33,14 @@ export function placeOpenProject(projects, open, pinnedPaths) {
   const existing = projects.find((project) => sameProjectPath(project.path, open.projectPath));
   if (existing) {
     existing.isCurrent = true;
+    if (!existing.worktreeOf && open.worktreeOf) existing.worktreeOf = open.worktreeOf;
     return;
   }
   projects.unshift({
     path: open.projectPath,
     name: open.projectName,
     isCurrent: true,
+    worktreeOf: open.worktreeOf || "",
     sessions: [],
     archivedSessions: [],
   });

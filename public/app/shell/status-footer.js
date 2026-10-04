@@ -14,7 +14,7 @@ let catalogLookup = null;
 /**
  * @param {(() => { commands?: Array<{ sourceInfo?: { source?: string, path?: string } }> } | null) | null | undefined} getCatalog
  */
-export function bindStatusCatalog(getCatalog) {
+export function setStatusCatalog(getCatalog) {
   catalogLookup = typeof getCatalog === "function" ? getCatalog : null;
 }
 

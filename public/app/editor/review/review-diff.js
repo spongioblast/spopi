@@ -18,6 +18,8 @@ const openGaps = new Set();
  *   del?: number,
  *   emptyText?: string,
  *   undoAvailable?: boolean,
+ *   draftCount?: number,
+ *   draftError?: string,
  *   file?: any,
  * }} view
  * @param {{
@@ -29,14 +31,20 @@ const openGaps = new Set();
  *   onComment?: (hunk: any, host: HTMLElement) => void,
  *   onOpen?: () => void,
  *   onChange?: () => void,
+ *   draftsFor?: (hunk: any) => Array<{ id: string, note?: string }>,
+ *   onDeleteDraft?: (id: string) => void,
+ *   onSendReview?: () => void,
+ *   onDiscardDrafts?: () => void,
  * }} [handlers]
  */
 export function renderReviewView(pane, view, handlers = {}) {
   const file = view.file || null;
   const total = view.total || 0;
   pane.replaceChildren(viewHead(view, handlers));
+  const bar = draftsBar(view, handlers);
+  if (bar) pane.append(bar);
   const body = el("div", { class: "review-body" });
-  if (!file) body.append(el("p", { class: "settings-help", text: view.emptyText || "" }));
+  if (!file) body.append(el("p", { class: "ui-empty review-empty", text: view.emptyText || "" }));
   else body.append(fileArticle(file, view.index || 0, total, handlers));
   pane.append(body);
 }
@@ -88,6 +96,44 @@ function headActions(view, handlers) {
  * @param {number} add
  * @param {number} del
  */
+/**
+ * Shown when this project has review drafts, whichever file is open.
+ * @param {{ draftCount?: number, draftError?: string }} view
+ * @param {{ onSendReview?: () => void, onDiscardDrafts?: () => void }} handlers
+ */
+function draftsBar(view, handlers) {
+  const count = view.draftCount || 0;
+  if (!count) return null;
+  return el("div", { class: "review-draft-bar" }, [
+    el("span", {
+      class: "review-draft-count",
+      text: t(count === 1 ? "review.drafts.count.one" : "review.drafts.count.other", { count }),
+    }),
+    el("button", {
+      type: "button",
+      class: "ui-button ui-button--xs ui-button--primary review-drafts-send",
+      text: t("review.drafts.send"),
+      dataset: { i18n: "review.drafts.send" },
+      onClick: () => handlers.onSendReview?.(),
+    }),
+    el("button", {
+      type: "button",
+      class: "ui-button ui-button--xs ui-button--ghost review-drafts-discard",
+      text: t("review.drafts.discard"),
+      dataset: { i18n: "review.drafts.discard" },
+      onClick: () => handlers.onDiscardDrafts?.(),
+    }),
+    view.draftError
+      ? el("p", { class: "review-draft-error", role: "status", text: view.draftError })
+      : null,
+  ]);
+}
+
+/**
+ * @param {number} count
+ * @param {number} add
+ * @param {number} del
+ */
 function summaryText(count, add, del) {
   const key = count === 1 ? "review.summary.one" : "review.summary.other";
   const value = t(key, { count, add, del });
@@ -125,6 +171,7 @@ function fileArticle(file, index, total, handlers) {
   if (
     file.kind === "binary" ||
     file.kind === "outside" ||
+    file.kind === "notRecorded" ||
     file.kind === "tooLarge" ||
     file.diff?.tooLarge
   ) {
@@ -188,6 +235,7 @@ function stepButton(text, labelKey, className, onClick) {
 function noticeText(file) {
   if (file.kind === "app") return t("review.notice.app");
   if (file.kind === "outside") return t("review.notice.outside");
+  if (file.kind === "notRecorded") return t("review.notice.notRecorded");
   if (file.kind === "binary") return t("review.notice.binary");
   if (file.kind === "tooLarge" || file.diff?.tooLarge) return t("review.notice.tooLarge");
   if (file.status === "A") return t("review.notice.new");
@@ -228,7 +276,7 @@ function hunkBlock(hunk, handlers) {
       el("span", { class: "review-spacer" }),
       el("button", {
         type: "button",
-        class: "ui-button ui-button--ghost ui-button--xs spopi-review-comment",
+        class: "ui-button ui-button--secondary ui-button--xs spopi-review-comment",
         text: t("review.comment"),
         dataset: { i18n: "review.comment" },
         onClick: (/** @type {Event} */ event) => {
@@ -240,7 +288,25 @@ function hunkBlock(hunk, handlers) {
     ]),
   );
   for (const row of hunk.rows || []) block.append(diffRow(row));
+  for (const draft of handlers.draftsFor?.(hunk) || []) block.append(draftNote(draft, handlers));
   return block;
+}
+
+/**
+ * @param {{ id: string, note?: string }} draft
+ * @param {{ onDeleteDraft?: (id: string) => void }} handlers
+ */
+function draftNote(draft, handlers) {
+  return el("div", { class: "review-draft-note", dataset: { id: draft.id } }, [
+    el("p", { text: draft.note || "" }),
+    el("button", {
+      type: "button",
+      class: "ui-button ui-button--ghost ui-button--xs",
+      text: t("review.comments.delete"),
+      dataset: { i18n: "review.comments.delete" },
+      onClick: () => handlers.onDeleteDraft?.(draft.id),
+    }),
+  ]);
 }
 
 /**
@@ -270,7 +336,7 @@ function gapBlock(file, gap, handlers) {
   const button = el("button", {
     type: "button",
     class: "review-gap",
-    text: open ? label : `⋯ ${label === key ? `${count} unchanged lines` : label}`,
+    text: open ? label : `⋯ ${label}`,
     onClick: () => {
       if (openGaps.has(id)) openGaps.delete(id);
       else openGaps.add(id);

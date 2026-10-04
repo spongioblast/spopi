@@ -1,8 +1,8 @@
 // ABOUTME: Transcript history mount and snapshot hydration.
-// ABOUTME: Hydrate paints the store, then reconciles the composer model and cost.
+// ABOUTME: Hydrate feeds the session runtime, then reconciles the composer model and cost.
 
 import { getLastModel } from "../composer/last-model-store.js";
-import { registerQueueSendNow, renderQueuedMessages } from "../composer/queued-messages.js";
+import { registerQueueSendNow } from "../composer/queued-messages.js";
 import { extractAssistantError } from "../session/assistant-error.js";
 import { reconcileSnapshotTarget } from "../session/bootstrap-target.js";
 import { findLatestAssistantUsage } from "../session/context-usage.js";
@@ -10,7 +10,6 @@ import {
   logMessagesDom as logMessagesDomFor,
   summarizeMessageRoles,
 } from "../session/session-log.js";
-import { reduceSessionState } from "../session/session-store.js";
 import {
   captureExpandedProcessGroups,
   createProcessDetailsGroup,
@@ -58,10 +57,7 @@ function markFirstTranscript() {
  *   getLiveProcessGroup: () => ProcessDetailsGroup | null,
  *   setLiveProcessGroup: (group: ProcessDetailsGroup | null) => void,
  *   getDiskHistoryFallback: () => { sessionId?: string, messages: unknown[] } | null | undefined,
- *   getStore: () => import("../session/session-store.js").SessionState,
- *   setStore: (next: unknown) => void,
  *   todoMirrorPanel: { hydrateFromMessages: (messages: unknown[]) => void },
- *   queuedMessages: Element | null,
  *   cancelQueueItem: (item: unknown) => void,
  *   convNav: { rebuild: () => void },
  *   setStatus: (status: string, label?: string) => void,
@@ -73,12 +69,14 @@ function markFirstTranscript() {
  *   },
  *   composerModel: { contextWindow?: unknown },
  *   runtime: unknown,
- *   setSessionCost: (cost: unknown) => void,
- *   computeTotalCostFromMessages: (messages: unknown[]) => unknown,
  *   hydrateHeaderSessionStats: () => void,
  *   late: {
  *     adoptTarget: (target: unknown) => Promise<void> | void,
- *     dispatchSnapshot: (messages: unknown[]) => void,
+ *     dispatchSnapshot: (snapshot: {
+ *       messages: import("./transcript-reducer.js").TranscriptMessage[],
+ *       sequence?: number,
+ *       streaming?: boolean,
+ *     }) => void,
  *     updateComposerModel: (model: unknown) => void,
  *     updateComposerThinking: (level: unknown) => void,
  *     syncComposerWithPi: (options: { piModel?: unknown, inheritLastModel?: boolean }) => Promise<void> | void,
@@ -97,10 +95,7 @@ export function mountHistory({
   getLiveProcessGroup,
   setLiveProcessGroup,
   getDiskHistoryFallback,
-  getStore,
-  setStore,
   todoMirrorPanel,
-  queuedMessages,
   cancelQueueItem,
   convNav,
   setStatus,
@@ -108,8 +103,6 @@ export function mountHistory({
   contextUsage,
   composerModel,
   runtime,
-  setSessionCost,
-  computeTotalCostFromMessages,
   hydrateHeaderSessionStats,
   late,
 }) {
@@ -139,7 +132,11 @@ export function mountHistory({
     setLiveProcessGroup,
   });
   const retryRoot = document.createElement("div");
-  messagesElement.before(retryRoot);
+  // The chat column is a two-row grid; a sibling of the messages would land in
+  // an extra row under the composer.
+  const inputArea = messagesElement.parentElement?.querySelector(":scope > .input-area");
+  if (inputArea) inputArea.prepend(retryRoot);
+  else messagesElement.before(retryRoot);
   registerRetryBanner(retryRoot, t);
   registerQueueSendNow((item) => {
     void sendQueuedNow(runtime, getTarget, cancelQueueItem, item);
@@ -176,7 +173,7 @@ export function mountHistory({
     const fallbackCount = fallbackMatches ? diskHistoryFallback.messages.length : 0;
     const source =
       fallbackMatches && messages.length < fallbackCount ? "disk-fallback" : "snapshot";
-    console.info("[SESSION-LOAD] hydrate message source", {
+    console.info("[spopi] session load: hydrate message source", {
       reason,
       currentSessionId: target.sessionId,
       snapshotCount: messages.length,
@@ -194,6 +191,7 @@ export function mountHistory({
   /**
    * @param {{
    *   target?: { sessionId?: string, workspaceId?: string, instanceId?: string, [key: string]: unknown } | null,
+   *   sequence?: number,
    *   state: {
    *     messages?: unknown,
    *     pi?: { isStreaming?: boolean, model?: unknown, thinkingLevel?: string, [key: string]: unknown } | null,
@@ -205,7 +203,7 @@ export function mountHistory({
    */
   const hydrateFromSnapshot = async (snapshot) => {
     const target = getTarget();
-    console.info("[SESSION-LOAD] hydrate snapshot received", {
+    console.info("[spopi] session load: hydrate snapshot received", {
       currentSessionId: target.sessionId,
       snapshotTarget: snapshot?.target ?? null,
       snapshotCount: Array.isArray(snapshot?.state?.messages)
@@ -213,20 +211,16 @@ export function mountHistory({
         : null,
     });
     await late.adoptTarget(reconcileSnapshotTarget(target, snapshot.target));
-    setStore(
-      reduceSessionState(
-        getStore(),
-        /** @type {Parameters<typeof reduceSessionState>[1]} */ (snapshot),
-      ),
-    );
-    const store = getStore();
     const messages = chooseHydrationMessages(snapshot.state.messages, "snapshot");
-    late.dispatchSnapshot(messages);
+    const pi = snapshot.state.pi ?? {};
+    late.dispatchSnapshot({
+      messages: /** @type {import("./transcript-reducer.js").TranscriptMessage[]} */ (messages),
+      sequence: typeof snapshot.sequence === "number" ? snapshot.sequence : 0,
+      streaming: pi.isStreaming === true,
+    });
     markFirstTranscript();
     todoMirrorPanel.hydrateFromMessages(messages);
-    renderQueuedMessages(queuedMessages, store.queue, { onCancel: cancelQueueItem });
     convNav.rebuild();
-    const pi = snapshot.state.pi ?? {};
     setStatus(pi.isStreaming ? "working" : "connected");
     void refreshPiPackages().then(() => workbench.refreshPackages?.());
     contextUsage.setWorking(Boolean(pi.isStreaming));
@@ -245,8 +239,6 @@ export function mountHistory({
     late.updateComposerThinking(pi.thinkingLevel ?? "off");
     void late.syncComposerWithPi({ piModel: pi.model ?? null, inheritLastModel: fresh });
     contextUsage.setUsage(findLatestAssistantUsage(messages), composerModel.contextWindow);
-    setSessionCost(computeTotalCostFromMessages(messages));
-    // Hydrate header status bar from authoritative get_session_stats
     hydrateHeaderSessionStats();
     // Flush queued extension prompts after rendering is settled so inline cards
     // are not immediately destroyed by a subsequent renderHistory() clear.

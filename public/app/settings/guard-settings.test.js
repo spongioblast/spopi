@@ -45,4 +45,29 @@ describe("guard settings", () => {
     await vi.waitFor(() => expect(call).toHaveBeenCalled());
     expect(call).toHaveBeenCalledWith("set_permission_mode", { mode: "full" });
   });
+
+  it("offers Update for a stale recipe and rewrites the same mode", async () => {
+    /** @type {(op: string, params?: Record<string, unknown>) => Promise<unknown>} */
+    const call = vi.fn(async (op, params) =>
+      op === "get_permission_mode"
+        ? { ok: true, data: { mode: "auto-edit", stale: true, reasons: ["auto-edit"] } }
+        : { ok: true, data: { mode: params?.mode } },
+    );
+    const root = document.createElement("div");
+    root.append(guardSettingsSection({ configGateway: { call } }));
+    const stale = root.querySelector("#setting-guard-stale");
+    if (!(stale instanceof HTMLElement)) throw new Error("stale row missing");
+    await vi.waitFor(() => expect(stale.hidden).toBe(false));
+    root.querySelector("#settings-guard-repair")?.dispatchEvent(new MouseEvent("click"));
+    await vi.waitFor(() => expect(stale.hidden).toBe(true));
+    expect(call).toHaveBeenCalledWith("set_permission_mode", { mode: "auto-edit" });
+  });
+
+  it("keeps Update hidden for a current recipe", async () => {
+    const call = vi.fn(async () => ({ ok: true, data: { mode: "ask", stale: false } }));
+    const root = document.createElement("div");
+    root.append(guardSettingsSection({ configGateway: { call } }));
+    await vi.waitFor(() => expect(call).toHaveBeenCalledWith("get_permission_mode"));
+    expect(root.querySelector("#setting-guard-stale")?.hasAttribute("hidden")).toBe(true);
+  });
 });

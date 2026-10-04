@@ -88,7 +88,7 @@ body[data-layout="phone"] .conv-nav {
   align-items: flex-start;
   gap: var(--space-1);
   overflow: visible;
-  margin-left: 2px;
+  margin-left: var(--space-0-5);
   /* The track is the hover target: gaps between ticks must still show a tooltip. */
   pointer-events: auto;
 }
@@ -180,8 +180,8 @@ body[data-layout="phone"] .conv-nav {
 .conv-nav-tooltip-q {
   font-size: var(--font-size-sm);
   color: var(--text-primary);
-  font-weight: 500;
-  line-height: 1.5;
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-relaxed);
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -196,7 +196,7 @@ body[data-layout="phone"] .conv-nav {
 .conv-nav-tooltip-a {
   font-size: var(--font-size-sm);
   color: var(--text-muted);
-  line-height: 1.5;
+  line-height: var(--line-height-relaxed);
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 3;

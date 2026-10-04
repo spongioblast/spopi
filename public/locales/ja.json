@@ -41,9 +41,6 @@
   "nav": {
     "chat": "チャット",
     "toggleSidebar": "サイドバーを切り替え",
-    "openWorkspace": "プロジェクトを開く",
-    "openWorkspaceInApp": "アプリでプロジェクトを開く",
-    "chooseApp": "プロジェクトを開くアプリを選択",
     "sessions": "セッション",
     "files": "ファイル",
     "review": "レビュー",
@@ -51,9 +48,6 @@
     "search": "検索",
     "extensions": "パッケージ",
     "themeNamed": "テーマ: {name}",
-    "openWorkspaceInNamedApp": "{app}で{path}を開く",
-    "openWorkspaceInAppAria": "{app}でプロジェクトを開く",
-    "openInApp": "{app}で開く",
     "resourceManagement": "リソース管理",
     "catalog": {
       "extensions": "拡張機能"
@@ -83,13 +77,13 @@
     "unstage": "ステージ解除",
     "discard": "変更を破棄",
     "aiCommitMessage": "AIコミットメッセージを生成",
-    "push": "プッシュ",
+    "push": "Push",
     "pushing": "プッシュ中…",
     "pushFailed": "プッシュに失敗しました。",
     "pushDetachedHead": "detached HEAD からはプッシュできません。先にブランチをチェックアウトしてください。",
     "pushNoRemote": "このリポジトリにリモートが設定されていません。",
     "pushBusy": "このプロジェクトで別の Git 操作が実行中です。しばらくしてからやり直してください。",
-    "commit": "コミット",
+    "commit": "Commit",
     "stats": "+{additions} −{deletions} · ステージ済み {staged} · 変更 {changes} · 未追跡 {untracked}",
     "summary": "{branch} · {upstream} · ↑{ahead} ↓{behind}",
     "noUpstream": "アップストリームが設定されていません",
@@ -103,6 +97,21 @@
     "aiFailed": "AIコミットメッセージの生成に失敗しました。手動でコミットメッセージを入力できます。",
     "commitInProgress": "コミット進行中...",
     "outcomeUnknown": "コミット結果を確定できませんでした。再試行前にリポジトリの状態を確認してください。",
+    "identityCommittingAs": "コミットする名前",
+    "identityChange": "変更",
+    "identityKeep": "そのまま",
+    "identityTitle": "コミットする人",
+    "identityIntro": "Git は各コミットにこの名前とメールを記録します。値は Git 自身の設定にあり、SPOPI にはありません。",
+    "identityName": "名前",
+    "identityEmail": "メール",
+    "identityNamePlaceholder": "あなたの名前",
+    "identityEmailPlaceholder": "you@example.com",
+    "identityScopeGlobal": "このコンピュータ上のすべてのリポジトリ",
+    "identityScopeRepository": "このリポジトリのみ",
+    "identityThisRepository": "このリポジトリ",
+    "identityRequired": "名前とメールは必須です。",
+    "identityInvalidEmail": "メールには @ が必要で、空白は使えません。",
+    "identityMissing": "コミットする前に、Git に名前とメールが必要です。",
     "diffOriginal": "オリジナル",
     "diffModified": "変更後",
     "diffEmpty": "表示する変更はありません",
@@ -142,14 +151,35 @@
     "createBranch": "ブランチを作成…",
     "checkout": "チェックアウト",
     "branchPrompt": "新しいブランチ名",
-    "behindAhead": "↓{behind} / ↑{ahead}"
+    "behindAhead": "↓{behind} / ↑{ahead}",
+    "publishTitle": "このブランチをプッシュしてリモートで追跡",
+    "addRemote": "リモートを追加…",
+    "addRemoteTitle": "このリポジトリを空の GitHub リポジトリなどのリモートに接続",
+    "pullNoUpstream": "このブランチにはまだアップストリームがありません。先に公開してください。",
+    "remoteTitleAdd": "リモートを追加",
+    "remoteTitleEdit": "リモート {name}",
+    "remoteMenuItem": "リモート {name}…",
+    "remoteHint": "GitHub などの Git ホストに空のリポジトリを作成し、その URL を貼り付けてください。サインインは Git の資格情報マネージャーまたは SSH キーで行われます。",
+    "remoteName": "名前",
+    "remoteUrl": "URL",
+    "remoteUrlPlaceholder": "https://github.com/you/repo.git",
+    "remotePublishNow": "このブランチを今すぐプッシュ",
+    "remoteAddAction": "追加",
+    "remoteSave": "保存",
+    "remoteRemove": "リモートを削除",
+    "remoteRemoveConfirm": "このリポジトリからリモート {name} を削除しますか？サーバー上のものは削除されません。",
+    "remoteInvalidName": "名前には英数字と '.'、'_'、'-' を使えます。",
+    "remoteInvalidUrl": "https:// または ssh:// の URL、または user@host:path を使ってください。",
+    "remoteFailed": "リモートを変更できませんでした。"
   },
   "usage": {
     "sessionCostTitle": "セッションコスト",
     "contextTitle": "コンテキスト使用量",
     "costSub": "{amount}（サブスク）",
     "inputSummary": "↓ {in}",
-    "outputSummary": "↑ {out}"
+    "outputSummary": "↑ {out}",
+    "contextOfWindow": "コンテキスト: {used} / {window} トークン",
+    "contextUsed": "コンテキスト: {used} トークン"
   },
   "sessionInfo": {
     "title": "セッション情報",
@@ -197,6 +227,7 @@
     "provider": "プロバイダー",
     "delete": "削除",
     "edit": "編集",
+    "moreActions": "その他の操作",
     "unsaved": "未保存の変更",
     "saveProvider": "プロバイダーを保存",
     "rename": "名前を変更",
@@ -255,7 +286,6 @@
     "setup": {
       "button": "モデルを設定",
       "buttonFor": "{model} を設定",
-      "short": "設定",
       "hint": "このモデルに小さなリクエストを数件送り、思考・推論の強さ・画像・vLLM バジェット・コンテキストを確認します。",
       "running": "{model} を設定中…",
       "done": "{model} を確認しました。内容を確認して「モデルを保存」を押してください。",
@@ -308,7 +338,9 @@
         "placeholder": "不要: このサーバーはキーなしで動作します",
         "none": "キーなし"
       }
-    }
+    },
+    "countOne": "1 モデル",
+    "countOther": "{count} モデル"
   },
   "input": {
     "attachImage": "画像を添付",
@@ -350,7 +382,9 @@
     "streaming": "実行中",
     "complete": "完了",
     "error": "エラー",
-    "pending": "保留中"
+    "pending": "保留中",
+    "imageResult": "ツールの画像",
+    "nestedMore": "記録されなかった呼び出しがあります"
   },
   "files": {
     "loading": "読み込み中…",
@@ -360,6 +394,7 @@
     "refreshDirectory": "ディレクトリを更新",
     "refreshDirectoryAria": "現在のディレクトリ一覧を更新",
     "showHiddenFiles": "隠しファイルを表示",
+    "hideHiddenFiles": "隠しファイルを非表示",
     "showHiddenFilesAria": "ドットファイルや無視されたディレクトリの表示/非表示",
     "openInFileManager": "ファイルマネージャーで開く",
     "close": "ファイルブラウザを閉じる",
@@ -404,7 +439,9 @@
         "remoteImageHidden": "リモート画像は非表示です"
       },
       "conflictMessage": "{name}がディスク上で変更されました。再読み込みしますか、それともディスクバージョンを上書きしますか？",
-      "htmlLive": "HTML ライブプレビュー"
+      "htmlLive": "HTML ライブプレビュー",
+      "unchangedOne": "… 変更なし {count} 行 …",
+      "unchangedOther": "… 変更なし {count} 行 …"
     },
     "unsaved": {
       "title": "未保存の変更",
@@ -445,10 +482,10 @@
     "save": "保存"
   },
   "header": {
-    "extensionUpdatesAvailable": "拡張機能のアップデートがあります",
-    "openInPiTui": "このセッションを Pi TUI で開く (pi -r)",
-    "toggleDock": "ドックを切り替え (Ctrl+J)",
-    "toggleChat": "チャットパネルを切り替え (Ctrl+Shift+L)",
+    "extensionUpdatesAvailable": "パッケージの更新があります",
+    "openPi": "ターミナルで Pi を開く",
+    "toggleDock": "ドックを切り替え",
+    "toggleChat": "チャットパネルを切り替え",
     "metrics": "ライブ指標"
   },
   "extensions": {
@@ -460,7 +497,7 @@
     "searchPackages": "パッケージを検索...",
     "all": "すべて",
     "themes": "テーマ",
-    "prompts": "プロンプト",
+    "prompts": "Prompts",
     "installedOnly": "インストール済みのみ",
     "mostDownloads": "ダウンロード数順",
     "nameAZ": "名前 (A–Z)",
@@ -498,8 +535,8 @@
       "extensionsOther": "拡張機能 {count} 件",
       "skillsOne": "スキル {count} 件",
       "skillsOther": "スキル {count} 件",
-      "promptsOne": "プロンプト {count} 件",
-      "promptsOther": "プロンプト {count} 件",
+      "promptsOne": "{count} prompt",
+      "promptsOther": "{count} prompts",
       "themesOne": "テーマ {count} 件",
       "themesOther": "テーマ {count} 件"
     },
@@ -587,6 +624,7 @@
     "statusFailed": "起動に失敗しました",
     "retry": "再試行",
     "sendToChat": "チャットに送る",
+    "piTabFailed": "ターミナルで Pi を開けませんでした。",
     "ariaResizer": "ターミナルパネルリサイザー",
     "enlarge": "パネルを拡大",
     "newTabMenu": "別のシェルで新しいターミナル",
@@ -646,6 +684,7 @@
     "closeProject": "プロジェクトを閉じる",
     "closeWorking": "返答が続いています。それでもプロジェクトを閉じますか？",
     "renameProject": "名前を変更…",
+    "newWorktree": "新しい worktree…",
     "renameOutside": "このフォルダを {to} に変更しますか？ {from} から移動します。",
     "renameWorking": "返答が続いています。それでも名前を変更しますか？",
     "keepChats": "チャットをプロジェクトフォルダに保存",
@@ -662,7 +701,9 @@
     "archivedCount": "アーカイブ ({count})",
     "deleteArchivedHere": "このプロジェクトのアーカイブ済みチャットを削除",
     "pinned": "ピン留め",
-    "newChat": "{path}で新しいセッション"
+    "newChat": "{path}で新しいセッション",
+    "statusStreaming": "応答中",
+    "statusUnread": "未読"
   },
   "updater": {
     "update": "更新",
@@ -732,7 +773,6 @@
         "label": "npm (Node.js)",
         "help": "Pi は npm でパッケージを入れます。無いと、おすすめパッケージと Surf はインストールできません。",
         "install": "Node.js をインストール",
-        "commands": "パッケージマネージャで Node.js を入れてから、すべてテストを押してください:",
         "download": "nodejs.org からダウンロード"
       },
       "browser": {
@@ -746,7 +786,8 @@
           "found": "{path} を使用",
           "download": "ブラウザをダウンロード",
           "downloadHelp": "Chrome for Testing を一度だけダウンロードします。約 206 MB です。",
-          "linuxDeps": "それでも起動しないときは、必要なライブラリを入れてください:"
+          "linuxDeps": "それでも起動しないときは、必要なライブラリを入れてください:",
+          "noSandbox": "--no-sandbox で動作しています。このシステムでは、パッケージマネージャで入れた Chrome だけが Chrome のサンドボックスを使えます。"
         },
         "both": "両方オンのとき、Pi はローカルページに agent-browser を、ウェブに Surf を使います。",
         "surf": {
@@ -772,8 +813,16 @@
     },
     "customizations": {
       "title": "カスタマイズ",
-      "safe": "セーフモード（同梱 UI のみ）",
-      "overrides": "上書き",
+      "overrides": "SPOPI の UI の上書き",
+      "intro": "見た目や配置の変更を頼んだときに、Pi が SPOPI 自身の UI で変更・追加したファイルです。更新後も残ります。プロジェクト、Pi の設定、Pi のパッケージはここに表示されません。",
+      "folder": "保存先",
+      "overridesEmpty": "Pi はまだ SPOPI の UI を変更していません。チャットで頼んでください（例:「サイドバーを細くして」）。",
+      "statusAdded": "新しいファイル（同梱 UI にはないもの）",
+      "statusOk": "同梱ファイルを変更したコピー",
+      "statusStale": "無効: この更新で同梱ファイルが変わりました。Pi にマージを頼むか、元に戻してください。",
+      "safeTitle": "セーフモード",
+      "safe": "同梱の UI だけを使う",
+      "safeHelp": "上の上書きを削除せずにすべて無効にします。変更でウィンドウが壊れたときに使います。",
       "revert": "元に戻す",
       "threeWay": "3つの版を表示",
       "unknown": "不明なロケールキー",
@@ -783,26 +832,51 @@
       "safeBanner": "セーフモードです。同梱の UI を表示しています。",
       "reload": "再読み込み",
       "close": "閉じる",
-      "overridesEmpty": "変更された UI ファイルはありません。Pi は UI の変更を %APPDATA%\\spopi\\ui に書きます。",
       "autoSafe": "UI の読み込みに 2 回失敗したため、自動でオンになりました。"
     },
     "phone": {
       "title": "電話アクセス",
       "enable": "電話からの接続を許可",
       "pair": "ペアリング",
-      "accept": "電話向けに承認",
       "devices": "デバイス",
       "revoke": "取り消し",
       "tier": "権限",
       "port": "ポート",
-      "allow": "許可リスト",
-      "waiting": "デスクトップで UI が変わり、承認待ちです",
       "interface": "インターフェース",
       "allowSources": "許可する接続元",
-      "allowHelp": "CIDR またはアドレスをカンマか空白で区切ります。",
+      "allowHelp": "192.168.1.0/24 のような IPv4 アドレスまたは範囲を、カンマか空白で区切ります。自分で入力するまではインターフェースに合わせて変わります。",
+      "allowInvalid": "「{entry}」は IPv4 アドレスでも範囲でもありません。例: 192.168.1.0/24",
+      "allowEmpty": "アドレスか範囲を 1 つ以上入力してください。空のままだとどの端末も接続できません。",
+      "listenFailed": "{address} でスマートフォンのアクセスを開始できませんでした: {error}",
       "noInterfaces": "ネットワークインターフェースが見つかりません。ペアリングはこのコンピューターに残ります。",
-      "changesSummary": "前回の承認以降、UI ファイルが {count} 件変わりました",
-      "changesList": "ファイルを表示"
+      "kind": {
+        "main": "メインのネットワーク",
+        "lan": "ネットワーク",
+        "tailscale": "Tailscale",
+        "vpn": "VPN",
+        "virtual": "仮想。スマートフォンからは届きません",
+        "loopback": "このコンピューターのみ"
+      },
+      "firewall": "Windows ファイアウォール",
+      "firewallAllow": "ファイアウォールで許可",
+      "firewallUpdate": "ファイアウォールのルールを更新",
+      "firewallOk": "ファイアウォールはポート {port} でスマートフォンを通します。",
+      "firewallOtherPort": "ファイアウォールのルールはポート {ports} 用で、{port} ではありません。",
+      "firewallOtherSources": "ファイアウォールのルールが許可しているのは {remote} で、許可する接続元ではありません。それ以外の端末はブロックされます。",
+      "firewallNone": "SPOPI のファイアウォールのルールはまだありません。特にパブリックに設定されたネットワークでは、Windows がスマートフォンをブロックすることがあります。",
+      "firewallBlocked": "ファイアウォールのルールが SPOPI をブロックしています。許可するとそのルールを削除します。",
+      "firewallHelp": "このルールは許可された送信元からのこのポートの TCP だけを通します。Windows が管理者権限を求めます。",
+      "firewallWaiting": "Windows の確認画面で許可してください…",
+      "firewallCancelled": "Windows は変更を許可しませんでした。",
+      "firewallFailed": "ファイアウォールのルールを書き込めませんでした: {error}",
+      "connection": "接続",
+      "pairTitle": "スマートフォンをペアリング",
+      "pairHelp": "クリックするたびに、端末 1 台をペアリングできる新しいコードを作ります。スマートフォンのカメラで読み取り、ここで端末を承認してください。",
+      "pairValid": "{minutes} 分間、端末 1 台に有効です。新しいコードはもう一度ペアリングで作れます。",
+      "pairExpired": "コードの有効期限が切れました。ペアリングをクリックして新しいコードを作ってください。",
+      "pairNeedsOn": "先にスマートフォンのアクセスをオンにしてください。",
+      "desktopOnly": "スマートフォンのアクセス、ペアリング、デバイスはデスクトップで管理します。",
+      "devicesEmpty": "ペアリング済みのスマートフォンはありません。"
     },
     "appearance": "外観",
     "packages": {
@@ -812,7 +886,7 @@
       "title": "リソース",
       "extension": "拡張機能",
       "skill": "スキル",
-      "prompt": "プロンプト",
+      "prompt": "Prompts",
       "theme": "テーマ",
       "global": "グローバル",
       "project": "プロジェクト",
@@ -848,7 +922,10 @@
         "gondolin": "Gondolin: Pi はホストに残り、ツールはローカルのマイクロ VM で動きます。",
         "mount": "作業フォルダだけをマウントしてください。~/.pi/agent はマウントしないでください。",
         "docs": "Pi のコンテナ資料"
-      }
+      },
+      "stale": "レシピが古くなっています",
+      "staleDescription": "権限ファイルは古い SPOPI が書いたか、手で編集されています。更新すると現在のモード用に書き直します。",
+      "repair": "更新"
     },
     "updates": "アップデート",
     "autoCompaction": "自動コンパクト",
@@ -871,6 +948,12 @@
       "placeholder": "ホームフォルダーの SPOPI",
       "choose": "選択…",
       "notAbsolute": "D:\\Chats や /home/you/chats のような完全なパスを入力してください。"
+    },
+    "gitIdentity": {
+      "title": "Git の名前とメール",
+      "description": "Git は各コミットにこれらを記録します。値は Git 自身の設定にあり、SPOPI にはありません。",
+      "save": "保存",
+      "saved": "保存済み"
     },
     "taskCompleteTitle": "タスクが完了しました",
     "taskCompleteMessage": "タスクが完了しました。",
@@ -917,6 +1000,90 @@
       "helpPost": "（chmod 600）。GUIからの起動時はログインシェルのプロバイダー変数もインポートされます。",
       "helpPostWindows": "GUI からの起動時は環境変数のプロバイダー変数も読み込みます。"
     },
+    "mcp": {
+      "title": "MCP",
+      "pageTitle": "MCP サーバー",
+      "help": "Pi がこれらのサーバーに接続し、そのツールをモデルに渡します。SPOPI は Pi 自身の pi mcp コマンドを実行します。ここからサーバーへ直接は話しません。",
+      "add": "サーバーを追加",
+      "refresh": "更新",
+      "manage": "Pi で管理",
+      "loading": "サーバーを確認しています… Pi はそれぞれを起動して試します。",
+      "checking": "最終確認 {time}",
+      "retry": "再試行",
+      "emptyHint": "チャットで Pi にサーバーの追加を頼むこともできます。",
+      "exampleCommand": "pi mcp add filesystem -- npx -y @modelcontextprotocol/server-filesystem .",
+      "exampleUrl": "https://mcp.sentry.dev/mcp (sign in after adding)",
+      "global": "すべてのプロジェクト",
+      "project": "このプロジェクト",
+      "packages": "パッケージから",
+      "packageNote": "拡張機能が登録しています。そのパッケージで変更します。",
+      "tools": "{count} 個のツール",
+      "resources": "{count} 個のリソース",
+      "templates": "{count} 個のリソーステンプレート",
+      "state": {
+        "connected": "接続済み",
+        "needsAuth": "サインインが必要",
+        "failed": "失敗",
+        "disabled": "無効",
+        "disconnected": "未接続"
+      },
+      "signIn": "サインイン",
+      "signOut": "サインアウト",
+      "reconnect": "このセッションで再接続",
+      "remove": "削除",
+      "removeConfirm": "{name} を削除しますか？ Pi は項目を消し、保存されたサインインは残します。",
+      "details": "詳細",
+      "override": "このプロジェクト用に {path} で変更済み",
+      "trustNote": "このプロジェクトの .pi/mcp.json は SPOPI のセッションで使われます。Pi 自身の確認は、プロジェクトを信頼するまでそれを読みません。",
+      "trustDenied": "このプロジェクトを信頼しないと Pi に伝えました。",
+      "trustButton": "Pi でこのプロジェクトを信頼する",
+      "permissionsLink": "権限モード",
+      "more": "その他の操作",
+      "open": "開く",
+      "copy": "コピー",
+      "desktopOnly": "デスクトップで利用できます。",
+      "manageToast": "Pi の MCP マネージャがターミナルで開いています。終わったら Pi を終了してください（Ctrl+C を 2 回）。タブが閉じ、SPOPI が変更を取り込みます。",
+      "manageFailed": "ターミナルが起動しませんでした。下部パネルのターミナルを開いてからもう一度試してください。",
+      "replace": "置き換え",
+      "replaceConfirm": "Pi は {name} の項目全体を置き換えます。",
+      "clash": "Pi はこれを {name} と同じサーバーとして扱います。",
+      "secretWarning": "これは秘密情報のようです。環境変数から読むには ${NAME} を使ってください。",
+      "scopeGlobal": "すべてのプロジェクト",
+      "scopeProject": "このプロジェクト",
+      "kindCommand": "コマンド",
+      "kindUrl": "URL",
+      "name": "名前",
+      "type": "種類",
+      "scope": "範囲",
+      "command": "コマンド",
+      "argument": "引数",
+      "addArgument": "引数を追加",
+      "addEnv": "変数を追加",
+      "value": "値",
+      "cwd": "作業フォルダ",
+      "envHint": "秘密を貼らず、${NAME} で環境変数から読んでください。",
+      "url": "URL",
+      "signInMode": "サインイン",
+      "authNone": "なし",
+      "authOauth": "OAuth（追加後にサインイン）",
+      "authBearer": "環境変数のトークン",
+      "authHeaders": "独自のヘッダー",
+      "bearerEnv": "環境変数",
+      "addHeader": "ヘッダーを追加",
+      "advancedOauth": "詳細な OAuth",
+      "clientId": "クライアント ID",
+      "clientSecret": "クライアントシークレット",
+      "callbackPort": "コールバックポート",
+      "clientName": "クライアント名",
+      "exposure": "公開範囲",
+      "exposureCodemode": "既定。スクリプトがツールを見つけます",
+      "exposureDeferred": "ツール検索で読み込まれます",
+      "exposureDirect": "常にモデルへ宣言します。コンテキストを使います",
+      "exposureHidden": "登録されますが届きません",
+      "description": "説明",
+      "descriptionHint": "Pi が適切なサーバーを見つける助けになります。",
+      "keepGlobal": "資格情報を持つサーバーは「すべてのプロジェクト」に置いてください。"
+    },
     "models": {
       "title": "モデル",
       "helpPre": "編集",
@@ -925,6 +1092,7 @@
       "helpPost2": "を参照してください。変更はすぐに反映されます — 再起動不要。",
       "oauth": {
         "signInWithChatGPT": "ChatGPT でサインイン",
+        "chatgptHint": "OpenAI プロバイダーで ChatGPT を使う場合は、ターミナルで pi を起動し、/login と入力して OpenAI を選んでください。",
         "preparing": "ChatGPT サインインを準備しています…",
         "completeInBrowser": "ブラウザで認証を完了して続行してください。",
         "openBrowser": "ブラウザを開く",
@@ -937,8 +1105,15 @@
         "expired": "このデバイスコードは期限切れです。もう一度開始してください。",
         "failed": "ChatGPT サインインに失敗しました。",
         "tlsUntrusted": "TLS 証明書の検証に失敗しました。ローカルの HTTPS プロキシ（Clash / Surge / VPN）が OpenAI を傍受している可能性があります。そのプロキシの CA を信頼するか、OpenAI の HTTPS 検査を無効にしてから再試行してください。",
-        "retry": "再試行"
-      }
+        "retry": "再試行",
+        "connectTitle": "{name} を接続",
+        "subscriptionHint": "このプロバイダーはサブスクリプションのアカウントを使います。",
+        "terminalLoginNote": "このサインインは Pi が実行します。下のコマンドでターミナルから開始し、ここに戻ってプロバイダーの状態を更新してください。"
+      },
+      "addProvider": "プロバイダーを追加",
+      "addProviderHint": "プロバイダーを接続すると、そのモデルを使えます。",
+      "searchProviders": "プロバイダーを検索…",
+      "customAndSubscriptions": "カスタムとサブスクリプション"
     },
     "customProvider": {
       "title": "カスタムプロバイダーを追加",
@@ -1074,7 +1249,9 @@
       "webglDescription": "ターミナルを GPU で描画します。文字が滲む場合は無効にしてください。",
       "themeSystem": "SPOPIのテーマに合わせる",
       "themeLight": "ライト",
-      "themeDark": "ダーク"
+      "themeDark": "ダーク",
+      "shellSection": "シェル",
+      "displaySection": "表示"
     },
     "fontLevel": {
       "small": "小",
@@ -1163,7 +1340,7 @@
     "actionWhileStreaming": "現在の応答が完了するまでお待ちください",
     "refresh": "セッション履歴を更新",
     "empty": "メッセージはまだありません",
-    "statusError": "エラー",
+    "statusError": "Error",
     "statusAborted": "中止しました",
     "imageMessage": "画像",
     "roleUser": "あなた",
@@ -1216,7 +1393,8 @@
     "pin": "ピン",
     "drop": "削除",
     "dropConfirm": "次のプロンプトから外しますか？元に戻せません。",
-    "compact": "圧縮"
+    "compact": "圧縮",
+    "unknown": "不明"
   },
   "sessionTree": {
     "title": "セッションツリー",
@@ -1324,6 +1502,8 @@
       "conflict": "ディスク上で変更"
     },
     "noHistory": "ターンごとの変更を見るには pi-workspace-history を入れてください。",
+    "notRecorded": "pi-workspace-history にこのプロジェクトの記録がないため、ここでは Pi の変更を一覧できません。",
+    "openPackages": "パッケージを開く",
     "turnGone": "このターンの変更はもう保存されていません。pi-workspace-history はプロジェクトごとに最近のセッションだけを残します。",
     "noGit": "Git リポジトリではありません",
     "loadFailed": "変更を読み込めませんでした。",
@@ -1358,13 +1538,25 @@
       "deleted": "削除されたファイルです。",
       "binary": "バイナリファイルです。開いて確認してください。",
       "outside": "このファイルはプロジェクトの外です。表示も取り消しもしません。",
+      "notRecorded": "pi-workspace-history にこのプロジェクトの記録がないため、差分はありません。ファイルを開いて確認してください。",
       "app": "Pi が SPOPI 自体の画面を変更しました。「前のターンを取り消す」では戻りません。カスタマイズで元に戻してください。"
     },
     "comments": {
       "placeholder": "Pi へのコメント…",
-      "send": "チャットに送る",
-      "queue": "フォローアップに入れる",
-      "add": "メッセージに追加"
+      "addToReview": "レビューに追加",
+      "sendNow": "今すぐ送る",
+      "cancel": "キャンセル",
+      "delete": "削除"
+    },
+    "drafts": {
+      "count": {
+        "one": "コメント {count} 件",
+        "other": "コメント {count} 件"
+      },
+      "send": "レビューを送る",
+      "discard": "破棄",
+      "discardConfirm": "このレビューコメントを破棄しますか？",
+      "sendFailed": "レビューは送られませんでした。コメントはそのままです。"
     }
   },
   "chat": {
@@ -1412,15 +1604,27 @@
     "contextEdit": {
       "omitted": "次のリクエストから省かれました",
       "replaced": "次のリクエスト用に置き換えました"
+    },
+    "customUiTab": "拡張機能",
+    "notice": {
+      "compacting": "コンテキストを圧縮しています…",
+      "compacted": "コンテキストを圧縮しました",
+      "compactionFailed": "圧縮に失敗しました",
+      "compactionFailedWith": "圧縮に失敗しました: {error}",
+      "summaryRetryIn": "要約の再試行 {attempt} 回目まで {seconds} 秒",
+      "summaryRetrying": "要約を再試行しています（{source}）",
+      "extensionFailed": "拡張機能が失敗しました"
     }
   },
   "pair": {
-    "title": "この電話をペアリング",
-    "name": "デバイス名",
-    "approve": "デスクトップで承認してください",
-    "home": "iPhone ではホーム画面に追加",
     "allow": "許可",
-    "denied": "デスクトップがこの端末を拒否しました"
+    "deny": "拒否",
+    "requestTitle": "スマートフォンをペアリングしますか？",
+    "requestBody": "{source} の「{name}」が SPOPI とのペアリングを求めています。",
+    "requestHint": "このコンピューターのコードを今読み取った場合にだけ許可してください。",
+    "tierObserve": "閲覧: セッションを見る",
+    "tierControl": "操作: チャット、ファイルと Git の閲覧",
+    "tierFull": "フル: さらにターミナル、Git の変更、設定、パッケージ"
   },
   "shell": {
     "spopiLogoAlt": "SPOPIロゴ",
@@ -1441,13 +1645,11 @@
     "newSessionTitle": "このプロジェクトで新しいセッション",
     "settingsTitle": "設定",
     "downloadAndInstallUpdateTitle": "アップデートをダウンロードしてインストール",
-    "chooseAppTitle": "アプリを選択",
     "filesTitle": "ファイル",
     "closeTitle": "閉じる",
     "toggleFileBrowserLabel": "ファイルブラウザを切り替え",
     "keyboardShortcutsLabel": "キーボードショートカット",
     "conversationNavigatorLabel": "会話ナビゲーター",
-    "openCommandsLabel": "コマンドを開く",
     "thinkingEffortOffClickToCycleReasoningLabel": "思考の深さ：オフ。クリックして推論の深度を切り替え。",
     "searchTasksLabel": "タスクを検索",
     "searchResultsLabel": "検索結果",
@@ -1493,6 +1695,7 @@
         "focus": "エディタにフォーカス",
         "guard": "権限モードを設定",
         "cockpit": "メトリクスのコックピットを開く",
+        "mcp": "MCP サーバーを開く",
         "tui": "ターミナルを開く",
         "phone": "電話アクセスを開く",
         "hotkeys": "キーボードショートカットを表示",
@@ -1534,7 +1737,10 @@
     "modelConfigAfterReply": "モデル設定はこの応答の後に適用されます",
     "noThinkingLevels": "このモデルには思考レベルがありません",
     "noThinkingLevelsHint": "設定 → モデルで思考をオンにするか、「モデルを設定」を使ってください。",
-    "openModelSettings": "モデル設定を開く"
+    "openModelSettings": "モデル設定を開く",
+    "guardStale": "権限レシピが古くなっています。設定 → 一般 → Guard で更新できます。",
+    "pasteOffloadFailed": "貼り付けたテキストをファイルに保存できませんでした",
+    "moreTools": "その他"
   },
   "features": {
     "todos": {
@@ -1544,7 +1750,8 @@
   "notifications": {
     "center": {
       "dismissNotificationLabel": "通知を閉じる"
-    }
+    },
+    "title": "通知"
   },
   "session": {
     "search": {
@@ -1591,7 +1798,11 @@
     "compactionPendingAfter": "新しいサイズは次のリクエスト待ち",
     "compactionNoRewrite": "コンテキストは未変更",
     "noServerMetrics": "モデルサーバーのメトリクスなし",
-    "thinkingBudgetTitle": "この思考レベルの思考トークン予算を切り替える"
+    "thinkingBudgetTitle": "この思考レベルの思考トークン予算を切り替える",
+    "outTitle": "このプロンプトの出力トークン · 思考 {thinking} · テキスト {chars} 文字",
+    "tpsEstimated": "出力 ÷ 生成時間からの推定",
+    "kvCache": "KV キャッシュ {pct}%",
+    "kvPeak": "ピーク {pct}%"
   },
   "keybindings": {
     "title": "キーボードショートカット",
@@ -1614,13 +1825,47 @@
     "guard": "権限モード",
     "guardCycle": "権限モードを切り替える",
     "cockpit": "コックピットを開く",
+    "mcp": "MCP サーバーを開く",
     "tui": "ターミナルを開く",
-    "close": "閉じる"
+    "close": "閉じる",
+    "slashCommands": "スラッシュコマンド"
   },
   "projects": {
     "fallbackTitle": "プロジェクトフォルダーを使えません",
     "fallbackUsed": "{wanted} を使えなかったため、このチャットは {used} にあります。",
     "fallbackHome": "{wanted} もホームフォルダーの SPOPI フォルダーも使えなかったため、このチャットはホームフォルダーにあります。",
     "fallbackOpenSettings": "設定を開く"
+  },
+  "extensionUi": {
+    "question": "質問",
+    "cancelled": "キャンセルしました",
+    "answered": "回答しました"
+  },
+  "costDashboard": {
+    "quickRange": "期間の選択"
+  },
+  "convNav": {
+    "jump": "会話 {n} へ移動"
+  },
+  "worktree": {
+    "branch": "ブランチ名",
+    "newChat": "新しいチャット",
+    "merge": "メインのチェックアウトにマージ…",
+    "mergeConfirm": "この worktree をメインのチェックアウトにマージしますか？",
+    "merged": "{into} にマージしました。",
+    "removeNow": "今すぐ worktree を削除しますか？",
+    "conflicts": "マージは中断され、何も変わりませんでした。",
+    "remove": "worktree を削除…",
+    "removeConfirm": "この worktree を削除しますか？ブランチは残ります。",
+    "removeDirty": "この worktree には未コミットの変更があります。それでも削除しますか？",
+    "errors": {
+      "primaryDirty": "メインのチェックアウトに未コミットの変更があります。",
+      "worktreeDirty": "この worktree には未コミットの変更があります。",
+      "primaryDetached": "メインのチェックアウトはブランチ上にありません。",
+      "worktreeDetached": "この worktree はブランチ上にありません。",
+      "locked": "この worktree はロックされています。",
+      "notWorktree": "このフォルダはリンクされた worktree ではありません。",
+      "hasChats": "この worktree はフォルダ内にチャットを保存しているため、削除できません。"
+    }
   }
 }

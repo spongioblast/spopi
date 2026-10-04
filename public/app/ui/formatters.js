@@ -8,14 +8,30 @@ export function formatBytes(bytes) {
   return `${(size / 1024).toFixed(size < 10 * 1024 ? 1 : 0)} KB`;
 }
 
-/** @param {unknown} value */
-export function formatUsd(value) {
-  return `$${Number(value || 0).toFixed(2)}`;
+/** Per-response and per-session costs pass 4 digits; they are often under a cent.
+ * @param {unknown} value
+ * @param {number} [digits]
+ */
+export function formatUsd(value, digits = 2) {
+  const amount = Number(value);
+  return `$${(Number.isFinite(amount) ? amount : 0).toFixed(digits)}`;
 }
 
 /** @param {unknown} value */
 export function formatInt(value) {
   return Number(value || 0).toLocaleString();
+}
+
+/** Token counts in tight rows: 950, 1.2k, 12k, 1.5M.
+ * @param {unknown} value
+ */
+export function formatShortCount(value) {
+  const parsed = Number(value);
+  const n = Number.isFinite(parsed) ? parsed : 0;
+  if (Math.abs(n) >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (Math.abs(n) >= 10_000) return `${Math.round(n / 1000)}k`;
+  if (Math.abs(n) >= 1000) return `${(n / 1000).toFixed(1)}k`;
+  return String(Math.round(n));
 }
 
 /** @param {unknown} value */

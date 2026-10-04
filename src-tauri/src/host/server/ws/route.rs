@@ -2,9 +2,8 @@
 // ABOUTME: Composition only. Operation bodies live in ops/ and http/.
 
 use super::super::ops;
-use super::super::{
-    annotate_live_sessions, host_data_error, messages_from_entries_response, HostState,
-};
+use super::super::session_view::{annotate_live_sessions, messages_from_entries_response};
+use super::super::{host_data_error, HostState, OpError};
 use super::runtime_request_timeout;
 use crate::git::dispatch as git_dispatch;
 use crate::host::router::{RoutedAction, PROTOCOL_VERSION};
@@ -17,10 +16,7 @@ use std::time::Duration;
 /// extensions; with a full package set that alone can pass ten seconds.
 const SNAPSHOT_TIMEOUT: Duration = super::RUNTIME_REQUEST_TIMEOUT;
 
-pub(crate) async fn dispatch(
-    action: RoutedAction,
-    state: &HostState,
-) -> Result<Value, (&'static str, String)> {
+pub(crate) async fn dispatch(action: RoutedAction, state: &HostState) -> Result<Value, OpError> {
     match action {
         RoutedAction::Runtime {
             client_id,
@@ -122,9 +118,9 @@ pub(crate) async fn dispatch(
                 }));
             }
             if frame.get("type").and_then(Value::as_str) != Some("runtime_request") {
-                return Err((
+                return Err(OpError::new(
                     "unsupported_runtime_request",
-                    "Unsupported runtime request".into(),
+                    "Unsupported runtime request",
                 ));
             }
             let target: RuntimeTarget = serde_json::from_value(
@@ -386,9 +382,9 @@ pub(crate) async fn dispatch(
                     "info": info,
                 }))
             }
-            _ => Err((
+            _ => Err(OpError::new(
                 "unknown_data_operation",
-                "Unsupported data operation".into(),
+                "Unsupported data operation",
             )),
         },
         RoutedAction::Subscribe { request_id, .. } => Ok(json!({
@@ -398,32 +394,32 @@ pub(crate) async fn dispatch(
     }
 }
 
-fn owned_workspace_id(frame: &Value) -> Result<String, (&'static str, String)> {
+fn owned_workspace_id(frame: &Value) -> Result<String, OpError> {
     frame
         .get("workspaceId")
         .and_then(Value::as_str)
         .map(str::to_string)
-        .ok_or(("invalid_workspace", "workspaceId is required".into()))
+        .ok_or_else(|| OpError::new("invalid_workspace", "workspaceId is required"))
 }
 
-fn owned_session_id(frame: &Value) -> Result<String, (&'static str, String)> {
+fn owned_session_id(frame: &Value) -> Result<String, OpError> {
     frame
         .get("sessionId")
         .and_then(Value::as_str)
         .map(str::to_string)
-        .ok_or(("invalid_session", "sessionId is required".into()))
+        .ok_or_else(|| OpError::new("invalid_session", "sessionId is required"))
 }
 
 /// Disk scans stay off the async runtime. The caller maps host data errors.
 async fn blocking_data<T>(
     work: impl FnOnce() -> Result<T, crate::data::HostDataError> + Send + 'static,
-) -> Result<T, (&'static str, String)>
+) -> Result<T, OpError>
 where
     T: Send + 'static,
 {
     match tokio::task::spawn_blocking(work).await {
         Ok(Ok(value)) => Ok(value),
-        Ok(Err(error)) => Err(host_data_error(error)),
-        Err(error) => Err(("data_task_failed", error.to_string())),
+        Ok(Err(error)) => Err(error.into()),
+        Err(error) => Err(OpError::new("data_task_failed", error.to_string())),
     }
 }

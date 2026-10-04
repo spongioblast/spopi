@@ -8,6 +8,7 @@ import {
   normalizeLocalPath,
   parentLocalPath,
   parentPath,
+  shortenPath,
 } from "./path-utils.js";
 
 test("normalizes Windows separators while preserving a drive root", () => {
@@ -48,6 +49,13 @@ test("parentPath drops the last workspace-relative segment", () => {
   expect(parentPath("src/app/main.js")).toBe("src/app");
   expect(parentPath("README.md")).toBe("");
   expect(parentPath("")).toBeNull();
+});
+
+test("shortenPath replaces a POSIX home prefix with a tilde", () => {
+  expect(shortenPath("/Users/Lin/.pi/agent/git/pkg")).toBe("~/.pi/agent/git/pkg");
+  expect(shortenPath("/home/lin/pkg")).toBe("~/pkg");
+  expect(shortenPath("C:/Users/Lin/pkg")).toBe("C:/Users/Lin/pkg");
+  expect(shortenPath(null)).toBe("");
 });
 
 test("formats relative paths with a leading slash for sidebar display", () => {

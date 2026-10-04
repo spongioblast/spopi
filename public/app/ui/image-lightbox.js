@@ -2,7 +2,7 @@
 // ABOUTME: Escape and the backdrop close it.
 
 import { t } from "../i18n/i18n.js";
-import { bindModal } from "./dialog.js";
+import { trapModal } from "./dialog.js";
 
 /**
  * Image Lightbox — click-to-zoom for message images.
@@ -47,7 +47,7 @@ function getOrCreateOverlay() {
       closeLightbox();
     }
   });
-  bindModal(overlay, {
+  trapModal(overlay, {
     onClose: closeLightbox,
     isActive: () => Boolean(overlay?.classList.contains("open")),
   });

@@ -177,6 +177,8 @@ export function createModelsOAuthLoginDialog({
     ]);
     const titleEl = panel.querySelector(`.${DIALOG_CLASS}-title`);
     if (titleEl) titleEl.textContent = t("settings.models.oauth.signInWithChatGPT");
+    const hint = el("p", `${DIALOG_CLASS}-hint`, t("settings.models.oauth.chatgptHint"));
+    panel.append(hint);
     // URL and code are plain text nodes; the URL is captured in the click
     // closure only — never stored in a data-* attribute.
     const url = event.verificationUri;

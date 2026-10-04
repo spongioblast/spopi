@@ -145,6 +145,7 @@ fn path_extras() -> Vec<PathBuf> {
             PathBuf::from("/usr/bin"),
             PathBuf::from("/bin"),
         ]);
+        extras.extend(crate::dependencies::node_download::bin_dir());
         if let Ok(home) = std::env::var("HOME") {
             let home = Path::new(&home);
             extras.push(pi_extension_npm_bin_dir(home));
@@ -219,37 +220,6 @@ fn pi_extension_npm_bin_dir(home: &Path) -> PathBuf {
 mod tests {
     use super::resolve_pi_agent_dir;
     use std::path::{Path, PathBuf};
-
-    #[test]
-    fn live_appdir_keeps_only_the_agent_browser_entry() {
-        static LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
-        let _guard = LOCK.lock().unwrap_or_else(|error| error.into_inner());
-        let appdir = std::env::temp_dir().join(format!("spopi-appdir-{}", std::process::id()));
-        let agent = appdir.join("agent-browser");
-        std::fs::create_dir_all(&agent).unwrap();
-        let previous = ["APPDIR", "APPIMAGE", "PATH", "SPOPI_AGENT_BROWSER_DIR"]
-            .map(|key| (key, std::env::var_os(key)));
-        std::env::set_var("APPDIR", &appdir);
-        std::env::set_var("APPIMAGE", "spopi-test");
-        std::env::set_var(
-            "PATH",
-            std::env::join_paths([appdir.join("usr/bin"), PathBuf::from("/usr/bin")]).unwrap(),
-        );
-        std::env::set_var("SPOPI_AGENT_BROWSER_DIR", &agent);
-        let path = super::build_augmented_path();
-        for (key, value) in previous {
-            match value {
-                Some(value) => std::env::set_var(key, value),
-                None => std::env::remove_var(key),
-            }
-        }
-        let _ = std::fs::remove_dir_all(&appdir);
-        let dirs: Vec<_> = std::env::split_paths(&path).collect();
-        assert_eq!(dirs.first(), Some(&agent));
-        assert!(!dirs
-            .iter()
-            .any(|dir| dir.starts_with(&appdir) && dir != &agent));
-    }
 
     #[test]
     fn agent_browser_dir_stays_first_after_the_appimage_strip() {

@@ -1,7 +1,26 @@
-// ABOUTME: Tests fileManagerPath.
+// ABOUTME: Tests fileManagerPath and the hidden-files toggle's icon and tooltip.
 // ABOUTME: Includes "opens the workspace root when nothing is selected".
 import { describe, expect, it } from "vitest";
-import { fileManagerPath, isHarmlessFileManagerExit } from "./mount-file-browser.js";
+import {
+  fileManagerPath,
+  isHarmlessFileManagerExit,
+  paintHiddenToggle,
+} from "./mount-file-browser.js";
+
+describe("paintHiddenToggle", () => {
+  it("crosses the eye out while hidden files stay hidden and names the next action", () => {
+    const button = document.createElement("button");
+    paintHiddenToggle(button, false);
+    expect(button.getAttribute("aria-pressed")).toBe("false");
+    expect(button.title).toBe("files.showHiddenFiles");
+    expect(button.querySelectorAll("svg path")).toHaveLength(4);
+    paintHiddenToggle(button, true);
+    expect(button.getAttribute("aria-pressed")).toBe("true");
+    expect(button.title).toBe("files.hideHiddenFiles");
+    expect(button.dataset.i18nTitle).toBe("files.hideHiddenFiles");
+    expect(button.querySelector("svg circle")).not.toBeNull();
+  });
+});
 
 describe("fileManagerPath", () => {
   it("opens the workspace root when nothing is selected", () => {

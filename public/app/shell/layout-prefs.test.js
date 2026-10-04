@@ -13,7 +13,7 @@ describe("layout clamps", () => {
   it("keeps sidebar, chat, and dock inside the plan ranges", () => {
     expect(clampSidebarWidth(80)).toBe(160);
     expect(clampSidebarWidth(900)).toBe(480);
-    expect(clampChatWidthPct(10)).toBe(28);
+    expect(clampChatWidthPct(10)).toBe(22);
     expect(clampDockHeight(40)).toBe(120);
   });
 });
@@ -36,5 +36,8 @@ describe("applyLayoutVars", () => {
     applyLayoutVars({ sidebarWidth: 200, chatWidthPct: 40, dockHeight: 180 });
     expect(document.documentElement.style.getPropertyValue("--sidebar-width")).toBe("200px");
     expect(document.documentElement.style.getPropertyValue("--dock-height")).toBe("180px");
+    expect(document.documentElement.style.getPropertyValue("--chat-dock-width")).toBe(
+      "min(600px, 40%)",
+    );
   });
 });

@@ -7,6 +7,13 @@
   gap: var(--space-1);
 }
 
+.keybinding-help-heading {
+  margin: var(--space-3) 0 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
+}
+
 .keybinding-help-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;

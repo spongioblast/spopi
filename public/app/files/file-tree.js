@@ -4,6 +4,7 @@
 import { createFileTypeIcon } from "../editor/file-type-icons.js";
 import { t } from "../i18n/i18n.js";
 import { runCommandForFile } from "../terminal/run-file.js";
+import { copyText } from "../ui/clipboard.js";
 import { registerContextMenuHost, showContextMenu } from "../ui/context-menu.js";
 import {
   ancestorPaths,
@@ -105,7 +106,7 @@ export class FileTree {
     this.#onMention = onMention;
     this.#onReveal = onReveal;
     this.#onRun = onRun;
-    this.#onCopy = onCopy || ((text) => navigator.clipboard?.writeText?.(text));
+    this.#onCopy = onCopy || copyText;
     this.#onShowHiddenChange = onShowHiddenChange;
     this.#persistExpanded = persistExpanded;
     this.#loadExpanded = loadExpanded;

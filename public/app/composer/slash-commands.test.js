@@ -62,6 +62,19 @@ describe("slash commands", () => {
     });
   });
 
+  it("keeps one mcp command and sends only the arguments to Pi", () => {
+    const full = buildCommandCatalog({
+      commands: [{ name: "mcp", description: "Pi manager", source: "extension" }],
+    });
+    expect([...full.keys()].filter((name) => name === "mcp")).toEqual(["mcp"]);
+    expect(full.get("mcp")).toMatchObject({ source: "spopi", type: "builtin" });
+    expect(resolveComposerInput("/mcp", full)).toMatchObject({ kind: "builtin", action: "mcp" });
+    expect(resolveComposerInput("/mcp login x", full)).toEqual({
+      kind: "runtime",
+      command: { type: "prompt", message: "/mcp login x" },
+    });
+  });
+
   it("hides internal native commands from the user-facing catalog", () => {
     expect(catalog.has("spopi-config")).toBe(false);
     expect(catalog.has("llama")).toBe(false);

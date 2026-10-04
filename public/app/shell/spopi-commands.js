@@ -4,12 +4,15 @@
 import { showPiReview } from "../editor/review-pane.js";
 import { showKeybindingHelp } from "../ui/keybinding-help.js";
 import { appKeybindings } from "../ui/keybindings.js";
-import { toggleLayoutPreset } from "./layout-preset.js";
+import { toggledLayoutPreset } from "./layout-preset.js";
 
 /**
  * @param {{
  *   dock?: { setTab?: (id: string) => void } | null,
- *   shell?: { applyHidden?: (next: { sidebarHidden?: boolean, dockHidden?: boolean }) => void } | null,
+ *   shell?: {
+ *     layout?: { focus?: boolean },
+ *     applyHidden?: (next: { sidebarHidden?: boolean, dockHidden?: boolean, focus?: boolean }) => void,
+ *   } | null,
  * }} hosts
  */
 export function registerSpopiCommands({ dock, shell } = {}) {
@@ -24,9 +27,7 @@ export function registerSpopiCommands({ dock, shell } = {}) {
     id: "focus",
     keys: "Mod+\\",
     labelKey: "keybindings.focus",
-    run: () => {
-      toggleLayoutPreset("", (patch) => shell?.applyHidden?.(patch));
-    },
+    run: () => shell?.applyHidden?.(toggledLayoutPreset(shell.layout)),
   });
   keys.register({ id: "guard", keys: "", labelKey: "keybindings.guard", run: () => {} });
   keys.register({
@@ -37,6 +38,13 @@ export function registerSpopiCommands({ dock, shell } = {}) {
       dock?.setTab?.("cockpit");
       shell?.applyHidden?.({ dockHidden: false });
     },
+  });
+  keys.register({
+    id: "mcp",
+    keys: "",
+    labelKey: "keybindings.mcp",
+    run: () =>
+      document.dispatchEvent(new CustomEvent("spopi-open-settings", { detail: { tab: "mcp" } })),
   });
   keys.register({
     id: "tui",

@@ -2,7 +2,7 @@
 // ABOUTME: RPC commands and snapshot hydration go through this store.
 
 import { watchTranscript } from "../chat/history-render.js";
-import { emptyTranscriptState, reduceTranscript } from "../chat/transcript-reducer.js";
+import { emptyTranscriptState, reduceSession } from "../chat/transcript-reducer.js";
 import { renderQueuedMessages } from "../composer/queued-messages.js";
 import { paintSessionChrome } from "../composer/session-chrome.js";
 import { uiStore } from "../storage/ui-store.js";
@@ -21,13 +21,7 @@ import { handOffProjectOnLeave, takeLeftProject } from "./window-project.js";
  *
  * @typedef {{ workspaceId: string, sessionId: string, name?: string }} SessionRoute
  *
- * @typedef {{
- *   type?: string,
- *   messages?: import("../chat/transcript-reducer.js").TranscriptMessage[],
- *   event?: { type?: string, [key: string]: unknown },
- *   target?: Partial<SessionTarget>,
- *   tree?: unknown,
- * }} SessionRuntimeAction
+ * @typedef {import("../chat/transcript-reducer.js").SessionAction} SessionRuntimeAction
  *
  * @typedef {(next: ReturnType<typeof emptyTranscriptState>, action: SessionRuntimeAction) => void} SessionRuntimeSubscriber
  *
@@ -42,7 +36,6 @@ import { handOffProjectOnLeave, takeLeftProject } from "./window-project.js";
  *
  * @typedef {{
  *   target: SessionTarget,
- *   store: { queue?: { steering?: unknown, followUp?: unknown } },
  *   snapshotInFlight: boolean,
  *   commandCatalog: unknown,
  *   diskHistoryFallback: { sessionId: string, messages: unknown[] } | null,
@@ -104,24 +97,16 @@ import { handOffProjectOnLeave, takeLeftProject } from "./window-project.js";
  *   cancelQueueItem: (item?: unknown) => void,
  *   syncSessionInfo: () => void,
  *   hydrateHeaderSessionStats: () => void,
- *   setSessionCost: (cost: number) => void,
  *   updateComposerModel: (model: { provider?: string, id?: string }) => void,
  *   updateComposerThinking: (level: unknown) => void,
  *   syncComposerWithPi: (options: { piModel?: unknown, inheritLastModel?: boolean }) => Promise<void> | void,
  *   refreshInfoPanel: (opts?: { refreshWorkspace?: boolean }) => unknown,
  *   mountProjectHeader: (opts: { data: unknown, workspaceId: string }) => Promise<unknown>,
- *   mountHeaderOpenApp: (opts: {
- *     data: unknown,
- *     control: unknown,
- *     workspaceId: string,
- *     onError: (error: unknown) => void,
- *   }) => unknown,
  *   loadAvailableModels: () => Promise<unknown>,
  *   spawnSessionViaHost: (workspaceId?: string) => Promise<unknown>,
  *   openSessionInProjectViaHost: (session: unknown) => Promise<void> | void,
  *   buildCommandCatalog: (opts: { commands: unknown[] }) => unknown,
  *   commandCompatibility: { prune: (values: unknown) => void },
- *   createSessionStore: (target: SessionTarget) => { queue?: { steering?: unknown, followUp?: unknown } },
  *   activeSearchQuery?: string,
  *   mountSessionSidebar: (opts: Record<string, unknown>) => SessionSidebarLike | null | undefined,
  *   createSessionSelectionHandler: unknown,
@@ -163,24 +148,20 @@ export function createSessionRuntime(deps) {
    * @param {SessionRuntimeAction} action
    */
   function dispatch(action) {
-    if (action?.type === "rpc" && action.event) state = reduceTranscript(state, action.event);
-    else if (action?.type === "snapshot") {
-      state = {
-        ...state,
-        transcript: {
-          ...state.transcript,
-          messages: Array.isArray(action.messages) ? action.messages : state.transcript.messages,
-          streamingId: null,
-        },
-      };
-    } else if (action?.type === "session.created" && action.target) {
-      state = { ...state, target: { ...state.target, ...action.target } };
-    } else if (action?.type === "tree") {
-      state = { ...state, tree: action.tree ?? null };
+    const previous = state;
+    state = reduceSession(state, action, deps.target);
+    // A frame only advances the sequence; nothing on screen depends on it.
+    if (action?.type === "frame") return state;
+    if (previous.queue !== state.queue) {
+      renderQueuedMessages(deps.queuedMessages, state.queue, { onCancel: deps.cancelQueueItem });
     }
     paintSessionChrome(state);
     for (const fn of subscribers) fn(state, action);
     return state;
+  }
+
+  function isWorking() {
+    return state.status.running;
   }
 
   function targetOf() {
@@ -367,9 +348,9 @@ export function createSessionRuntime(deps) {
       );
     }
     deps.target = nextTarget;
-    deps.store = deps.createSessionStore(deps.target);
+    if (sessionChanged) document.dispatchEvent(new CustomEvent("spopi-session-opened"));
+    dispatch({ type: "reset" });
     deps.snapshotInFlight = false;
-    renderQueuedMessages(deps.queuedMessages, deps.store.queue, { onCancel: deps.cancelQueueItem });
     deps.todoMirrorPanel.clear();
     deps.extensionWidgets.clear();
     deps.customUiPanel.close({ notifyExtension: false });
@@ -405,7 +386,6 @@ export function createSessionRuntime(deps) {
     deps.syncSessionInfo();
     deps.headerStatusBar?.reset?.();
     deps.hydrateHeaderSessionStats();
-    deps.setSessionCost(0);
     const restoredProfile = await deps.sessionUiState.loadProfile();
     if (restoredProfile) {
       deps.updateComposerModel({ provider: restoredProfile.provider, id: restoredProfile.modelId });
@@ -467,10 +447,12 @@ export function createSessionRuntime(deps) {
   async function start() {
     try {
       const initialLoadStartedAt = performance.now();
-      console.info("[SESSION-LOAD] initial load started", { sessionId: deps.route.sessionId });
+      console.info("[spopi] session load: initial load started", {
+        sessionId: deps.route.sessionId,
+      });
       const bootstrapStartedAt = performance.now();
       const bootstrappedTarget = await loadBootstrapTarget(deps.route, { replaceMissing: true });
-      console.info("[SESSION-LOAD] initial bootstrap completed", {
+      console.info("[spopi] session load: initial bootstrap completed", {
         sessionId: bootstrappedTarget.sessionId,
         elapsedMs: Math.round(performance.now() - bootstrapStartedAt),
       });
@@ -489,7 +471,7 @@ export function createSessionRuntime(deps) {
       }
       const hostReadyStartedAt = performance.now();
       await deps.adapter.ready();
-      console.info("[SESSION-LOAD] initial Host connection ready", {
+      console.info("[spopi] session load: initial Host connection ready", {
         elapsedMs: Math.round(performance.now() - hostReadyStartedAt),
         totalElapsedMs: Math.round(performance.now() - initialLoadStartedAt),
       });
@@ -498,7 +480,7 @@ export function createSessionRuntime(deps) {
           .readSessionMessages(deps.target.workspaceId, deps.target.sessionId)
           .catch(
             /** @param {unknown} error */ (error) => {
-              console.warn("[SESSION-LOAD] initial disk history failed", error);
+              console.warn("[spopi] session load: initial disk history failed", error);
               return null;
             },
           );
@@ -507,7 +489,7 @@ export function createSessionRuntime(deps) {
           diskMessages.length > 0
             ? { sessionId: deps.target.sessionId, messages: diskMessages }
             : null;
-        console.info("[SESSION-LOAD] initial disk fallback updated", {
+        console.info("[spopi] session load: initial disk fallback updated", {
           sessionId: deps.target.sessionId,
           messageCount: diskMessages.length,
           roles: summarizeMessageRoles(/** @type {Array<{ role?: string }>} */ (diskMessages)),
@@ -520,7 +502,7 @@ export function createSessionRuntime(deps) {
             ),
           );
           deps.convNav.rebuild();
-          console.info("[SESSION-LOAD] initial disk history rendered", {
+          console.info("[spopi] session load: initial disk history rendered", {
             sessionId: deps.target.sessionId,
             messageCount: diskMessages.length,
             elapsedMs: Math.round(performance.now() - renderStartedAt),
@@ -531,14 +513,15 @@ export function createSessionRuntime(deps) {
         }
       } else {
         deps.diskHistoryFallback = null;
-        console.info("[SESSION-LOAD] initial disk fallback skipped for temporary session", {
+        console.info("[spopi] session load: initial disk fallback skipped for temporary session", {
           sessionId: deps.target.sessionId,
         });
       }
-      deps.input.focus();
+      // On a phone, focus opens the keyboard over the conversation the page just loaded.
+      if (document.body.dataset.layout !== "phone") deps.input.focus();
       const snapshotStartedAt = performance.now();
       await hydrateSnapshotOnce();
-      console.info("[SESSION-LOAD] initial Pi snapshot hydrated", {
+      console.info("[spopi] session load: initial Pi snapshot hydrated", {
         sessionId: deps.target.sessionId,
         elapsedMs: Math.round(performance.now() - snapshotStartedAt),
         totalElapsedMs: Math.round(performance.now() - initialLoadStartedAt),
@@ -561,18 +544,6 @@ export function createSessionRuntime(deps) {
               console.warn("[spopi] Failed to load project header info:", error);
             },
           ),
-        Promise.resolve(
-          deps.mountHeaderOpenApp({
-            data: deps.data,
-            control: deps.control,
-            workspaceId: deps.target.workspaceId,
-            onError: deps.showError,
-          }),
-        ).catch(
-          /** @param {unknown} error */ (error) => {
-            console.warn("[spopi] Failed to set up app launcher:", error);
-          },
-        ),
         deps.loadAvailableModels().catch(
           /** @param {unknown} error */ (error) => {
             console.warn("[spopi] Failed to load available models:", error);
@@ -684,6 +655,7 @@ export function createSessionRuntime(deps) {
 
   return {
     getState,
+    isWorking,
     subscribe,
     dispatch,
     commands,

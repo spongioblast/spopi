@@ -78,6 +78,7 @@ export function mountResizablePanel(
   handle.setAttribute("aria-orientation", "vertical");
   const applyHandleTitle = () => {
     handle.setAttribute("title", t("shell.panel.resizeTitle"));
+    handle.setAttribute("aria-label", t("shell.panel.resizeTitle"));
   };
   applyHandleTitle();
   const unsubscribeLocaleChange = onLocaleChange(applyHandleTitle);

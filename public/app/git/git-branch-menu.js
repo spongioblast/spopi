@@ -1,9 +1,13 @@
 // ABOUTME: Opens the branch menu and checks that a new name is safe.
 // ABOUTME: Creating or switching a branch goes through the git service.
-// ABOUTME: Branch context menu: list locals, checkout, and create via prompt.
+// ABOUTME: Branch context menu: list locals, checkout, create via prompt, and the project's remotes.
 
 import { t } from "../i18n/i18n.js";
 import { showContextMenu } from "../ui/context-menu.js";
+import { promptDialog } from "../ui/dialog.js";
+import { loadRemotes } from "./git-remote-dialog.js";
+
+/** @typedef {import("./git-remote-dialog.js").GitRemote} GitRemote */
 
 /** @param {unknown} name @returns {boolean} */
 export function isSafeBranchName(name) {
@@ -25,10 +29,11 @@ export function isSafeBranchName(name) {
  *   event?: { preventDefault?: () => void, clientX?: number, clientY?: number },
  *   client?: unknown,
  *   onError?: (error: unknown) => void,
+ *   onEditRemote?: (remote: GitRemote | null) => void,
  * }} [options]
  * @returns {Promise<void>}
  */
-export async function openGitBranchMenu({ event, client, onError } = {}) {
+export async function openGitBranchMenu({ event, client, onError, onEditRemote } = {}) {
   if (!client || typeof client !== "object") {
     onError?.("branches");
     return;
@@ -41,11 +46,14 @@ export async function openGitBranchMenu({ event, client, onError } = {}) {
    *   ) => Promise<unknown>,
    *   checkout: (name: string, options?: { create?: boolean }) => unknown,
    * }} */ (client);
-  const frame = await gitClient.sendAndAwait?.({ type: "branches" }, (message) => {
-    if (!message || typeof message !== "object") return false;
-    const type = /** @type {{ type?: unknown }} */ (message).type;
-    return type === "git_branches" || type === "git_command_failed";
-  });
+  const [frame, remotes] = await Promise.all([
+    gitClient.sendAndAwait?.({ type: "branches" }, (message) => {
+      if (!message || typeof message !== "object") return false;
+      const type = /** @type {{ type?: unknown }} */ (message).type;
+      return type === "git_branches" || type === "git_command_failed";
+    }),
+    onEditRemote ? loadRemotes(gitClient) : Promise.resolve(null),
+  ]);
   if (!frame || typeof frame !== "object") {
     onError?.("branches");
     return;
@@ -71,16 +79,30 @@ export async function openGitBranchMenu({ event, client, onError } = {}) {
   items.push({ separator: true });
   items.push({
     label: t("git.createBranch"),
-    action: () => {
-      const name = window.prompt(t("git.branchPrompt"), "");
-      const trimmed = String(name || "").trim();
-      if (!trimmed) return;
-      if (!isSafeBranchName(trimmed)) {
+    action: async () => {
+      const name = await promptDialog({
+        title: t("git.createBranch"),
+        label: t("git.branchPrompt"),
+      });
+      if (!name) return;
+      if (!isSafeBranchName(name)) {
         onError?.(t("git.branchPrompt"));
         return;
       }
-      gitClient.checkout(trimmed, { create: true });
+      gitClient.checkout(name, { create: true });
     },
   });
+  if (onEditRemote && remotes) {
+    items.push({ separator: true });
+    for (const remote of remotes) {
+      items.push({
+        label: t("git.remoteMenuItem", { name: remote.name }),
+        action: () => onEditRemote(remote),
+      });
+    }
+    if (remotes.length === 0) {
+      items.push({ label: t("git.addRemote"), action: () => onEditRemote(null) });
+    }
+  }
   showContextMenu({ event, items });
 }

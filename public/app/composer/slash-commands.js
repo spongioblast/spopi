@@ -28,6 +28,7 @@ const HIDDEN_NATIVE_COMMANDS = new Set(["spopi-config", "spopi-custom-ui", "llam
  * @property {SlashCommandSourceInfo} [sourceInfo]
  * @property {string} [capabilityState]
  * @property {boolean} [streamingCompatible]
+ * @property {boolean} [passArgsToPi]
  */
 
 /**
@@ -136,6 +137,9 @@ export function resolveComposerInput(input, catalog, options = {}) {
       };
     }
     if (command.type === "builtin") {
+      if (command.passArgsToPi && args.trim()) {
+        return runtimeIntent("prompt", message, options.images);
+      }
       return { kind: "builtin", action: command.action, arguments: args };
     }
     const runtimeMessage =

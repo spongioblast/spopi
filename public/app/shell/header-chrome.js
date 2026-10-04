@@ -1,8 +1,8 @@
-// ABOUTME: Paints the header metrics and hides toggles that do not apply.
-// ABOUTME: The numbers come from the session status.
-// ABOUTME: Slim the SPOPI header under .spopi-shell and add dock/chat/TUI controls.
+// ABOUTME: Slims the session header: hides toggles the shell replaces, adds dock, chat, and TUI controls.
+// ABOUTME: Also paints the header metrics pill from the session status.
 
 import { createIcon } from "../ui/icons.js";
+import { formatChord } from "../ui/keybindings.js";
 
 const HIDDEN_HEADER_IDS = [
   "file-sidebar-toggle",
@@ -55,6 +55,7 @@ export function paintHeaderMetrics(status = {}) {
 
 /**
  * @param {object} [options]
+ * @param {HTMLElement | null} [options.header] The header's right-hand toolbar.
  * @param {(key: string, fallback?: string) => string} [options.t]
  * @param {(force?: boolean) => void} [options.onToggleDock]
  * @param {() => void} [options.onToggleChat]
@@ -63,15 +64,15 @@ export function paintHeaderMetrics(status = {}) {
  * @returns {{ terminal: Element } | null}
  */
 export function mountHeaderChrome({
+  header,
   t = (key) => key,
   onToggleDock,
   onToggleChat,
   onOpenTerminal,
   onOpenCockpit,
 } = {}) {
-  const header = document.querySelector(".header-right") || document.querySelector(".header");
   if (!header) return null;
-  hideHeaderToggles(document);
+  hideHeaderToggles(header);
 
   ensureButton(header, "header-metrics", "pill", t("header.metrics") || "Live metrics", () => {
     if (onOpenCockpit) onOpenCockpit();
@@ -81,8 +82,8 @@ export function mountHeaderChrome({
   const terminal = ensureIcon(
     header,
     "open-in-terminal-btn",
-    "terminal",
-    t("header.openInPiTui") || "Open this session in the Pi TUI (pi -r)",
+    "pi",
+    t("header.openPi") || "Open Pi in the terminal",
   );
   terminal.addEventListener("click", () => onOpenTerminal?.());
 
@@ -90,13 +91,13 @@ export function mountHeaderChrome({
     header,
     "toggle-dock",
     "dock",
-    t("header.toggleDock") || "Toggle dock (Ctrl+J)",
+    `${t("header.toggleDock") || "Toggle dock"} (${formatChord("Mod+J")})`,
   ).addEventListener("click", () => onToggleDock?.());
   ensureIcon(
     header,
     "toggle-chat",
     "chat",
-    t("header.toggleChat") || "Toggle chat (Ctrl+Shift+L)",
+    `${t("header.toggleChat") || "Toggle chat"} (${formatChord("Mod+Shift+L")})`,
   ).addEventListener("click", () => onToggleChat?.());
   return { terminal };
 }

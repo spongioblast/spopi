@@ -6,7 +6,7 @@ import { randomId } from "../utils/random-id.js";
 /**
  * @typedef {import("./general-settings.js").GeneralSettingsDeps} GeneralSettingsDeps
  * @typedef {import("./general-settings.js").ConfigGatewayLike} ConfigGatewayLike
- * @typedef {import("./general-settings.js").SettingToggleConfig} SettingToggleConfig
+ * @typedef {import("./general-toggles.js").SettingToggleConfig} SettingToggleConfig
  */
 
 /**

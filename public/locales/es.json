@@ -41,9 +41,6 @@
   "nav": {
     "chat": "Chat",
     "toggleSidebar": "Alternar barra lateral",
-    "openWorkspace": "Abrir proyecto",
-    "openWorkspaceInApp": "Abrir proyecto en la app",
-    "chooseApp": "Elegir app para abrir el proyecto",
     "sessions": "Sesiones",
     "files": "Archivos",
     "review": "Revisión",
@@ -51,9 +48,6 @@
     "search": "Buscar",
     "extensions": "Paquetes",
     "themeNamed": "Tema: {name}",
-    "openWorkspaceInNamedApp": "Abrir {path} en {app}",
-    "openWorkspaceInAppAria": "Abrir proyecto en {app}",
-    "openInApp": "Abrir en {app}",
     "resourceManagement": "Gestión de recursos",
     "catalog": {
       "extensions": "Extensiones"
@@ -83,13 +77,13 @@
     "unstage": "Quitar de preparación",
     "discard": "Descartar cambios",
     "aiCommitMessage": "Generar mensaje de commit con IA",
-    "push": "Push",
+    "push": "Enviar",
     "pushing": "Enviando...",
     "pushFailed": "El push ha fallado.",
     "pushDetachedHead": "No se puede hacer push desde un HEAD desacoplado. Cambia primero a una rama.",
     "pushNoRemote": "Este repositorio no tiene ningún remoto configurado.",
     "pushBusy": "Ya hay otra operación de Git en curso en este proyecto. Inténtalo de nuevo en un momento.",
-    "commit": "Commit",
+    "commit": "Confirmar",
     "stats": "+{additions} −{deletions} · Preparado {staged} · Cambios {changes} · Sin seguimiento {untracked}",
     "summary": "{branch} · {upstream} · ↑{ahead} ↓{behind}",
     "noUpstream": "No hay upstream configurado",
@@ -103,6 +97,21 @@
     "aiFailed": "La generación del mensaje de commit con IA falló. Todavía puedes escribir un mensaje manualmente.",
     "commitInProgress": "Commit en progreso...",
     "outcomeUnknown": "No se pudo determinar el resultado del commit. Verifica el estado del repositorio antes de reintentar.",
+    "identityCommittingAs": "Confirmando como",
+    "identityChange": "Cambiar",
+    "identityKeep": "Conservar",
+    "identityTitle": "Quién confirma",
+    "identityIntro": "Git registra este nombre y correo en cada commit. Están en la configuración de Git, no en SPOPI.",
+    "identityName": "Nombre",
+    "identityEmail": "Correo",
+    "identityNamePlaceholder": "Tu nombre",
+    "identityEmailPlaceholder": "tu@example.com",
+    "identityScopeGlobal": "Todos los repositorios de este equipo",
+    "identityScopeRepository": "Solo este repositorio",
+    "identityThisRepository": "este repositorio",
+    "identityRequired": "El nombre y el correo son obligatorios.",
+    "identityInvalidEmail": "El correo necesita una @ y no puede tener espacios.",
+    "identityMissing": "Git necesita un nombre y un correo antes de confirmar.",
     "diffOriginal": "Original",
     "diffModified": "Modificado",
     "diffEmpty": "No hay cambios para mostrar",
@@ -130,8 +139,8 @@
     "justNow": "Justo ahora",
     "missing": "No se encontró Git. Instala Git for Windows.",
     "publish": "publicar",
-    "fetch": "Fetch",
-    "pull": "Pull",
+    "fetch": "Traer",
+    "pull": "Traer cambios",
     "amend": "Enmendar el último commit",
     "amendDisabled": "No se puede enmendar un commit que ya se ha publicado",
     "deleteUntracked": "Eliminar",
@@ -142,18 +151,39 @@
     "createBranch": "Crear rama…",
     "checkout": "Cambiar de rama",
     "branchPrompt": "Nombre de la nueva rama",
-    "behindAhead": "↓{behind} / ↑{ahead}"
+    "behindAhead": "↓{behind} / ↑{ahead}",
+    "publishTitle": "Subir esta rama y seguirla en el remoto",
+    "addRemote": "Añadir remoto…",
+    "addRemoteTitle": "Conectar este repositorio a un remoto, como un repositorio vacío de GitHub",
+    "pullNoUpstream": "Esta rama aún no tiene upstream. Publícala primero.",
+    "remoteTitleAdd": "Añadir remoto",
+    "remoteTitleEdit": "Remoto {name}",
+    "remoteMenuItem": "Remoto {name}…",
+    "remoteHint": "Crea un repositorio vacío en GitHub u otro servidor Git y pega su URL. Git inicia sesión con su propio gestor de credenciales o con tu clave SSH.",
+    "remoteName": "Nombre",
+    "remoteUrl": "URL",
+    "remoteUrlPlaceholder": "https://github.com/tu/repo.git",
+    "remotePublishNow": "Subir esta rama ahora",
+    "remoteAddAction": "Añadir",
+    "remoteSave": "Guardar",
+    "remoteRemove": "Quitar remoto",
+    "remoteRemoveConfirm": "¿Quitar el remoto {name} de este repositorio? No se borra nada en el servidor.",
+    "remoteInvalidName": "El nombre puede usar letras, dígitos, '.', '_' y '-'.",
+    "remoteInvalidUrl": "Usa una URL https:// o ssh://, o usuario@host:ruta.",
+    "remoteFailed": "No se pudo cambiar el remoto."
   },
   "usage": {
     "sessionCostTitle": "Costo de sesión",
     "contextTitle": "Uso del contexto",
     "costSub": "{amount} (suscripción)",
     "inputSummary": "↓ {in}",
-    "outputSummary": "↑ {out}"
+    "outputSummary": "↑ {out}",
+    "contextOfWindow": "Contexto: {used} / {window} tokens",
+    "contextUsed": "Contexto: {used} tokens"
   },
   "sessionInfo": {
     "title": "Información de la sesión",
-    "heading": "Información de la sesión",
+    "heading": "Info de sesión",
     "file": "Archivo",
     "id": "ID",
     "inMemory": "En memoria (aún no guardada)",
@@ -197,6 +227,7 @@
     "provider": "Proveedor",
     "delete": "Eliminar",
     "edit": "Editar",
+    "moreActions": "Más acciones",
     "unsaved": "Cambios sin guardar",
     "saveProvider": "Guardar proveedor",
     "rename": "Renombrar",
@@ -255,7 +286,6 @@
     "setup": {
       "button": "Configurar modelo",
       "buttonFor": "Configurar {model}",
-      "short": "Configurar",
       "hint": "Envía unas pocas peticiones mínimas a este modelo para comprobar razonamiento, esfuerzo de razonamiento, imágenes, el presupuesto de vLLM y el contexto.",
       "running": "Configurando {model}…",
       "done": "{model} comprobado. Revisa los campos y pulsa Guardar modelo.",
@@ -308,7 +338,9 @@
         "placeholder": "No hace falta: este servidor funciona sin clave",
         "none": "Sin clave"
       }
-    }
+    },
+    "countOne": "1 modelo",
+    "countOther": "{count} modelos"
   },
   "input": {
     "attachImage": "Adjuntar imagen",
@@ -327,7 +359,7 @@
   "messages": {
     "attachedImage": "Imagen adjunta",
     "copyMessage": "Copiar mensaje",
-    "thinking": "thinking",
+    "thinking": "pensando",
     "copy": "Copiar",
     "copied": "¡Copiado!",
     "expand": "Expandir",
@@ -350,7 +382,9 @@
     "streaming": "ejecutando",
     "complete": "completo",
     "error": "error",
-    "pending": "pendiente"
+    "pending": "pendiente",
+    "imageResult": "Imagen de la herramienta",
+    "nestedMore": "Hay más llamadas que no se registraron"
   },
   "files": {
     "loading": "Cargando…",
@@ -360,6 +394,7 @@
     "refreshDirectory": "Actualizar directorio",
     "refreshDirectoryAria": "Actualizar la lista del directorio actual",
     "showHiddenFiles": "Mostrar archivos ocultos",
+    "hideHiddenFiles": "Ocultar los archivos ocultos",
     "showHiddenFilesAria": "Mostrar u ocultar archivos punto y directorios ignorados",
     "openInFileManager": "Abrir en el explorador de archivos",
     "close": "Cerrar explorador de archivos",
@@ -404,7 +439,9 @@
         "remoteImageHidden": "Imagen remota oculta"
       },
       "conflictMessage": "{name} fue modificado en disco. ¿Recargar o sobreescribir la versión del disco?",
-      "htmlLive": "Vista previa HTML en vivo"
+      "htmlLive": "Vista previa HTML en vivo",
+      "unchangedOne": "… {count} línea sin cambios …",
+      "unchangedOther": "… {count} líneas sin cambios …"
     },
     "unsaved": {
       "title": "Cambios sin guardar",
@@ -445,10 +482,10 @@
     "save": "Guardar"
   },
   "header": {
-    "extensionUpdatesAvailable": "Actualizaciones de extensiones disponibles",
-    "openInPiTui": "Abrir esta sesión en la TUI de Pi (pi -r)",
-    "toggleDock": "Alternar muelle (Ctrl+J)",
-    "toggleChat": "Alternar chat (Ctrl+Shift+L)",
+    "extensionUpdatesAvailable": "Hay actualizaciones de paquetes",
+    "openPi": "Abrir Pi en la terminal",
+    "toggleDock": "Alternar muelle",
+    "toggleChat": "Alternar chat",
     "metrics": "Métricas en vivo"
   },
   "extensions": {
@@ -460,7 +497,7 @@
     "searchPackages": "Buscar paquetes...",
     "all": "Todos",
     "themes": "Temas",
-    "prompts": "Prompts",
+    "prompts": "Indicaciones",
     "installedOnly": "Solo instalados",
     "mostDownloads": "Más descargados",
     "nameAZ": "Nombre (A–Z)",
@@ -498,8 +535,8 @@
       "extensionsOther": "{count} extensiones",
       "skillsOne": "{count} skill",
       "skillsOther": "{count} skills",
-      "promptsOne": "{count} prompt",
-      "promptsOther": "{count} prompts",
+      "promptsOne": "{count} indicación",
+      "promptsOther": "{count} indicaciones",
       "themesOne": "{count} tema",
       "themesOther": "{count} temas"
     },
@@ -587,6 +624,7 @@
     "statusFailed": "Error al iniciar",
     "retry": "Reintentar",
     "sendToChat": "Enviar al chat",
+    "piTabFailed": "No se pudo abrir Pi en la terminal.",
     "ariaResizer": "Redimensionador del panel de terminal",
     "enlarge": "Ampliar panel",
     "newTabMenu": "Nueva terminal con otro shell",
@@ -596,7 +634,7 @@
     "profileDefault": "Predeterminado",
     "profileGitBash": "Git Bash",
     "profilePowerShell": "PowerShell",
-    "profileCommandPrompt": "CMD"
+    "profileCommandPrompt": "Símbolo del sistema"
   },
   "sidebar": {
     "loadingSessions": "Cargando sesiones...",
@@ -646,6 +684,7 @@
     "closeProject": "Cerrar proyecto",
     "closeWorking": "Una respuesta sigue en curso. ¿Cerrar el proyecto de todos modos?",
     "renameProject": "Renombrar…",
+    "newWorktree": "Nuevo worktree…",
     "renameOutside": "¿Renombrar esta carpeta a {to}? Se mueve desde {from}.",
     "renameWorking": "Una respuesta sigue en curso. ¿Renombrar de todos modos?",
     "keepChats": "Guardar los chats en la carpeta del proyecto",
@@ -662,7 +701,9 @@
     "archivedCount": "Archivados ({count})",
     "deleteArchivedHere": "Eliminar los chats archivados de este proyecto",
     "pinned": "FIJADO",
-    "newChat": "Nueva sesión en {path}"
+    "newChat": "Nueva sesión en {path}",
+    "statusStreaming": "Transmitiendo",
+    "statusUnread": "No leído"
   },
   "updater": {
     "update": "Actualizar",
@@ -732,7 +773,6 @@
         "label": "npm (Node.js)",
         "help": "Pi instala paquetes con npm. Sin él, los paquetes recomendados y Surf no se pueden instalar.",
         "install": "Instalar Node.js",
-        "commands": "Instala Node.js con tu gestor de paquetes y pulsa Probar todo:",
         "download": "Descargar en nodejs.org"
       },
       "browser": {
@@ -746,7 +786,8 @@
           "found": "Usando {path}",
           "download": "Descargar navegador",
           "downloadHelp": "Una descarga única de Chrome for Testing, unos 206 MB.",
-          "linuxDeps": "Si aún no arranca, instala las bibliotecas que necesita:"
+          "linuxDeps": "Si aún no arranca, instala las bibliotecas que necesita:",
+          "noSandbox": "Se ejecuta con --no-sandbox: este sistema solo deja usar el sandbox de Chrome a un Chrome instalado con el gestor de paquetes."
         },
         "both": "Con ambos activos, Pi usa agent-browser para páginas locales y Surf para la web.",
         "surf": {
@@ -772,8 +813,16 @@
     },
     "customizations": {
       "title": "Personalizaciones",
-      "safe": "Modo seguro (solo la interfaz incluida)",
-      "overrides": "Sustituciones",
+      "overrides": "Sustituciones de la interfaz de SPOPI",
+      "intro": "Archivos que Pi cambió o añadió en la propia interfaz de SPOPI cuando le pediste cambiar su aspecto o su disposición. Se conservan al actualizar. Tus proyectos, los ajustes de Pi y los paquetes de Pi no aparecen aquí.",
+      "folder": "Guardado en",
+      "overridesEmpty": "Pi todavía no ha cambiado la interfaz de SPOPI. Pídelo en el chat, por ejemplo «haz la barra lateral más estrecha».",
+      "statusAdded": "Archivo nuevo, no forma parte de la interfaz incluida",
+      "statusOk": "Copia cambiada de un archivo incluido",
+      "statusStale": "Desactivado: esta actualización cambió el archivo incluido. Pide a Pi que lo fusione o reviértelo.",
+      "safeTitle": "Modo seguro",
+      "safe": "Usar solo la interfaz incluida",
+      "safeHelp": "Desactiva todas las sustituciones de arriba sin borrarlas. Úsalo si un cambio rompió la ventana.",
       "revert": "Revertir",
       "threeWay": "Ver las tres versiones",
       "unknown": "Claves de idioma desconocidas",
@@ -783,26 +832,51 @@
       "safeBanner": "El modo seguro está activo. SPOPI sirve la interfaz incluida.",
       "reload": "Recargar",
       "close": "Cerrar",
-      "overridesEmpty": "No hay archivos de interfaz cambiados. Pi escribe los cambios en %APPDATA%\\spopi\\ui.",
       "autoSafe": "Se activó automáticamente después de que la interfaz no cargara dos veces."
     },
     "phone": {
       "title": "Acceso del teléfono",
       "enable": "Permitir que un teléfono se conecte",
       "pair": "Emparejar",
-      "accept": "Aceptar para teléfonos",
       "devices": "Dispositivos",
       "revoke": "Revocar",
       "tier": "Nivel",
       "port": "Puerto",
-      "allow": "Lista permitida",
-      "waiting": "La interfaz cambió en el escritorio y espera aprobación",
       "interface": "Interfaz",
       "allowSources": "Orígenes permitidos",
-      "allowHelp": "Un CIDR o dirección por elemento, separados por comas o espacios.",
+      "allowHelp": "Direcciones IPv4 o rangos como 192.168.1.0/24, separados por comas o espacios. Sigue a la interfaz hasta que escribas los tuyos.",
+      "allowInvalid": "«{entry}» no es una dirección ni un rango IPv4, por ejemplo 192.168.1.0/24.",
+      "allowEmpty": "Añade al menos una dirección o un rango. Con la lista vacía ningún teléfono puede conectarse.",
+      "listenFailed": "El acceso desde el teléfono no pudo iniciarse en {address}: {error}",
       "noInterfaces": "No se encontró ninguna interfaz de red. El emparejamiento queda en este equipo.",
-      "changesSummary": "{count} archivos de la interfaz cambiaron desde la última aceptación",
-      "changesList": "Mostrar archivos"
+      "kind": {
+        "main": "red principal",
+        "lan": "red",
+        "tailscale": "Tailscale",
+        "vpn": "VPN",
+        "virtual": "virtual, un teléfono no la alcanza",
+        "loopback": "solo este equipo"
+      },
+      "firewall": "Firewall de Windows",
+      "firewallAllow": "Permitir en el firewall",
+      "firewallUpdate": "Actualizar la regla del firewall",
+      "firewallOk": "El firewall deja entrar a los teléfonos por el puerto {port}.",
+      "firewallOtherPort": "La regla del firewall es para el puerto {ports}, no {port}.",
+      "firewallOtherSources": "La regla del firewall deja entrar a {remote}, no a los orígenes permitidos. Los teléfonos fuera de ella quedan bloqueados.",
+      "firewallNone": "SPOPI aún no tiene regla en el firewall. Windows puede bloquear el teléfono, sobre todo en una red marcada como pública.",
+      "firewallBlocked": "Una regla del firewall bloquea SPOPI. Permitir la quita.",
+      "firewallHelp": "La regla permite TCP en este puerto solo desde los orígenes permitidos. Windows pide permisos de administrador.",
+      "firewallWaiting": "Confirma el aviso de Windows…",
+      "firewallCancelled": "Windows no permitió el cambio.",
+      "firewallFailed": "No se escribió la regla del firewall: {error}",
+      "connection": "Conexión",
+      "pairTitle": "Emparejar un teléfono",
+      "pairHelp": "Cada clic crea un código nuevo que empareja un teléfono. Escanéalo con la cámara del teléfono y luego aprueba el teléfono aquí.",
+      "pairValid": "Válido durante {minutes} minutos y para un teléfono. Empareja de nuevo para obtener otro código.",
+      "pairExpired": "El código ha caducado. Haz clic en Emparejar para obtener uno nuevo.",
+      "pairNeedsOn": "Activa primero el acceso desde el teléfono.",
+      "desktopOnly": "El acceso desde el teléfono, el emparejamiento y los dispositivos se gestionan en el escritorio.",
+      "devicesEmpty": "Todavía no hay ningún teléfono emparejado."
     },
     "appearance": "Apariencia",
     "packages": {
@@ -812,7 +886,7 @@
       "title": "Recursos",
       "extension": "Extensiones",
       "skill": "Skills",
-      "prompt": "Prompts",
+      "prompt": "Indicaciones",
       "theme": "Temas",
       "global": "Global",
       "project": "Proyecto",
@@ -848,7 +922,10 @@
         "gondolin": "Gondolin: Pi permanece en el host y las herramientas se ejecutan en una micro-VM local.",
         "mount": "Monta solo la carpeta de trabajo. No montes ~/.pi/agent.",
         "docs": "Documentación de contenedores de Pi"
-      }
+      },
+      "stale": "Receta desactualizada",
+      "staleDescription": "El archivo de permisos lo escribió un SPOPI anterior o se editó a mano. Actualizar lo reescribe para el modo actual.",
+      "repair": "Actualizar"
     },
     "updates": "Actualizaciones",
     "autoCompaction": "Compactación automática",
@@ -871,6 +948,12 @@
       "placeholder": "SPOPI en tu carpeta personal",
       "choose": "Elegir…",
       "notAbsolute": "Usa una ruta completa, como D:\\Chats o /home/tu/chats."
+    },
+    "gitIdentity": {
+      "title": "Nombre y correo de Git",
+      "description": "Git los registra en cada commit. Están en la configuración de Git, no en SPOPI.",
+      "save": "Guardar",
+      "saved": "Guardado"
     },
     "taskCompleteTitle": "Tarea completada",
     "taskCompleteMessage": "Tu tarea ha finalizado.",
@@ -917,6 +1000,90 @@
       "helpPost": "(chmod 600). Los lanzamientos desde GUI también importan variables de proveedor de tu shell de inicio de sesión.",
       "helpPostWindows": "Los lanzamientos desde la interfaz también importan variables de proveedor del entorno."
     },
+    "mcp": {
+      "title": "MCP",
+      "pageTitle": "Servidores MCP",
+      "help": "Pi se conecta a estos servidores y da sus herramientas al modelo. SPOPI ejecuta los comandos pi mcp de Pi; nada aquí habla con un servidor directamente.",
+      "add": "Añadir servidor",
+      "refresh": "Actualizar",
+      "manage": "Gestionar en Pi",
+      "loading": "Comprobando servidores… Pi arranca cada servidor para probarlo.",
+      "checking": "Última comprobación {time}",
+      "retry": "Reintentar",
+      "emptyHint": "También puedes pedirle a Pi en el chat que añada un servidor.",
+      "exampleCommand": "pi mcp add filesystem -- npx -y @modelcontextprotocol/server-filesystem .",
+      "exampleUrl": "https://mcp.sentry.dev/mcp (sign in after adding)",
+      "global": "Todos los proyectos",
+      "project": "Este proyecto",
+      "packages": "De paquetes",
+      "packageNote": "Lo registra una extensión; cámbialo en ese paquete.",
+      "tools": "{count} herramientas",
+      "resources": "{count} recursos",
+      "templates": "{count} plantillas de recursos",
+      "state": {
+        "connected": "conectado",
+        "needsAuth": "necesita iniciar sesión",
+        "failed": "falló",
+        "disabled": "desactivado",
+        "disconnected": "desconectado"
+      },
+      "signIn": "Iniciar sesión",
+      "signOut": "Cerrar sesión",
+      "reconnect": "Reconectar en esta sesión",
+      "remove": "Quitar",
+      "removeConfirm": "¿Quitar {name}? Pi borra la entrada y conserva el inicio de sesión guardado.",
+      "details": "Detalles",
+      "override": "Cambiado para este proyecto en {path}",
+      "trustNote": "El .pi/mcp.json de este proyecto se usa en tus sesiones de SPOPI, pero la comprobación de Pi lo omite hasta que el proyecto sea de confianza en Pi.",
+      "trustDenied": "Le dijiste a Pi que no confiara en este proyecto.",
+      "trustButton": "Confiar en este proyecto en Pi",
+      "permissionsLink": "Modo de permisos",
+      "more": "Más acciones",
+      "open": "Abrir",
+      "copy": "Copiar",
+      "desktopOnly": "Disponible en el escritorio.",
+      "manageToast": "El gestor MCP de Pi está abierto en la terminal. Sal de Pi al terminar (Ctrl+C dos veces); la pestaña se cierra y SPOPI recoge los cambios.",
+      "manageFailed": "La terminal no arrancó. Abre la terminal del panel inferior e inténtalo de nuevo.",
+      "replace": "Reemplazar",
+      "replaceConfirm": "Pi reemplaza toda la entrada de {name}.",
+      "clash": "Pi trata esto como el mismo servidor que {name}.",
+      "secretWarning": "Esto parece un secreto. Usa ${NAME} para leerlo del entorno.",
+      "scopeGlobal": "Todos los proyectos",
+      "scopeProject": "Este proyecto",
+      "kindCommand": "Comando",
+      "kindUrl": "URL",
+      "name": "Nombre",
+      "type": "Tipo",
+      "scope": "Ámbito",
+      "command": "Comando",
+      "argument": "Argumento",
+      "addArgument": "Añadir argumento",
+      "addEnv": "Añadir variable",
+      "value": "Valor",
+      "cwd": "Carpeta de trabajo",
+      "envHint": "Usa ${NAME} para leer un valor del entorno en lugar de pegar un secreto.",
+      "url": "URL",
+      "signInMode": "Inicio de sesión",
+      "authNone": "Ninguno",
+      "authOauth": "OAuth (iniciar sesión después de añadir)",
+      "authBearer": "Token de una variable de entorno",
+      "authHeaders": "Cabeceras propias",
+      "bearerEnv": "Variable de entorno",
+      "addHeader": "Añadir cabecera",
+      "advancedOauth": "OAuth avanzado",
+      "clientId": "Id de cliente",
+      "clientSecret": "Secreto de cliente",
+      "callbackPort": "Puerto de retorno",
+      "clientName": "Nombre de cliente",
+      "exposure": "Exposición",
+      "exposureCodemode": "predeterminado; los scripts encuentran las herramientas",
+      "exposureDeferred": "se carga con la búsqueda de herramientas",
+      "exposureDirect": "siempre declarado al modelo; gasta contexto",
+      "exposureHidden": "registrado pero inalcanzable",
+      "description": "Descripción",
+      "descriptionHint": "Ayuda a Pi a encontrar el servidor correcto.",
+      "keepGlobal": "Deja en Todos los proyectos los servidores que guardan credenciales."
+    },
     "models": {
       "title": "Modelos",
       "helpPre": "Edita",
@@ -925,6 +1092,7 @@
       "helpPost2": "para el esquema completo. Los cambios se aplican inmediatamente — no se requiere reinicio.",
       "oauth": {
         "signInWithChatGPT": "Iniciar sesión con ChatGPT",
+        "chatgptHint": "Para usar ChatGPT con el proveedor OpenAI, ejecuta pi en la terminal, escribe /login y elige OpenAI.",
         "preparing": "Preparando el inicio de sesión con ChatGPT…",
         "completeInBrowser": "Completa la autorización en tu navegador para continuar.",
         "openBrowser": "Abrir navegador",
@@ -937,15 +1105,22 @@
         "expired": "Este código de dispositivo ha caducado. Empieza de nuevo.",
         "failed": "Error al iniciar sesión con ChatGPT.",
         "tlsUntrusted": "Falló la verificación del certificado TLS. Un proxy HTTPS local (Clash, Surge o VPN) probablemente está interceptando OpenAI. Confía en la CA de ese proxy o desactiva la inspección HTTPS para OpenAI y vuelve a intentarlo.",
-        "retry": "Reintentar"
-      }
+        "retry": "Reintentar",
+        "connectTitle": "Conectar {name}",
+        "subscriptionHint": "Este proveedor usa tu cuenta de suscripción.",
+        "terminalLoginNote": "Pi ejecuta este inicio de sesión. Inícialo desde una terminal con el comando de abajo y vuelve aquí para actualizar el estado del proveedor."
+      },
+      "addProvider": "Añadir proveedor",
+      "addProviderHint": "Conecta un proveedor para empezar a usar sus modelos.",
+      "searchProviders": "Buscar proveedores…",
+      "customAndSubscriptions": "Personalizados y suscripciones"
     },
     "customProvider": {
       "title": "Añadir proveedor personalizado",
       "subtitle": "Detecta un relay compatible con OpenAI o Anthropic, elige modelos y guarda.",
       "id": "ID del proveedor (opcional)",
       "idPlaceholder": "Se rellena desde el servidor tras Detectar",
-      "baseUrl": "Base URL",
+      "baseUrl": "URL base",
       "apiKey": "Clave API",
       "apiKeyPlaceholder": "Déjalo vacío para un servidor local",
       "protocol": "Protocolo",
@@ -1014,28 +1189,28 @@
       "saveFailed": "Error al guardar la configuración de habilidades."
     },
     "installSkills": {
-      "title": "Install skills",
-      "description": "Link skills from a local folder. No files are copied or changed.",
-      "chooseFolder": "Choose folder",
-      "scanning": "Scanning skills…",
-      "scanFailed": "Failed to scan the selected folder.",
+      "title": "Instalar skills",
+      "description": "Enlaza skills de una carpeta local. No se copian ni se cambian archivos.",
+      "chooseFolder": "Elegir carpeta",
+      "scanning": "Buscando skills…",
+      "scanFailed": "No se pudo leer la carpeta.",
       "global": "Global",
-      "project": "Current project",
-      "projectUntrusted": "This project is not trusted. Install to the current project is unavailable.",
-      "review": "Review installation",
-      "confirmation": "Install {count} selected skills to {scope}?",
-      "confirm": "Install selected skills",
-      "cancel": "Cancel",
-      "installing": "Installing…",
-      "installFailed": "Failed to install selected skills.",
-      "complete": "Installed {added} entries; {skipped} already configured.",
-      "restartRequired": "Saved. Start a new session or restart Pi for the change to take effect.",
+      "project": "Proyecto actual",
+      "projectUntrusted": "Este proyecto no es de confianza. No se puede instalar en el proyecto actual.",
+      "review": "Revisar instalación",
+      "confirmation": "¿Instalar {count} skills en {scope}?",
+      "confirm": "Instalar skills seleccionadas",
+      "cancel": "Cancelar",
+      "installing": "Instalando…",
+      "installFailed": "No se pudieron instalar las skills.",
+      "complete": "Se instalaron {added}; {skipped} ya estaban configuradas.",
+      "restartRequired": "Guardado. Abre una sesión nueva o reinicia Pi para aplicar el cambio.",
       "reloaded": "Añadido. Pi se recargó.",
       "noSkills": "No se encontraron skills en esta carpeta.",
       "skippedFiles": "Pi omitiría estos archivos:",
-      "confirmationHeading": "Confirm skill installation",
+      "confirmationHeading": "Confirmar instalación",
       "skill": "Skill",
-      "group": "Group"
+      "group": "Grupo"
     },
     "installedPackages": "Paquetes instalados",
     "installedHelp": "Gestiona los paquetes de extensión configurados para esta instalación: habilita, deshabilita, actualiza o elimina.",
@@ -1074,7 +1249,9 @@
       "webglDescription": "Renderiza la terminal en la GPU. Desactívalo si el texto se ve borroso.",
       "themeSystem": "Igual que SPOPI",
       "themeLight": "Claro",
-      "themeDark": "Oscuro"
+      "themeDark": "Oscuro",
+      "shellSection": "Shell",
+      "displaySection": "Visualización"
     },
     "fontLevel": {
       "small": "Pequeño",
@@ -1216,7 +1393,8 @@
     "pin": "Fijar",
     "drop": "Descartar",
     "dropConfirm": "¿Quitar esto del próximo prompt? No se puede deshacer.",
-    "compact": "Compactar"
+    "compact": "Compactar",
+    "unknown": "desconocido"
   },
   "sessionTree": {
     "title": "Árbol de sesión",
@@ -1324,6 +1502,8 @@
       "conflict": "cambió en disco"
     },
     "noHistory": "Instala pi-workspace-history para revisar los cambios de Pi por turno.",
+    "notRecorded": "pi-workspace-history no tiene registro de este proyecto, así que SPOPI no puede listar aquí los cambios de Pi.",
+    "openPackages": "Abrir Paquetes",
     "turnGone": "Los cambios de este turno ya no se guardan. pi-workspace-history solo conserva las sesiones más recientes de cada proyecto.",
     "noGit": "No es un repositorio git",
     "loadFailed": "No se pudieron cargar los cambios.",
@@ -1358,13 +1538,25 @@
       "deleted": "Archivo eliminado.",
       "binary": "Archivo binario. Ábrelo para verlo.",
       "outside": "Este archivo está fuera del proyecto. SPOPI no puede mostrarlo ni deshacerlo.",
+      "notRecorded": "pi-workspace-history no tiene registro de este proyecto, así que no hay diff. Abre el archivo para verlo.",
       "app": "Pi cambió la propia interfaz de SPOPI. Deshacer el último turno no la incluye; reviértela en Personalizaciones."
     },
     "comments": {
       "placeholder": "Comentario para Pi…",
-      "send": "Enviar al chat",
-      "queue": "Poner en cola",
-      "add": "Añadir al mensaje"
+      "addToReview": "Añadir a la revisión",
+      "sendNow": "Enviar ahora",
+      "cancel": "Cancelar",
+      "delete": "Eliminar"
+    },
+    "drafts": {
+      "count": {
+        "one": "{count} comentario",
+        "other": "{count} comentarios"
+      },
+      "send": "Enviar revisión",
+      "discard": "Descartar",
+      "discardConfirm": "¿Descartar estos comentarios?",
+      "sendFailed": "La revisión no se envió. Los comentarios siguen aquí."
     }
   },
   "chat": {
@@ -1412,15 +1604,27 @@
     "contextEdit": {
       "omitted": "Omitido de la próxima solicitud",
       "replaced": "Reemplazado para la próxima solicitud"
+    },
+    "customUiTab": "Extensión",
+    "notice": {
+      "compacting": "Compactando el contexto…",
+      "compacted": "Contexto compactado",
+      "compactionFailed": "La compactación falló",
+      "compactionFailedWith": "La compactación falló: {error}",
+      "summaryRetryIn": "Reintento {attempt} del resumen en {seconds} s",
+      "summaryRetrying": "Reintentando el resumen ({source})",
+      "extensionFailed": "La extensión falló"
     }
   },
   "pair": {
-    "title": "Emparejar este teléfono",
-    "name": "Nombre del dispositivo",
-    "approve": "Aprueba en el escritorio",
-    "home": "En el iPhone, usa Añadir a inicio",
     "allow": "Permitir",
-    "denied": "El escritorio rechazó este teléfono"
+    "deny": "Rechazar",
+    "requestTitle": "¿Emparejar un teléfono?",
+    "requestBody": "«{name}» en {source} pide emparejarse con SPOPI.",
+    "requestHint": "Permítelo solo si acabas de escanear el código de este equipo.",
+    "tierObserve": "Observar: ver sesiones",
+    "tierControl": "Controlar: chatear, leer archivos y Git",
+    "tierFull": "Completo: además terminal, cambios de Git, ajustes, paquetes"
   },
   "shell": {
     "spopiLogoAlt": "Logotipo de SPOPI",
@@ -1441,13 +1645,11 @@
     "newSessionTitle": "Nueva sesión en este proyecto",
     "settingsTitle": "Ajustes",
     "downloadAndInstallUpdateTitle": "Descargar e instalar actualización",
-    "chooseAppTitle": "Elegir app",
     "filesTitle": "Archivos",
     "closeTitle": "Cerrar",
     "toggleFileBrowserLabel": "Alternar explorador de archivos",
     "keyboardShortcutsLabel": "Atajos de teclado",
     "conversationNavigatorLabel": "Navegador de conversación",
-    "openCommandsLabel": "Abrir comandos",
     "thinkingEffortOffClickToCycleReasoningLabel": "Esfuerzo de razonamiento: apagado. Haz clic para cambiar la profundidad de razonamiento.",
     "searchTasksLabel": "Buscar tareas",
     "searchResultsLabel": "Resultados de búsqueda",
@@ -1493,6 +1695,7 @@
         "focus": "Enfocar el editor",
         "guard": "Ajustar el modo de permiso",
         "cockpit": "Abrir la cabina de métricas",
+        "mcp": "Abrir servidores MCP",
         "tui": "Abrir la terminal",
         "phone": "Abrir el acceso del teléfono",
         "hotkeys": "Mostrar los atajos",
@@ -1534,7 +1737,10 @@
     "modelConfigAfterReply": "Los ajustes del modelo se aplican tras esta respuesta",
     "noThinkingLevels": "Este modelo no tiene niveles de razonamiento",
     "noThinkingLevelsHint": "Activa Razonamiento en Ajustes → Modelos, o usa Configurar modelo.",
-    "openModelSettings": "Abrir ajustes de modelos"
+    "openModelSettings": "Abrir ajustes de modelos",
+    "guardStale": "La receta de permisos está desactualizada. Ajustes → General → Guard puede actualizarla.",
+    "pasteOffloadFailed": "No se pudo guardar el texto pegado en un archivo",
+    "moreTools": "Más"
   },
   "features": {
     "todos": {
@@ -1544,7 +1750,8 @@
   "notifications": {
     "center": {
       "dismissNotificationLabel": "Descartar notificación"
-    }
+    },
+    "title": "Notificación"
   },
   "session": {
     "search": {
@@ -1591,7 +1798,11 @@
     "compactionPendingAfter": "el nuevo tamaño espera la siguiente petición",
     "compactionNoRewrite": "contexto sin cambios",
     "noServerMetrics": "Sin métricas del servidor del modelo",
-    "thinkingBudgetTitle": "Cambiar el presupuesto de tokens de razonamiento para este nivel"
+    "thinkingBudgetTitle": "Cambiar el presupuesto de tokens de razonamiento para este nivel",
+    "outTitle": "tokens de salida de este prompt · {thinking} de razonamiento · {chars} caracteres de texto",
+    "tpsEstimated": "estimado como salida ÷ ventana de generación",
+    "kvCache": "Caché KV {pct}%",
+    "kvPeak": "pico {pct}%"
   },
   "keybindings": {
     "title": "Atajos de teclado",
@@ -1614,13 +1825,47 @@
     "guard": "Modo de permiso",
     "guardCycle": "Cambiar el modo de permiso",
     "cockpit": "Abrir Cockpit",
+    "mcp": "Abrir servidores MCP",
     "tui": "Abrir la terminal",
-    "close": "Cerrar"
+    "close": "Cerrar",
+    "slashCommands": "Comandos con barra"
   },
   "projects": {
     "fallbackTitle": "La carpeta de proyectos no está disponible",
     "fallbackUsed": "SPOPI no pudo usar {wanted}, así que este chat está en {used}.",
     "fallbackHome": "SPOPI no pudo usar {wanted} ni la carpeta SPOPI de tu carpeta personal, así que este chat está en tu carpeta personal.",
     "fallbackOpenSettings": "Abrir Configuración"
+  },
+  "extensionUi": {
+    "question": "Pregunta",
+    "cancelled": "Cancelado",
+    "answered": "Respondido"
+  },
+  "costDashboard": {
+    "quickRange": "Rango rápido"
+  },
+  "convNav": {
+    "jump": "Ir a la conversación {n}"
+  },
+  "worktree": {
+    "branch": "Nombre de la rama",
+    "newChat": "Nuevo chat",
+    "merge": "Fusionar en la copia principal…",
+    "mergeConfirm": "¿Fusionar este worktree en la copia principal?",
+    "merged": "Fusionado en {into}.",
+    "removeNow": "¿Quitar el worktree ahora?",
+    "conflicts": "La fusión se canceló y no cambió nada.",
+    "remove": "Quitar worktree…",
+    "removeConfirm": "¿Quitar este worktree? Su rama se conserva.",
+    "removeDirty": "Este worktree tiene cambios sin guardar. ¿Quitarlo de todos modos?",
+    "errors": {
+      "primaryDirty": "La copia principal tiene cambios sin guardar.",
+      "worktreeDirty": "Este worktree tiene cambios sin guardar.",
+      "primaryDetached": "La copia principal no está en una rama.",
+      "worktreeDetached": "Este worktree no está en una rama.",
+      "locked": "Este worktree está bloqueado.",
+      "notWorktree": "Esta carpeta no es un worktree enlazado.",
+      "hasChats": "Este worktree guarda chats dentro de su carpeta, así que no se puede quitar."
+    }
   }
 }

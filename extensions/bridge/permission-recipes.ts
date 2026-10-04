@@ -1,5 +1,5 @@
 // ABOUTME: Writes Ask, Auto-edit, and Full access recipes for pi-permission-system.
-// ABOUTME: One locked write to its config.json; the mode is read back from that recipe.
+// ABOUTME: One locked write per mode switch; reads report a stale recipe instead of rewriting it.
 
 import { homedir } from "node:os";
 import { join, posix } from "node:path";
@@ -224,6 +224,13 @@ export function permissionRecipe(
         read: "allow",
         edit: "allow",
         write: "allow",
+        // Codemode and tool search reach nothing on their own: every call a script
+        // makes is its own tool_call, and this extension gates nested ones too.
+        codemode: "allow",
+        tool_search: "allow",
+        list_mcp_resources: "allow",
+        list_mcp_resource_templates: "allow",
+        read_mcp_resource: "allow",
         [SCREENSHOT_TOOL]: "allow",
         [UI_COPY_TOOL]: "allow",
         bash: autoEditBashRules(env),
@@ -283,16 +290,34 @@ function currentPermission(): Record<string, unknown> {
 }
 
 /** A Full access file written before bash was named keeps triggering the warning. */
-function fullRecipeNeedsBash(): boolean {
-  try {
-    const permission = asRecord(readSettingsRecord(permissionConfigPath()).permission);
-    const bash = permission.bash;
-    if (typeof bash === "string") return false;
-    const record = asRecord(bash);
-    return !Object.hasOwn(record, "*") || !upgradeDenied({ bash: record });
-  } catch {
-    return false;
-  }
+function fullRecipeNeedsBash(permission: Record<string, unknown>): boolean {
+  const bash = permission.bash;
+  if (typeof bash === "string") return false;
+  const record = asRecord(bash);
+  return !Object.hasOwn(record, "*") || !upgradeDenied({ bash: record });
+}
+
+export type StaleReason =
+  | "root-denies"
+  | "skill-reads"
+  | "upgrade-deny"
+  | "full-bash"
+  | "auto-edit";
+
+/** Why the recipe on disk differs from what this build writes for its mode. */
+export function staleReasons(
+  mode: PermissionMode,
+  permission: Record<string, unknown>,
+  env: Env = process.env,
+  roots: string[] = protectedRoots(),
+): StaleReason[] {
+  const reasons: StaleReason[] = [];
+  if (rootDeniesMissing(permission, roots)) reasons.push("root-denies");
+  if (skillReadsAsk(permission)) reasons.push("skill-reads");
+  if (!upgradeDenied(permission)) reasons.push("upgrade-deny");
+  if (mode === "full" && fullRecipeNeedsBash(permission)) reasons.push("full-bash");
+  if (mode === "auto-edit" && autoEditRecipeStale(permission, env)) reasons.push("auto-edit");
+  return reasons;
 }
 
 /**
@@ -339,22 +364,21 @@ function publish(ctx: ConfigContext, mode: PermissionMode): void {
 }
 
 export const handlers: BridgeHandlers = {
+  // Reading never rewrites a recipe the user may have edited. A stale one is reported,
+  // and the UI offers set_permission_mode with the same mode as the repair.
   get_permission_mode: async (ctx) => {
     const mode = readPermissionMode();
+    const permission = currentPermission();
     // First run: no recipe yet. The extension already asks for everything without one;
     // writing Ask adds the protected-root denies.
-    const permission = currentPermission();
-    if (Object.keys(permission).length === 0) writeRecipe("ask");
-    else if (
-      rootDeniesMissing(permission) ||
-      skillReadsAsk(permission) ||
-      !upgradeDenied(permission)
-    )
-      writeRecipe(mode);
-    else if (mode === "full" && fullRecipeNeedsBash()) writeRecipe("full");
-    else if (mode === "auto-edit" && autoEditRecipeStale(permission)) writeRecipe("auto-edit");
+    if (Object.keys(permission).length === 0) {
+      writeRecipe("ask");
+      publish(ctx, "ask");
+      return { ok: true, data: { mode: "ask", stale: false, reasons: [] } };
+    }
+    const reasons = staleReasons(mode, permission);
     publish(ctx, mode);
-    return { ok: true, data: { mode } };
+    return { ok: true, data: { mode, stale: reasons.length > 0, reasons } };
   },
   set_permission_mode: async (ctx, params) => {
     const mode = params?.mode;

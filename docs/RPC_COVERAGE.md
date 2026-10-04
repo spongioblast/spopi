@@ -14,9 +14,9 @@ Every Pi RPC command and event is listed once. `handled` means the path contains
 | set_model | command | handled | public/app/composer/model-controls.js | Selects the provider and model. |
 | cycle_model | command | handled | public/app/composer/model-controls.js | Ctrl+Alt+M cycles the composer model. |
 | get_available_models | command | handled | public/app/composer/model-controls.js | Fills the model menu. |
-| set_thinking_level | command | handled | public/app/settings/general-settings.js | Sets the thinking level. |
+| set_thinking_level | command | handled | public/app/settings/thinking-effort-control.js | Sets the thinking level. |
 | cycle_thinking_level | command | handled | public/app/session/session-runtime.js | Cycles the thinking level. |
-| get_available_thinking_levels | command | handled | public/app/settings/general-settings.js | Lists thinking levels. |
+| get_available_thinking_levels | command | handled | public/app/settings/thinking-effort-control.js | Lists thinking levels. |
 | set_steering_mode | command | handled | public/app/settings/queue-modes.js | Settings writes the live session and the default. |
 | set_follow_up_mode | command | handled | public/app/settings/queue-modes.js | Settings writes the live session and the default. |
 | compact | command | handled | public/app/transport/runtime-gateway.js | The gateway accepts a compaction command. |
@@ -34,13 +34,13 @@ Every Pi RPC command and event is listed once. `handled` means the path contains
 | get_entries | command | handled | public/app/session/session-tree-host.js | Resyncs entries after the last id. |
 | get_tree | command | handled | public/app/session/session-tree-host.js | Loads the session tree. |
 | get_last_assistant_text | command | unused | | The transcript holds the assistant text. |
-| set_session_name | command | handled | public/app/session/session-sidebar.js | Renames the session. |
+| set_session_name | command | handled | public/app/session/session-sidebar-rename.js | Renames the session. |
 | get_messages | command | unused | | The snapshot plus get_entries cover it. |
 | get_commands | command | handled | public/app/session/session-runtime.js | Lists slash commands. |
 | agent_start | event | handled | public/app/chat/transcript-reducer.js | The reducer starts a turn. |
 | agent_end | event | handled | public/app/chat/transcript-reducer.js | The reducer records the end of a run. |
-| turn_start | event | handled | public/app/metrics/metrics-model.js | Cockpit turn rows open here. |
-| turn_end | event | handled | public/app/metrics/metrics-model.js | Cockpit turn rows close here. |
+| turn_start | event | handled | public/app/metrics/metrics-turn-tracker.js, public/app/chat/runtime-events.js | Cockpit turn rows open here. The chat measures time to first token from it. |
+| turn_end | event | handled | public/app/metrics/metrics-turn-tracker.js | Cockpit turn rows close here. |
 | message_start | event | handled | public/app/chat/transcript-reducer.js | The reducer opens a message. |
 | message_update | event | handled | public/app/chat/transcript-reducer.js | The reducer applies stream deltas. |
 | message_end | event | handled | public/app/chat/transcript-reducer.js | The reducer closes a message. |

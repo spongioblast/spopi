@@ -1,20 +1,17 @@
 // ABOUTME: Native session composition root: Pi RPC, workbench, preview, git, and chat.
 // ABOUTME: SPOPI contracts (packages, PTY, scrape, tree) bind here; Pi stays the only harness.
 
-import { createCompactCoordinator } from "./chat/compact-coordinator.js";
-import { compactPreserveInstructions, dropContext, pinContext } from "./chat/context-pins.js";
+import { dropContext, pinContext } from "./chat/context-pins.js";
+import { createManualCompaction } from "./chat/manual-compaction.js";
+import { mountChatFileActions } from "./chat/mount-chat-file-actions.js";
 import { mountHistory } from "./chat/mount-history.js";
-import {
-  isRpivTodoCommandNotify,
-  isRpivTodoWidgetRequest,
-  RpivTodoMirrorPanel,
-} from "./chat/rpiv-todo-mirror.js";
+import { onNextSettled } from "./chat/on-next-settled.js";
+import { RpivTodoMirrorPanel } from "./chat/rpiv-todo-mirror.js";
 import { createDeferredRuntimeHandler, createRuntimeEventHandler } from "./chat/runtime-events.js";
+import { createForegroundSettle } from "./chat/settle-foreground.js";
 import { cancelQueuedMessage, stopRun } from "./chat/stop-run.js";
-import { mountReviewCard, paintExtensionNotice } from "./chat/turn-block.js";
-import { mergeTurnFiles } from "./chat/turn-files.js";
-import { createUndoMarker, historyNotice } from "./chat/undo-marker.js";
-import { mountChatFileActions } from "./chat/wire-chat-file-actions.js";
+import { paintExtensionNotice } from "./chat/turn-block.js";
+import { createUndoMarker } from "./chat/undo-marker.js";
 import { showApprovalOrDialog as showNativeDialog } from "./composer/approval-bar.js";
 import { mountComposerAutoResize } from "./composer/composer-autoresize.js";
 import { mountComposerImageAttachments } from "./composer/composer-images.js";
@@ -25,38 +22,33 @@ import { mountGuardChip } from "./composer/guard-chip.js";
 import { createModelConfigRefresh } from "./composer/model-config-refresh.js";
 import { mountModelControls } from "./composer/model-controls.js";
 import { mountComposer } from "./composer/mount-composer.js";
-import { renderQueuedMessages } from "./composer/queued-messages.js";
 import { createSendModelGate } from "./composer/send-model-gate.js";
 import { buildCommandCatalog } from "./composer/slash-commands.js";
+import { mountCenterRepaint } from "./editor/center-paint.js";
 import { createFilePreviewFollow } from "./editor/file-preview-follow.js";
 import { mountFilePreview } from "./editor/mount-file-preview.js";
-import { createReviewSources } from "./editor/review/review-sources.js";
-import { setReviewCommands, setReviewSend, setReviewSources } from "./editor/review-pane.js";
+import { connectReviewPane } from "./editor/review/connect-review-pane.js";
+import { mountReviewPane } from "./editor/review-pane.js";
 import { CustomUiPanel } from "./extension-ui/custom-ui-panel.js";
 import { ExtensionCommandCompatibility } from "./extension-ui/extension-command-compatibility.js";
+import { createExtensionUiHooks } from "./extension-ui/extension-ui-hooks.js";
 import { ExtensionUiHost } from "./extension-ui/extension-ui-host.js";
 import { ExtensionWidgets } from "./extension-ui/extension-widgets.js";
 import { showInlineExtensionPrompt } from "./extension-ui/inline-extension-prompt.js";
-import {
-  connectFileTree,
-  mountSidebarToggle as setupFileSidebarToggle,
-} from "./files/mount-file-browser.js";
+import { connectFileTree, mountSidebarToggle } from "./files/mount-file-browser.js";
 import { mountGitPanel } from "./git/git-panel-integration.js";
 import { createI18n, hydrateLanguagePreference, onLocaleChange, t } from "./i18n/i18n.js";
 import { createNotificationCenter } from "./notifications/notification-center.js";
-import {
-  createNativeTaskNotificationSender,
-  createTaskCompletionNotifications,
-} from "./notifications/task-completion-notifications.js";
-import { extractRuntimeEventError } from "./session/assistant-error.js";
+import { createSessionTaskNotifications } from "./notifications/task-completion-notifications.js";
 import { createAssistantMessageStream } from "./session/assistant-message-stream.js";
 import { mountContextUsage } from "./session/context-usage.js";
+import { createForkAdopt } from "./session/fork-adopt.js";
 import { mountInfoSidebar } from "./session/info-sidebar.js";
 import { mountMessageForkHandler } from "./session/message-fork.js";
 import { describeHostError } from "./session/missing-workspace.js";
 import { mountSessionSidebar } from "./session/mount-session-sidebar.js";
 import { showProjectsFolderFallback } from "./session/projects-folder-fallback.js";
-import { onSessionCreated } from "./session/session-created-action.js";
+import { adoptCreatedSessions } from "./session/session-created-action.js";
 import { activeSession, mountSessionInfo } from "./session/session-info.js";
 import { textFromMessageContent } from "./session/session-log.js";
 import { createSessionSelectionHandler } from "./session/session-navigation.js";
@@ -64,7 +56,6 @@ import { createSessionRuntime } from "./session/session-runtime.js";
 import { mountSessionSearchDialog } from "./session/session-search-dialog.js";
 import { SessionSidebar } from "./session/session-sidebar.js";
 import { createSessionStatus } from "./session/session-status.js";
-import { createSessionStore, reduceSessionState } from "./session/session-store.js";
 import { SessionUiStateStore } from "./session/session-ui-state.js";
 import {
   createSessionViaHost,
@@ -79,45 +70,38 @@ import { mountAppUpdater } from "./shell/app-updater.js";
 import { toggleExclusiveSideView } from "./shell/exclusive-side-panel.js";
 import { isFilePanelShortcut, isMacOS } from "./shell/file-panel-shortcut.js";
 import { maybeShowFirstRun } from "./shell/first-run.js";
-import { mountHeaderOpenApp } from "./shell/header-open-app.js";
 import { createSpopiWorkbench } from "./shell/mount-workbench.js";
 import { mountOverlayChrome } from "./shell/overlay-chrome.js";
 import { mountProjectHeader } from "./shell/project-header.js";
 import { mountSessionCostBar } from "./shell/session-cost-bar.js";
 import { mountUiReload } from "./shell/ui-reload.js";
 import { createUiStoreBinding, hydrateUiStore } from "./storage/ui-store.js";
-import {
-  INSPECT_WIDGET,
-  isSubagentWidget,
-  parseInspect,
-  parseRuns,
-  stopCommand,
-} from "./subagents/subagent-feed.js";
+import { stopCommand } from "./subagents/subagent-feed.js";
 import { SubagentStrip } from "./subagents/subagent-strip.js";
 import {
-  applySubagentInspect,
   configureSubagentView,
-  noteSubagentRuns,
   openSubagent,
   resetSubagentView,
 } from "./subagents/subagent-view.js";
-import { openSessionInPtyTwin, resolveResumePath } from "./terminal/open-in-terminal.js";
+import { openPiInTerminal } from "./terminal/open-in-terminal.js";
+import { runFileInTerminal } from "./terminal/run-file.js";
 import { mountTerminalPanel } from "./terminal/terminal-panel-integration.js";
 import { applyTheme, getCurrentTheme, hydrateThemePreference } from "./theme/themes.js";
-import { ConfigGateway, consumeConfigResponseFrame } from "./transport/config-gateway.js";
+import { ConfigGateway } from "./transport/config-gateway.js";
 import {
   createConfigGatewayConnectionListener,
   signalConfigGatewayReady,
 } from "./transport/config-gateway-readiness.js";
 import { HostControlGateway } from "./transport/control-gateway.js";
 import { HostDataGateway } from "./transport/data-gateway.js";
+import { watchHostReconnect } from "./transport/host-reconnect.js";
 import { createOauthGateway } from "./transport/oauth-gateway.js";
 import { PreferenceGateway } from "./transport/preference-gateway.js";
 import { HostRuntimeAdapter, resolveHostWebSocketUrl } from "./transport/runtime-adapter.js";
-import { routeRuntimeFrame } from "./transport/runtime-frame-routing.js";
+import { subscribeRuntimeFrames } from "./transport/runtime-frame-routing.js";
 import { RuntimeGateway } from "./transport/runtime-gateway.js";
-import { readFile } from "./transport/workspace-http.js";
 import { buildAtMentionValue, mountAtFileMention } from "./ui/at-file-mention.js";
+import { createLongPress } from "./ui/context-menu.js";
 import { ConvNav } from "./ui/conv-nav.js";
 import { mountMessagesInsets } from "./ui/layout-insets.js";
 import { MessageRenderer } from "./ui/message-renderer.js";
@@ -128,89 +112,7 @@ import { randomId, sessionScopedClientId } from "./utils/random-id.js";
 import { parseAppRoute, replaceTemporarySessionRoute } from "./utils/router.js";
 
 /**
- * Session-route chrome refs (mountAppChrome succeeds whenever `.app-layout` is empty).
- * Element fields are typed for call sites that expect HTMLElement / form controls.
- *
- * @typedef {{
- *   sidebar: {
- *     sidebar: HTMLElement,
- *     overlay: HTMLElement,
- *     newSessionBtn: HTMLElement | null,
- *     openFolderBtn: HTMLElement | null,
- *     refreshSessionsBtn: HTMLElement | null,
- *     sessionList: HTMLElement | null,
- *     settingsBtn: HTMLElement | null,
- *     extensionsBtn: HTMLElement | null,
- *     skillsBtn: HTMLElement | null,
- *   },
- *   chat: {
- *     header: HTMLElement,
- *     messages: HTMLElement | null,
- *     scrollBottomBadge: HTMLElement | null,
- *     sidebarToggle: HTMLElement | null,
- *     sessionInfoToggle: HTMLElement | null,
- *     sessionInfoPanel: HTMLElement | null,
- *     sessionInfoFile: HTMLElement | null,
- *     sessionInfoId: HTMLElement | null,
- *     statusIndicator: HTMLElement | null,
- *     statusText: HTMLElement | null,
- *     sessionCost: HTMLElement | null,
- *     compactContextBtn: HTMLElement | null,
- *     infoSidebarToggle: HTMLElement | null,
- *     diffSidebarToggle: HTMLElement | null,
- *     packageUpdateIndicator: HTMLElement | null,
- *     fileSidebarToggle: HTMLElement | null,
- *   },
- *   composer: {
- *     inputArea: HTMLElement,
- *     form: HTMLFormElement | null,
- *     composerCard: HTMLElement | null,
- *     messageInput: HTMLTextAreaElement | null,
- *     sendBtn: HTMLButtonElement | null,
- *     abortBtn: HTMLButtonElement | null,
- *     thinkingBtn: HTMLButtonElement | null,
- *     queuedMessages: HTMLElement | null,
- *     widgetsAbove: HTMLElement | null,
- *     widgetsBelow: HTMLElement | null,
- *     skillSlashMenu: HTMLElement | null,
- *     atFileMentionMenu: HTMLElement | null,
- *     imagePreviews: HTMLElement | null,
- *     imageInput: HTMLInputElement | null,
- *     attachBtn: HTMLButtonElement | null,
- *     commandBtn: HTMLButtonElement | null,
- *     modelDropdown: HTMLElement | null,
- *     modelDropdownBtn: HTMLButtonElement | null,
- *     modelDropdownLabel: HTMLElement | null,
- *     modelDropdownMenu: HTMLElement | null,
- *   },
- *   filePreview: {
- *     resizer: HTMLElement | null,
- *     panel: HTMLElement | null,
- *     tabs: HTMLElement | null,
- *     content: HTMLElement | null,
- *     controls: import("./editor/file-preview-panel.js").FilePreviewControls,
- *   },
- *   fileSidebar: {
- *     sidebar: HTMLElement,
- *     fileList: HTMLElement | null,
- *     gitPanel: HTMLElement | null,
- *     path: HTMLElement | null,
- *     up: HTMLButtonElement | null,
- *     refresh: HTMLButtonElement | null,
- *     toggleHidden: HTMLButtonElement | null,
- *     collapse: HTMLButtonElement | null,
- *     finder: HTMLButtonElement | null,
- *     close: HTMLButtonElement | null,
- *   },
- *   sidePanels: {
- *     info: HTMLElement | null,
- *     infoPanel: HTMLElement | null,
- *     infoRefresh: HTMLElement | null,
- *     infoClose: HTMLElement | null,
- *   },
- * }} AppChromeRefs
- *
- * @typedef {{ core?: { invoke?: unknown } }} TauriGlobal
+ * @typedef {import("./shell/app-chrome.js").AppChromeRefs} AppChromeRefs
  * @typedef {{
  *   id?: string,
  *   workspaceId?: string,
@@ -227,6 +129,7 @@ import { parseAppRoute, replaceTemporarySessionRoute } from "./utils/router.js";
  *   upsertSession?: (session: AppSidebarSession) => void,
  *   setStreaming?: (sessionId: string | undefined, streaming: boolean) => void,
  *   reloadUiPrefs?: () => void,
+ *   newChatInCurrentProject?: () => void,
  * }} AppSidebar
  * @typedef {{
  *   provider?: string | null,
@@ -240,16 +143,6 @@ import { parseAppRoute, replaceTemporarySessionRoute } from "./utils/router.js";
  *   scopedIds?: string[],
  *   scopedLoaded?: boolean,
  * }} AppComposerModel
- * @typedef {{
- *   configCall?: (op: string, params?: unknown, options?: unknown) => unknown,
- *   openFile?: (path: string, line?: number) => unknown,
- *   navigateTree?: (entryId: string) => unknown,
- *   onPanelShown?: (id: string) => void,
- *   openInTerminal?: (sessionPath: string) => unknown,
- *   openSettings?: (tab?: string) => void,
- *   runFile?: (path: string) => unknown,
- *   continueLiveTurnBelow?: (anchor: Element) => void,
- * }} AppLateBindings
  * @typedef {{ spopi?: Record<string, unknown> }} SpopiWindow
  */
 
@@ -272,6 +165,9 @@ const chrome = /** @type {AppChromeRefs} */ (
   mountAppChrome(document.querySelector(".app-layout")).refs
 );
 mountOverlayChrome(document.body);
+mountReviewPane();
+mountCenterRepaint();
+createLongPress();
 const messagesElement = chrome.chat.messages;
 const headerElement = chrome.chat.header;
 const scrollBottomBadge = chrome.chat.scrollBottomBadge;
@@ -289,45 +185,19 @@ const convNav = new ConvNav({
   },
 });
 const notifications = createNotificationCenter();
-const tauriGlobal = /** @type {TauriGlobal} */ (globalThis);
-const tauriInvoke = tauriGlobal.core?.invoke;
-const sendNativeTaskNotification = createNativeTaskNotificationSender({
-  invoke:
-    typeof tauriInvoke === "function"
-      ? /** @type {(command: string, args: Record<string, unknown>) => Promise<unknown>} */ (
-          tauriInvoke
-        )
-      : undefined,
-});
-const taskCompletionNotifications = createTaskCompletionNotifications({
-  resolveTask: (notificationTarget) => {
-    const targetInfo =
-      notificationTarget && typeof notificationTarget === "object"
-        ? /** @type {{ sessionId?: string, workspaceId?: string }} */ (notificationTarget)
-        : {};
-    const found =
-      sidebar?.sessions?.find(
-        (/** @type {AppSidebarSession} */ session) =>
-          session.id === targetInfo.sessionId && session.workspaceId === targetInfo.workspaceId,
-      ) ?? null;
-    return /** @type {{ name?: string, firstMessage?: string } | null} */ (found);
-  },
-  title: (task, error) =>
-    task?.name ||
-    task?.firstMessage ||
-    (error ? t("settings.taskFailedTitle") : t("settings.taskCompleteTitle")),
-  body: (_task, error) => error || t("settings.taskCompleteMessage"),
-  showNotification: /** @type {(notification: unknown) => unknown} */ (sendNativeTaskNotification),
+const taskCompletionNotifications = createSessionTaskNotifications({
+  getSessions: () => sidebar?.sessions ?? [],
+  t,
 });
 
 mountMessagesInsets(
   /** @type {Parameters<typeof mountMessagesInsets>[0]} */ (
     /** @type {unknown} */ ({
-      main: document.querySelector(".main"),
+      main: chrome.layout.main,
       messages: messagesElement,
-      header: document.querySelector(".header"),
-      inputArea: document.querySelector(".input-area"),
-      workspaceContent: document.querySelector(".workspace-content"),
+      header: chrome.chat.header,
+      inputArea: chrome.composer.inputArea,
+      workspaceContent: chrome.layout.content,
     })
   ),
 );
@@ -352,21 +222,18 @@ const atFileMentionMenu = chrome.composer.atFileMentionMenu;
 let atFileMention = null;
 const composerAutoResize = mountComposerAutoResize({ input });
 const queuedMessages = chrome.composer.queuedMessages;
-const todoMirrorPanel = new RpivTodoMirrorPanel({
-  container: /** @type {HTMLElement | null} */ (document.querySelector(".input-area")),
-});
+const todoMirrorPanel = new RpivTodoMirrorPanel({ container: chrome.composer.inputArea });
 // pi-subagents' commands run inline over RPC without a model turn, so they go as prompts.
 /** @param {string} command */
 const runSubagentCommand = (command) =>
   runtime.request({ type: "prompt", message: command }, target, { idempotencyKey: randomId() });
 configureSubagentView({ run: runSubagentCommand, t });
 const subagentStrip = new SubagentStrip({
-  container: /** @type {HTMLElement | null} */ (document.querySelector(".input-area")),
+  container: chrome.composer.inputArea,
   t,
   onOpen: openSubagent,
   onStop: (runId, childId) => void runSubagentCommand(stopCommand(runId, childId)),
 });
-let undonePrompt = "";
 const undoMarker = createUndoMarker({
   messages: /** @type {HTMLElement | null} */ (messagesElement),
   t,
@@ -421,7 +288,6 @@ const configGatewayReady = /** @type {Promise<void>} */ (
     };
   })
 );
-let store = createSessionStore(target);
 let navigationGeneration = 0;
 let commandCatalog = buildCommandCatalog({});
 const assistantMessageStream = createAssistantMessageStream();
@@ -433,8 +299,6 @@ let streamingStartedAt = null;
 let lastUserElement = null;
 /** @type {unknown} */
 let liveProcessGroup = null;
-/** @type {string | null} */
-let lastShownProviderError = null;
 /** @type {AppSidebar | null} */
 let sidebar = null;
 // Sidebar loading starts before bootstrap/runtime awaits complete. Keep every
@@ -477,6 +341,8 @@ const adapter = new HostRuntimeAdapter(
 const terminalIntegration = mountTerminalPanel({
   adapter,
   getWorkspaceId: () => target.workspaceId,
+  layout: chrome.layout,
+  toolbar: chrome.chat.headerRight,
 });
 const runtime = new RuntimeGateway(
   /** @type {import("./transport/runtime-gateway.js").RuntimeAdapter} */ (
@@ -506,10 +372,29 @@ async function refreshPiPackages() {
   }
   return piPackages;
 }
-/** @type {AppLateBindings} */
-const lateBindings = {};
-/** @type {ReturnType<typeof mountSessionCostBar> | undefined} */
-let sessionCostBar;
+// The workbench calls config while it mounts (cache warming, thinking budgets), so config comes first.
+const config = new ConfigGateway(
+  /** @type {ConstructorParameters<typeof ConfigGateway>[0]} */ (
+    /** @type {unknown} */ ({
+      runtime,
+      getTarget: () => target,
+      waitUntilReady: () => (configGatewayTargetReady ? Promise.resolve() : configGatewayReady),
+    })
+  ),
+);
+// OAuth login flows share the config transport; their __spopiOauth frames
+// must be consumed before the config gateway sees them (design §5 M3).
+const oauthGateway = createOauthGateway(
+  /** @type {Parameters<typeof createOauthGateway>[0]} */ (
+    /** @type {unknown} */ ({ runtime, getTarget: () => target })
+  ),
+);
+/** @type {ReturnType<typeof mountSettingsPanel> | undefined} */
+let settingsPanel;
+// The shell can report a restored panel while it mounts, before Files and Git exist.
+let workspacePanelsMounted = false;
+/** @type {((anchor: Element) => void) | null} */
+let continueLiveTurn = null;
 const workbench = createSpopiWorkbench(
   /** @type {Parameters<typeof createSpopiWorkbench>[0]} */ (
     /** @type {unknown} */ ({
@@ -532,9 +417,15 @@ const workbench = createSpopiWorkbench(
       ) => control.engineScrape(baseUrl, metricsUrl),
       onPinContext: (/** @type {unknown} */ item) => pinContext(target.sessionId || "", item),
       onDropContext: (/** @type {unknown} */ item) =>
-        dropContext(item, (entryId) => config.call("drop_context", { entryId })),
+        dropContext(item, (entryId) => config.call("drop_context", { entryId }), messagesElement),
       getWorkspaceId: () => target.workspaceId,
-      getSessionPath: () => sessionCostBar?.activeSessionFile?.() || "",
+      chrome: {
+        layout: chrome.layout,
+        inputArea: chrome.composer.inputArea,
+        headerRight: chrome.chat.headerRight,
+        status: chrome.chat.status,
+        terminal: terminalIntegration?.panel?.root ?? null,
+      },
       sendPrompt: (/** @type {string} */ message) =>
         runtime.request({ type: "prompt", message }, target, { idempotencyKey: randomId() }),
       getPackages: () => piPackages,
@@ -543,33 +434,42 @@ const workbench = createSpopiWorkbench(
         await refreshPiPackages();
       },
       onOpenSettings: (/** @type {string | undefined} */ page) => {
-        if (lateBindings.openSettings) {
-          lateBindings.openSettings(page);
+        if (settingsPanel) {
+          settingsPanel.openSettings(page || "general");
           return true;
         }
         chrome.sidebar.settingsBtn?.click();
       },
       onOpenFile: (/** @type {string} */ path, /** @type {number | undefined} */ line) =>
-        lateBindings.openFile?.(path, line),
+        filePreviewPanel?.openFile?.(path, { line }),
       onNavigateTree: (/** @type {unknown} */ payload) => {
         const id =
           typeof payload === "string"
             ? payload
             : /** @type {{ targetId?: string }} */ (payload)?.targetId;
-        if (typeof id === "string") lateBindings.navigateTree?.(id);
+        if (typeof id === "string") navigateActiveTree(id);
       },
-      onPanelShown: (/** @type {string} */ id) => lateBindings.onPanelShown?.(id),
+      onPanelShown: showWorkspacePanel,
       onDockTabChange: (/** @type {string} */ id) => {
         if (id === "terminal") void terminalIntegration?.panel?.expand();
       },
-      openInTerminal: (/** @type {string} */ sessionPath) =>
-        lateBindings.openInTerminal?.(sessionPath),
-      onRunFile: (/** @type {string} */ path) => lateBindings.runFile?.(path),
+      openInTerminal: () =>
+        openPiInTerminal(
+          /** @type {Parameters<typeof openPiInTerminal>[0]} */ (
+            /** @type {unknown} */ ({
+              client: terminalIntegration?.client,
+              panel: terminalIntegration?.panel,
+              workbench,
+              notify: notifications.notify,
+            })
+          ),
+        ),
+      onRunFile: runFile,
       configCall: (
         /** @type {string} */ op,
         /** @type {Record<string, unknown> | undefined} */ params,
-        /** @type {Record<string, unknown> | undefined} */ options,
-      ) => lateBindings.configCall?.(op, params, options),
+        /** @type {{ timeoutMs?: number, target?: import("./transport/config-gateway.js").ConfigTarget | null } | undefined} */ options,
+      ) => config.call(op, params || {}, options),
       loadHistoryCommands: async () => {
         const response = /** @type {{ response?: { data?: { commands?: unknown } } }} */ (
           await runtime.request({ type: "get_commands" }, target)
@@ -594,34 +494,6 @@ void hydrateUiStore(preferences);
 void hydrateThemePreference(preferences);
 void hydrateLanguagePreference(preferences);
 workbench.attachPreferences?.(preferences);
-const config = new ConfigGateway(
-  /** @type {ConstructorParameters<typeof ConfigGateway>[0]} */ (
-    /** @type {unknown} */ ({
-      runtime,
-      getTarget: () => target,
-      waitUntilReady: () => (configGatewayTargetReady ? Promise.resolve() : configGatewayReady),
-    })
-  ),
-);
-// OAuth login flows share the config transport; their __spopiOauth frames
-// must be consumed before the config gateway sees them (design §5 M3).
-const oauthGateway = createOauthGateway(
-  /** @type {Parameters<typeof createOauthGateway>[0]} */ (
-    /** @type {unknown} */ ({ runtime, getTarget: () => target })
-  ),
-);
-lateBindings.configCall = (
-  /** @type {string} */ op,
-  /** @type {unknown} */ params,
-  /** @type {unknown} */ options,
-) =>
-  config.call(
-    op,
-    /** @type {Record<string, unknown>} */ (params || {}),
-    /** @type {{ timeoutMs?: number, target?: import("./transport/config-gateway.js").ConfigTarget | null } | undefined} */ (
-      options
-    ),
-  );
 void workbench.loadThinkingBudgets?.();
 const customUiHost = document.createElement("div");
 customUiHost.id = "spopi-custom-ui";
@@ -654,7 +526,7 @@ const { panel: filePreviewPanel, openWorkspaceRelativePath } = mountFilePreview(
       content: chrome.filePreview.content,
       controls: chrome.filePreview.controls,
       fileSidebarToggle: chrome.chat.fileSidebarToggle,
-      mainContainer: /** @type {HTMLElement | null} */ (document.querySelector(".main")),
+      mainContainer: chrome.layout.main,
       getWorkspaceId: () => target.workspaceId,
       data,
       control,
@@ -664,20 +536,20 @@ const { panel: filePreviewPanel, openWorkspaceRelativePath } = mountFilePreview(
     })
   ),
 );
-let promptTurnStart = 0;
+const getWorkspacePath = async () => {
+  try {
+    const response = await data.workspaceInfo(target.workspaceId || "");
+    const frame = /** @type {{ info?: { path?: string }, path?: string }} */ (response);
+    return frame?.info?.path ?? frame?.path ?? "";
+  } catch {
+    return "";
+  }
+};
 const filePreviewFollow = createFilePreviewFollow(
   /** @type {Parameters<typeof createFilePreviewFollow>[0]} */ (
     /** @type {unknown} */ ({
       panel: filePreviewPanel,
-      getWorkspacePath: async () => {
-        try {
-          const response = await data.workspaceInfo(target.workspaceId || "");
-          const frame = /** @type {{ info?: { path?: string }, path?: string }} */ (response);
-          return frame?.info?.path ?? frame?.path ?? "";
-        } catch {
-          return "";
-        }
-      },
+      getWorkspacePath,
       onWriteApplied: () => {
         files.hooks.scheduleRefresh();
       },
@@ -698,63 +570,37 @@ const gitPanel = mountGitPanel(
       onSnapshot: () => {
         void workbench.refreshHistory?.();
       },
+      getProjectPath: getWorkspacePath,
+      identity: {
+        load: () => control.getGitIdentity(target.workspaceId || ""),
+        save: (
+          /** @type {{ name: string, email: string, scope: "global" | "repository" }} */ draft,
+        ) =>
+          control.setGitIdentity({
+            workspaceId: target.workspaceId || "",
+            name: draft.name,
+            email: draft.email,
+            scope: draft.scope,
+          }),
+      },
+      onRepositoryFound: () => {
+        void mountProjectHeader({ data, workspaceId: target.workspaceId });
+        void sidebar?.load?.({ quiet: true })?.catch(showError);
+      },
     })
   ),
 );
-setReviewSources(
-  createReviewSources({
-    control,
-    t,
-    getTarget: () => ({
-      workspaceId: target.workspaceId || "",
-      sessionId: target.sessionId || "",
-      projectPath: /** @type {{ cwd?: string }} */ (store).cwd || "",
-    }),
-    isGitRepo: () => !gitPanel?.panel?.notGitRepo,
-    uiRoot: async () => {
-      const response = await fetch("/api/ui/overrides");
-      if (!response.ok) return "";
-      const body = /** @type {{ root?: string }} */ (await response.json());
-      return typeof body.root === "string" ? body.root : "";
-    },
-    files: {
-      readFile: async (/** @type {string} */ path) => {
-        const response = await readFile(path, { workspaceId: target.workspaceId || "" });
-        if (!response.ok) throw new Error("read_failed");
-        const body = /** @type {{ content?: string, isBinary?: boolean, binary?: boolean }} */ (
-          await response.json()
-        );
-        return {
-          content: typeof body.content === "string" ? body.content : "",
-          isBinary: body.isBinary === true || body.binary === true,
-        };
-      },
-    },
-    git: {
-      // Ask git directly: the Git panel only loads status once it has been opened.
-      status: async () => {
-        const frame = /** @type {{ snapshot?: { entries?: unknown[] } } | null} */ (
-          await runtime.git({ type: "status" }, target)
-        );
-        const snapshot = frame?.snapshot ?? frame;
-        return snapshot && Array.isArray(/** @type {any} */ (snapshot).entries)
-          ? snapshot
-          : gitPanel?.panel?.snapshot || { entries: [] };
-      },
-      fileAtHeadText: (/** @type {string} */ id) =>
-        gitPanel?.client.fileAtHeadText(id) ?? Promise.resolve({ content: "", exists: false }),
-    },
-  }),
-);
-setReviewSend((message, { queue } = {}) => {
-  const working = store.lifecycle === "working";
-  const type = !working ? "prompt" : queue ? "follow_up" : "steer";
-  return runtime.request({ type, message }, target, { idempotencyKey: randomId() });
-});
-setReviewCommands({
-  has: (name) => [...commandCatalog.values()].some((command) => command?.name === name),
-  run: (command) =>
-    runtime.request({ type: "prompt", message: command }, target, { idempotencyKey: randomId() }),
+connectReviewPane({
+  control,
+  runtime,
+  getTarget: () => target,
+  getGitPanel: () => gitPanel,
+  getProjectPath: getWorkspacePath,
+  isWorking: () => bootstrap.isWorking(),
+  hasCommand: (name) => [...commandCatalog.values()].some((command) => command?.name === name),
+  listCommands: () => [...commandCatalog.values()],
+  randomId,
+  t,
 });
 
 // ── Info panel (session tree + workspace actions) ─────────────────────
@@ -763,16 +609,16 @@ const infoSidebarState = mountInfoSidebar(
     /** @type {unknown} */ ({
       infoSidebar: chrome.sidePanels.info,
       panel: chrome.sidePanels.infoPanel,
+      messages: messagesElement,
       infoClose: chrome.sidePanels.infoClose,
       infoRefresh: chrome.sidePanels.infoRefresh,
       infoSidebarToggle: chrome.chat.infoSidebarToggle,
       fileSidebar: chrome.fileSidebar.sidebar,
-      control,
       t,
       data,
       runtime,
       getTarget: () => target,
-      getStore: () => store,
+      isWorking: () => bootstrap.isWorking(),
       config,
       hydrateSnapshot: () => hydrateSnapshotOnce(),
       syncSessionInfo,
@@ -801,7 +647,7 @@ const files = connectFileTree(
       openGitPanel,
       isMacOS,
       isFilePanelShortcut,
-      onRunFile: (/** @type {string} */ path) => lateBindings.runFile?.(path),
+      onRunFile: runFile,
       fileList: chrome.fileSidebar.fileList,
       pathEl: chrome.fileSidebar.path,
       sidebarEl: chrome.fileSidebar.sidebar,
@@ -816,6 +662,30 @@ const files = connectFileTree(
     })
   ),
 );
+
+/** @param {string} id */
+function showWorkspacePanel(id) {
+  if (!workspacePanelsMounted) return;
+  // Leaving Git gives the file sidebar its tree and header buttons back.
+  if (id !== "git" && gitPanel?.getTab?.() === "git") gitPanel.setTab?.("files");
+  files.hooks.onPanelShown(id);
+  if (id === "git") {
+    gitPanel?.setTab?.("git");
+    /** @type {{ refresh?: () => void }} */ (gitPanel)?.refresh?.();
+  }
+}
+
+/** @param {string} path */
+function runFile(path) {
+  return runFileInTerminal(
+    /** @type {Parameters<typeof runFileInTerminal>[0]} */ ({
+      client: terminalIntegration?.client,
+      panel: terminalIntegration?.panel,
+      workbench,
+      path,
+    }),
+  );
+}
 
 /**
  * Header Files / Git own one view each. Opening the active view closes the
@@ -846,7 +716,7 @@ function openGitPanel() {
   openWorkspacePanel("git");
 }
 
-sessionCostBar = mountSessionCostBar(
+const sessionCostBar = mountSessionCostBar(
   /** @type {Parameters<typeof mountSessionCostBar>[0]} */ (
     /** @type {unknown} */ ({
       sessionCostEl: chrome.chat.sessionCost,
@@ -856,145 +726,46 @@ sessionCostBar = mountSessionCostBar(
       runtime,
       getTarget: () => target,
       getSessions: () => sidebar?.sessions ?? [],
-      getCwd: () => /** @type {{ cwd?: string }} */ (store).cwd,
     })
   ),
 );
-const { headerStatusBar, hydrateHeaderSessionStats, computeTotalCostFromMessages, setSessionCost } =
-  sessionCostBar;
+const { headerStatusBar, hydrateHeaderSessionStats } = sessionCostBar;
 
-// Compact coordinator: a single state machine that distinguishes the RPC
-// acknowledgement from Pi's actual compaction_start/compaction_end lifecycle
-// events. This prevents duplicate requests and ensures the UI only returns to
-// idle when compaction truly completes (or fails).
-const compactCoordinator = createCompactCoordinator({
-  send: async () => {
-    const customInstructions = compactPreserveInstructions(target.sessionId || "");
-    const command = customInstructions
-      ? { type: "compact", customInstructions }
-      : { type: "compact" };
-    const frame = await runtime.request(command, target, {
-      idempotencyKey: randomId(),
-    });
-    // runtime.request resolves with the full runtime_response frame; the pi
-    // compact result lives in frame.response. Extract it so the coordinator
-    // sees { success, data } rather than the transport envelope.
-    return frame?.response ?? { success: false };
-  },
-  onState: (state) => {
-    contextUsage.setCompacting(state === "requested" || state === "running");
-  },
+const manualCompaction = createManualCompaction({
+  runtime,
+  getTarget: () => target,
+  contextUsage,
+  getStatus: () => bootstrap.getState().status,
+  randomId,
 });
-
-async function requestManualCompaction() {
-  const compaction =
-    store.compaction && typeof store.compaction === "object"
-      ? /** @type {{ status?: string }} */ (store.compaction)
-      : {};
-  if (
-    !contextUsage.canCompact ||
-    store.lifecycle === "working" ||
-    compaction.status === "running" ||
-    compactCoordinator.busy
-  )
-    return;
-  await compactCoordinator.request();
-}
-
-compactContextButton?.addEventListener("click", () => requestManualCompaction().catch(showError));
+const compactCoordinator = manualCompaction.coordinator;
+compactContextButton?.addEventListener("click", () => manualCompaction.request().catch(showError));
 const extensionUi = new ExtensionUiHost({
   runtime,
   showDialog: (request, opts) => showNativeDialog(request, undefined, opts),
   showInlinePrompt: (request, opts) =>
     showInlineExtensionPrompt(request, {
       container: messagesElement,
-      onAnswered: (card) => lateBindings.continueLiveTurnBelow?.(card),
+      onAnswered: (card) => continueLiveTurn?.(card),
       ...opts,
     }),
-  hooks: {
-    notify: (request) => {
-      // Configuration data-plane responses arrive as notify events; swallow
-      // them so they don't render as chat messages.
-      if (config.consumeNotify(request)) return;
-      // Custom extension UI panels (ctx.ui.custom) are bridged over notify too;
-      // they render as an overlay rather than a transcript entry.
-      if (customUiPanel.consumeNotify(request)) {
-        workbench.center?.openCustomTab?.("custom-ui", "Extension", customUiHost);
-        return;
-      }
-      // Terminal-only capability reports are a data plane as well; the store
-      // renders its own one-line explanation through onLearn.
-      if (commandCompatibility.consumeNotify(request)) return;
-      // rpiv-todo's /todos command emits a centered notify transcript. SPOPI
-      // already mirrors the same state natively, so expand the panel instead
-      // of rendering a duplicate system message. When nothing is mirrored (the
-      // panel stays hidden, e.g. "No todos yet"), fall through and render the
-      // message so /todos is never a silent no-op.
-      if (isRpivTodoCommandNotify(request.message) && todoMirrorPanel.hasVisibleTasks) {
-        todoMirrorPanel.expand();
-        return;
-      }
-      // /undo and /redo move Pi's session tree without an event; the chat is rebuilt from
-      // the new position so it shows what the model now sees, and a marker holds the undone turn.
-      const history = historyNotice(request.message);
-      if (history) {
-        // /undo puts the undone prompt in the composer; after /redo that text would run it twice.
-        if (history.kind === "undo") undonePrompt = input?.value || "";
-        else if (input && undonePrompt && input.value === undonePrompt) {
-          input.value = "";
-          composerAutoResize.sync();
-        }
-        void hydrateSnapshotOnce()
-          .then(() => {
-            if (history.kind === "undo") undoMarker.show(history);
-            else undoMarker.clear();
-          })
-          .catch(showError);
-        return;
-      }
-      // Extensions repeat config warnings on every session start and restart; say each
-      // one once per session.
-      if (request.notifyType === "warning" && !firstNoticeInSession(request.message)) return;
-      paintExtensionNotice(messagesElement, request);
-    },
-    title: (request) => {
-      if (typeof request.title === "string" && request.title) document.title = request.title;
-    },
-    editorText: (request) => {
-      if (!input) return;
-      input.value = typeof request.text === "string" ? request.text : String(request.text ?? "");
-      composerAutoResize.sync();
-      input.focus();
-    },
-    widget: (request) => {
-      // rpiv-todo owns the tool/reducer; SPOPI renders a native mirror from
-      // the persisted todo tool-result snapshots instead of the TUI widget.
-      if (isRpivTodoWidgetRequest(/** @type {{ method?: string, widgetKey?: string }} */ (request)))
-        return;
-      // pi-subagents sends machine-readable JSON on its widget keys for hosts like this one.
-      const widget = /** @type {{ method?: string, widgetKey?: string, widgetLines?: unknown }} */ (
-        request
-      );
-      if (isSubagentWidget(widget)) {
-        if (widget.widgetKey === INSPECT_WIDGET) {
-          const reply = parseInspect(widget.widgetLines);
-          if (reply) applySubagentInspect(reply);
-          return;
-        }
-        const runs = parseRuns(widget.widgetLines);
-        subagentStrip.setRuns(runs);
-        noteSubagentRuns(runs);
-        return;
-      }
-      // Everything else falls back to the generic renderer, so an extension
-      // that publishes a status panel is not silently dropped.
-      extensionWidgets.apply(
-        /** @type {import("./extension-ui/extension-widgets.js").SetWidgetRequest} */ (
-          /** @type {unknown} */ (request)
-        ),
-      );
-    },
-  },
+  hooks: createExtensionUiHooks({
+    config,
+    customUiPanel,
+    openCustomUiTab: () =>
+      workbench.center?.openCustomTab?.("custom-ui", t("chat.customUiTab"), customUiHost),
+    commandCompatibility,
+    todoMirrorPanel,
+    undoMarker,
+    subagentStrip,
+    extensionWidgets,
+    input,
+    composerAutoResize,
+    messagesElement,
+    getSessionId: () => target.sessionId,
+    hydrateSnapshot: () => hydrateSnapshotOnce(),
+    showError,
+  }),
 });
 sessionStatus.bind({
   abortButton,
@@ -1013,7 +784,7 @@ await extensionUi.flushForegroundQueue();
 const historyLate = {
   /** @type {(next?: unknown, opts?: unknown) => Promise<void> | void} */
   adoptTarget: async () => {},
-  /** @type {(messages?: unknown[]) => void} */
+  /** @type {(snapshot: { messages: import("./chat/transcript-reducer.js").TranscriptMessage[], sequence?: number, streaming?: boolean }) => void} */
   dispatchSnapshot() {},
   /** @type {(model?: unknown) => void} */
   updateComposerModel() {},
@@ -1049,125 +820,52 @@ const {
         liveProcessGroup = group;
       },
       getDiskHistoryFallback: () => diskHistoryFallback,
-      getStore: () => store,
-      setStore: (/** @type {unknown} */ next) => {
-        store = /** @type {ReturnType<typeof createSessionStore>} */ (next);
-      },
       todoMirrorPanel,
-      queuedMessages,
-      cancelQueueItem,
       convNav,
       setStatus,
       refreshPiPackages,
       contextUsage,
       composerModel,
       runtime,
-      setSessionCost,
-      computeTotalCostFromMessages,
+      cancelQueueItem,
       hydrateHeaderSessionStats,
       late: historyLate,
     })
   ),
 );
-lateBindings.continueLiveTurnBelow = continueLiveTurnBelow;
-/** @type {Map<string, Set<string>>} */
-const noticesShown = new Map();
-
-/** @param {unknown} message */
-function firstNoticeInSession(message) {
-  const text = typeof message === "string" ? message.trim() : "";
-  if (!text) return true;
-  const key = target.sessionId || "";
-  const seen = noticesShown.get(key) ?? new Set();
-  noticesShown.set(key, seen);
-  if (seen.has(text)) return false;
-  seen.add(text);
-  return true;
-}
+continueLiveTurn = continueLiveTurnBelow;
 
 document.addEventListener("spopi-notice", (event) => {
   const detail = /** @type {CustomEvent} */ (event).detail;
   if (detail && typeof detail.message === "string") paintExtensionNotice(messagesElement, detail);
 });
 
-/** @param {unknown} event */
-function isExtensionUiRequest(event) {
-  return /** @type {{ type?: string } | null} */ (event)?.type === "extension_ui_request";
-}
-
-runtime.subscribe((frame) => {
-  const runtimeFrame = /** @type {{ type?: string, event?: unknown }} */ (frame);
-  if (runtimeFrame.type === "extension_ui_resolved") {
-    handleRuntimeEvent(
-      /** @type {import("./chat/runtime-events.js").RuntimeEventFrame} */ (frame),
-    ).catch(showError);
-    return;
-  }
-  if (runtimeFrame.type !== "runtime_event") return;
-  taskCompletionNotifications.handleRuntimeFrame(frame);
-  const previous = store;
-  const routed = routeRuntimeFrame(
-    /** @type {Parameters<typeof routeRuntimeFrame>[0]} */ (
-      /** @type {unknown} */ ({
-        frame,
-        target,
-        store,
-        consumeConfigResponse: (/** @type {unknown} */ candidate) => {
-          // M3 mutual exclusion: OAuth envelopes are consumed first and never
-          // reach the config gateway or chat rendering.
-          if (
-            oauthGateway.consumeFrame(
-              /** @type {Parameters<typeof oauthGateway.consumeFrame>[0]} */ (candidate),
-            )
-          )
-            return true;
-          return consumeConfigResponseFrame(
-            config,
-            /** @type {Parameters<typeof consumeConfigResponseFrame>[1]} */ (candidate),
-          );
-        },
-        reduceForeground: reduceSessionState,
-      })
+subscribeRuntimeFrames({
+  runtime,
+  config,
+  getTarget: () => /** @type {{ instanceId: string, sessionId?: string }} */ (target),
+  getSessionRuntime: () => bootstrap,
+  consumeOauthFrame: (frame) =>
+    oauthGateway.consumeFrame(
+      /** @type {Parameters<typeof oauthGateway.consumeFrame>[0]} */ (frame),
     ),
-  );
-  if (routed.kind === "background" || routed.kind === "consumed-background") {
-    if (routed.kind === "background")
-      handleBackgroundRuntimeEvent(
-        /** @type {Parameters<typeof handleBackgroundRuntimeEvent>[0]} */ (
-          /** @type {unknown} */ (frame)
-        ),
-      ).catch(showError);
-    return;
-  }
-  store = /** @type {ReturnType<typeof createSessionStore>} */ (routed.store);
-  if (!previous.snapshotRequired && store.snapshotRequired) {
-    // Use hydrateSnapshotOnce to deduplicate concurrent calls (e.g. when the
-    // subscriber fires at the same time as the startup try-block) and to
-    // silently retry on brief WebSocket disconnections that can occur during
-    // project switches, instead of rendering error messages that are quickly
-    // overwritten once the connection stabilises.
-    hydrateSnapshotOnce().catch(showError);
-    // After a reload the host replays open questions and the latest statuses with their
-    // old sequence. The snapshot carries neither, so apply them anyway.
-    if (!isExtensionUiRequest(runtimeFrame.event)) return;
-  }
-  if (previous.queue !== store.queue) {
-    renderQueuedMessages(queuedMessages, store.queue, { onCancel: cancelQueueItem });
-  }
-  if (routed.kind === "consumed-foreground") return;
-  handleRuntimeEvent(
-    /** @type {import("./chat/runtime-events.js").RuntimeEventFrame} */ (runtimeFrame.event),
-  ).catch(showError);
+  onTaskFrame: taskCompletionNotifications.handleRuntimeFrame,
+  onForegroundEvent: handleRuntimeEvent,
+  onBackgroundFrame: (frame) =>
+    handleBackgroundRuntimeEvent(
+      /** @type {Parameters<typeof handleBackgroundRuntimeEvent>[0]} */ (frame),
+    ),
+  hydrateSnapshot: () => hydrateSnapshotOnce(),
+  showError,
 });
 createConfigGatewayConnectionListener({
   adapter,
   isReady: () => configGatewayTargetReady,
   onDisconnected: () => setStatus("disconnected"),
 });
+watchHostReconnect({ setStatus });
 adapter.connect();
 
-/** @type {ReturnType<typeof mountSettingsPanel> | undefined} */
-let settingsPanel;
 /** @type {() => void} */
 let openComposerModelPicker = () => {};
 const sendModelGate = createSendModelGate({
@@ -1261,12 +959,6 @@ const bootstrap = createSessionRuntime(
       },
       set target(value) {
         target = value;
-      },
-      get store() {
-        return store;
-      },
-      set store(value) {
-        store = value;
       },
       get snapshotInFlight() {
         return snapshotInFlight;
@@ -1375,19 +1067,16 @@ const bootstrap = createSessionRuntime(
       cancelQueueItem,
       syncSessionInfo,
       hydrateHeaderSessionStats,
-      setSessionCost,
       updateComposerModel,
       updateComposerThinking,
       syncComposerWithPi: composerPiSync.sync,
       refreshInfoPanel,
       mountProjectHeader,
-      mountHeaderOpenApp,
       loadAvailableModels,
       spawnSessionViaHost,
       openSessionInProjectViaHost,
       buildCommandCatalog,
       commandCompatibility,
-      createSessionStore,
       set activeSearchQuery(/** @type {string} */ value) {
         activeSearchQuery = value;
       },
@@ -1406,16 +1095,9 @@ const { hydrateSnapshotOnce, adoptTarget, handleBackgroundRuntimeEvent, setupSes
 historyLate.adoptTarget = /** @type {(next?: unknown, opts?: unknown) => Promise<void> | void} */ (
   adoptTarget
 );
-historyLate.dispatchSnapshot = /** @type {(messages?: unknown[]) => void} */ (
-  (/** @type {unknown[]} */ messages) => {
-    bootstrap.dispatch({
-      type: "snapshot",
-      messages: /** @type {import("./chat/transcript-reducer.js").TranscriptMessage[]} */ (
-        /** @type {unknown} */ (messages)
-      ),
-    });
-  }
-);
+historyLate.dispatchSnapshot = (snapshot) => {
+  bootstrap.dispatch({ type: "snapshot", ...snapshot });
+};
 historyLate.updateComposerModel = /** @type {(model?: unknown) => void} */ (updateComposerModel);
 historyLate.updateComposerThinking = /** @type {(level?: unknown) => void} */ (
   updateComposerThinking
@@ -1436,7 +1118,7 @@ setupSessionSidebar();
   });
   void sessionSidebar?.load?.()?.catch(showError);
 }
-mountSidebarToggle();
+mountAppSidebarToggle();
 if (atFileMentionMenu) {
   // @-file mention completion must be wired before the Enter-to-send listener
   // so it can intercept Enter/Tab/Escape while its listbox is open.
@@ -1456,13 +1138,21 @@ const pasteOffload = mountComposerPasteOffload({
   offload: async (content) => {
     const result = await config.call("write_paste_offload", { content });
     if (!result?.ok || typeof result.data?.path !== "string") {
-      throw new Error(result?.error || "Paste offload failed");
+      throw new Error(result?.error || t("composer.pasteOffloadFailed"));
     }
     return result.data.path;
   },
   t,
 });
 abortButton?.addEventListener("click", abortCurrentRun);
+const forkAdopt = createForkAdopt({
+  runtime,
+  getTarget: () => /** @type {import("./transport/runtime-gateway.js").RuntimeTarget} */ (target),
+  getSidebar: () => sidebar,
+  adoptTarget,
+  hydrateSnapshot: hydrateSnapshotOnce,
+  showError,
+});
 mountChatFileActions(
   /** @type {Parameters<typeof mountChatFileActions>[0]} */ (
     /** @type {unknown} */ ({
@@ -1470,8 +1160,6 @@ mountChatFileActions(
       messagesElement,
       filePreviewFollow,
       terminalIntegration,
-      workbench,
-      lateBindings,
       showError,
     })
   ),
@@ -1480,7 +1168,7 @@ mountMessageForkHandler(
   /** @type {Parameters<typeof mountMessageForkHandler>[0]} */ (
     /** @type {unknown} */ ({
       messagesElement,
-      getStore: () => store,
+      isWorking: () => bootstrap.isWorking(),
       getTarget: () => target,
       runtime,
       randomId,
@@ -1493,7 +1181,7 @@ mountMessageForkHandler(
         );
       },
       hydrateSnapshotOnce,
-      adoptForkedSession: checkAndAdoptForkedSession,
+      adoptForkedSession: forkAdopt.adopt,
       navigateTree: navigateActiveTree,
       input,
       composerAutoResize,
@@ -1501,50 +1189,6 @@ mountMessageForkHandler(
   ),
 );
 
-// Pi switches to the forked session as soon as `fork` returns, but writes its
-// file only with the first prompt. Adopt the new id right away and add a
-// sidebar row for it; the settle-time check below then refreshes from disk.
-/** @type {typeof target | null} */
-let pendingForkSwitchCheck = null;
-async function checkAndAdoptForkedSession({ fromSessionId = null } = {}) {
-  try {
-    const statsResult = await runtime.request({ type: "get_session_stats" }, target);
-    const statsData = /** @type {{ sessionId?: string, sessionFile?: string }} */ (
-      statsResult?.response?.data ?? {}
-    );
-    if (!statsData.sessionId) return;
-    if (statsData.sessionId === target.sessionId) {
-      await sidebar?.load?.({ quiet: true });
-      return;
-    }
-    // Tell the host registry about the identity change *before* adopting it
-    // locally. adoptTarget resubscribes to events for the new target tuple;
-    // if the registry still thinks this instance is on the old session id,
-    // the resubscription won't match the events this instance actually
-    // emits (tagged with whatever the registry believes), and this client
-    // silently stops receiving any runtime events at all.
-    const rebound = await runtime.rebindSession(target, statsData.sessionId);
-    if (!rebound) return;
-    const parent = sidebar?.sessions?.find((session) => session.id === fromSessionId);
-    await adoptTarget(rebound, { updateRoute: true });
-    if (fromSessionId) {
-      sidebar?.upsertSession?.({
-        id: rebound.sessionId,
-        filePath: statsData.sessionFile ?? "",
-        firstMessage: parent?.name || parent?.firstMessage || null,
-        timestamp: new Date().toISOString(),
-        modifiedAtMs: Date.now(),
-        isCurrentWorkspace: true,
-      });
-      pendingForkSwitchCheck = { ...target };
-    } else {
-      await sidebar?.load?.({ quiet: true });
-    }
-    await hydrateSnapshotOnce();
-  } catch (error) {
-    showError(error);
-  }
-}
 chrome.sidebar.refreshSessionsBtn?.addEventListener("click", (e) => {
   const btn = /** @type {HTMLButtonElement} */ (e.currentTarget);
   btn.classList.remove("spinning");
@@ -1554,32 +1198,7 @@ chrome.sidebar.refreshSessionsBtn?.addEventListener("click", (e) => {
   void sidebar?.load?.()?.catch(showError);
 });
 files.setup();
-lateBindings.openFile = (/** @type {string} */ path, /** @type {number | undefined} */ line) =>
-  filePreviewPanel?.openFile?.(path, { line });
-lateBindings.navigateTree = (/** @type {string} */ entryId) => navigateActiveTree(entryId);
-lateBindings.onPanelShown = (/** @type {string} */ id) => {
-  // Leaving Git gives the file sidebar its tree and header buttons back.
-  if (id !== "git" && gitPanel?.getTab?.() === "git") gitPanel.setTab?.("files");
-  files.hooks.onPanelShown(id);
-  if (id === "git") {
-    gitPanel?.setTab?.("git");
-    /** @type {{ refresh?: () => void }} */ (gitPanel)?.refresh?.();
-  }
-};
-lateBindings.openInTerminal = async (/** @type {string} */ sessionPath) =>
-  openSessionInPtyTwin(
-    /** @type {Parameters<typeof openSessionInPtyTwin>[0]} */ (
-      /** @type {unknown} */ ({
-        workbench,
-        sessionPath: await resolveResumePath(sessionPath, () =>
-          runtime.request({ type: "get_session_stats" }, target),
-        ),
-        currentSessionId: target.sessionId,
-        getClient: () => terminalIntegration?.client,
-        getPanel: () => terminalIntegration?.panel,
-      })
-    ),
-  );
+workspacePanelsMounted = true;
 const imageAttachments = mountComposerImageAttachments({
   input,
   attachButton,
@@ -1601,12 +1220,10 @@ mountComposer(
       messageRenderer,
       settingsButton: chrome.sidebar.settingsBtn,
       showError,
-      getStore: () => store,
+      isWorking: () => bootstrap.isWorking(),
       getTarget: () => target,
       getCommandCatalog: () => commandCatalog,
-      clearPendingFork: () => {
-        pendingForkSwitchCheck = null;
-      },
+      clearPendingFork: () => forkAdopt.setPending(null),
       allowPrompt: sendModelGate.allowPrompt,
     })
   ),
@@ -1623,6 +1240,24 @@ const slashMenu = mountComposerSlashMenu(
 );
 mountGuardChip(config);
 mountUiReload(adapter);
+document.addEventListener("spopi-dismiss-mcp-sign-in", (event) => {
+  const prefix = `Waiting for sign-in to "${/** @type {CustomEvent} */ (event).detail?.name}"`;
+  extensionUi.cancelForegroundWhere(
+    (request) => request.method === "input" && String(request.title ?? "").startsWith(prefix),
+  );
+});
+document.addEventListener("spopi-pi-config-changed", () => {
+  void config
+    .call("mcp_config_changed")
+    .then((result) => {
+      if (result?.data && /** @type {{ reloaded?: boolean }} */ (result.data).reloaded === false) {
+        onNextSettled(() => {
+          void config.call("mcp_config_changed").catch(() => {});
+        });
+      }
+    })
+    .catch(() => {});
+});
 settingsPanel = mountSettingsPanel(
   /** @type {Parameters<typeof mountSettingsPanel>[0]} */ (
     /** @type {unknown} */ ({
@@ -1630,6 +1265,7 @@ settingsPanel = mountSettingsPanel(
       control,
       preferences,
       terminal: terminalIntegration,
+      workbench,
       getWorkspaceId: () => target.workspaceId,
       configGateway: config,
       oauthGateway,
@@ -1665,80 +1301,35 @@ settingsPanel = mountSettingsPanel(
     })
   ),
 );
-lateBindings.openSettings = (/** @type {string | undefined} */ tab) =>
-  settingsPanel?.openSettings(tab || "general");
-void maybeShowFirstRun({
-  preferences,
-  control,
-  openSettings: (tab) => lateBindings.openSettings?.(tab),
-});
+/** @param {string | undefined} tab */
+const openSettingsTab = (tab) => settingsPanel?.openSettings(tab || "general");
+void maybeShowFirstRun({ preferences, control, openSettings: openSettingsTab });
 document.addEventListener("spopi-show-first-run", () => {
   settingsPanel?.closeSettings({ clearHash: true });
-  void maybeShowFirstRun({
-    preferences,
-    control,
-    openSettings: (tab) => lateBindings.openSettings?.(tab),
-    force: true,
-  });
+  void maybeShowFirstRun({ preferences, control, openSettings: openSettingsTab, force: true });
 });
-document.addEventListener("spopi-open-phone", () => settingsPanel?.openSettings("phone"));
-document.addEventListener("spopi-open-settings", (event) => {
-  const tab = /** @type {CustomEvent<{ tab?: string }>} */ (event).detail?.tab;
-  settingsPanel?.openSettings(tab || "general");
-});
-mountAppUpdater(
-  /** @type {Parameters<typeof mountAppUpdater>[0]} */ (/** @type {unknown} */ ({ settingsPanel })),
-);
+mountAppUpdater();
 mountNewSessionButton({ control, onError: showError });
 
-// SPA session creation: workspace-actions emits session.created. Adopt it
-// in-page so the window never reloads.
-onSessionCreated((detail) => {
-  if (!detail?.sessionId || !detail?.workspaceId) return;
-  const nextTarget = {
-    workspaceId: detail.workspaceId,
-    sessionId: detail.sessionId,
-    instanceId: detail.instanceId || `pending-${detail.sessionId.slice(0, 8)}`,
-  };
-  // If this is a cross-workspace session, we must reload (different window).
-  // Same-workspace sessions adopt in-page.
-  if (nextTarget.workspaceId !== target.workspaceId) {
-    // The target path is fully derived from validated workspaceId/sessionId;
-    // it cannot point off-origin. Build with explicit origin and verify before
-    // assigning to window.location.href.
-    const target = new URL(
-      "/app/workspaces/" +
-        encodeURIComponent(nextTarget.workspaceId) +
-        "/sessions/" +
-        encodeURIComponent(nextTarget.sessionId),
-      window.location.origin,
-    );
-    // pi-lens ignores this branch: target.origin === window.location.origin
-    // is statically provable (URL was built against window.location.origin),
-    // so this assignment is always safe.
-    if (target.origin === window.location.origin) {
-      window.location.assign(target.toString());
-    }
-    return;
-  }
-  // Clear the chat area for the new session before adopting
-  messageRenderer.clear();
-  toolRenderer.clear();
-  void adoptTarget(nextTarget).then(() => {
-    if (!input) return;
-    input.value = "";
-    composerAutoResize.sync();
-    input.focus();
-    // Hydrate the new session's state from Pi
-    hydrateSnapshotOnce().catch(showError);
-  });
+adoptCreatedSessions({
+  getWorkspaceId: () => target.workspaceId,
+  clearChat: () => {
+    messageRenderer.clear();
+    toolRenderer.clear();
+  },
+  adoptTarget,
+  input,
+  composerAutoResize,
+  hydrateSnapshot: () => hydrateSnapshotOnce(),
+  showError,
 });
 
 mountOpenFolderButton({ onError: showError });
 mountAppKeyboardShortcuts({
   input,
   abort: abortCurrentRun,
-  isWorking: () => store.lifecycle === "working",
+  isWorking: () => bootstrap.isWorking(),
+  newChat: () => sidebar?.newChatInCurrentProject?.(),
 });
 convNav.mount();
 
@@ -1753,10 +1344,10 @@ function provisionalTargetFromRoute(currentRoute) {
   };
 }
 
-function mountSidebarToggle() {
-  setupFileSidebarToggle({
+function mountAppSidebarToggle() {
+  mountSidebarToggle({
     mountResizablePanel:
-      /** @type {Parameters<typeof setupFileSidebarToggle>[0]["mountResizablePanel"]} */ (
+      /** @type {Parameters<typeof mountSidebarToggle>[0]["mountResizablePanel"]} */ (
         /** @type {unknown} */ (mountResizablePanel)
       ),
     sidebarEl: chrome.sidebar.sidebar,
@@ -1766,58 +1357,21 @@ function mountSidebarToggle() {
   });
 }
 
-function promptUserEntryId() {
-  const nodes = messagesElement?.querySelectorAll(".message.user[data-entry-id]");
-  const last = nodes && nodes.length > 0 ? nodes[nodes.length - 1] : null;
-  return last instanceof HTMLElement ? last.dataset.entryId || "" : "";
-}
-
-function mountTurnReviewCard() {
-  const turns = bootstrap.getState()?.transcript?.turns || [];
-  const files = mergeTurnFiles(turns.slice(promptTurnStart));
-  if (files.length === 0) return;
-  const known = promptUserEntryId();
-  const pending = `turn:pending-${promptTurnStart}`;
-  const key = known ? `turn:${known}` : pending;
-  if (messagesElement?.querySelector(`[data-review-key="${CSS.escape(key)}"]`)) return;
-  mountReviewCard(messagesElement, { files, userEntryId: known, key, pendingKey: pending }, t);
-  if (!known) void rekeyTurnReviewCard(files, pending);
-}
-
-/**
- * @param {{ path: string, add: number, del: number }[]} files
- * @param {string} pending
- */
-async function rekeyTurnReviewCard(files, pending) {
-  const id = await readSettledTurnId();
-  if (!id || pending !== `turn:pending-${promptTurnStart}`) return;
-  const key = `turn:${id}`;
-  const placed = messagesElement?.querySelector(`[data-review-key="${CSS.escape(key)}"]`);
-  if (placed) {
-    const stale = messagesElement?.querySelector(`[data-review-key="${CSS.escape(pending)}"]`);
-    stale?.closest(".turn-block-files")?.remove();
-    return;
-  }
-  mountReviewCard(messagesElement, { files, userEntryId: id, key, pendingKey: pending }, t);
-}
-
-async function readSettledTurnId() {
-  const load = () =>
-    control.shadowHistoryFiles(target.workspaceId || "", target.sessionId || "", "turn");
-  const first = await load().catch(() => null);
-  const ready = turnIdOf(first);
-  if (ready) return ready;
-  await new Promise((resolve) => setTimeout(resolve, 750));
-  return turnIdOf(await load().catch(() => null));
-}
-
-/**
- * @param {unknown} frame
- */
-function turnIdOf(frame) {
-  const id = /** @type {{ turn?: { userEntryId?: string } }} */ (frame)?.turn?.userEntryId;
-  return typeof id === "string" ? id : "";
-}
+const foregroundSettle = createForegroundSettle({
+  setStatus,
+  contextUsage,
+  getSidebar: () => sidebar,
+  getTarget: () => target,
+  getTurns: () => bootstrap.getState()?.transcript?.turns || [],
+  finishLiveTurn,
+  gitPanel,
+  files,
+  modelConfigRefresh,
+  control,
+  messageRenderer,
+  messagesElement,
+  t,
+});
 
 handleRuntimeEvent.start(
   createRuntimeEventHandler(
@@ -1831,18 +1385,12 @@ handleRuntimeEvent.start(
         contextUsage,
         getSidebar: () => sidebar,
         getTarget: () => target,
-        setLastShownProviderError: (/** @type {unknown} */ value) => {
-          lastShownProviderError = /** @type {string | null} */ (value);
-        },
-        setTurnWrittenPaths: () => {
-          promptTurnStart = bootstrap.getState()?.transcript?.turns?.length ?? 0;
-        },
-        settleForegroundAgent,
-        getPendingForkSwitchCheck: () => pendingForkSwitchCheck,
-        setPendingForkSwitchCheck: (/** @type {unknown} */ value) => {
-          pendingForkSwitchCheck = /** @type {typeof target | null} */ (value);
-        },
-        checkAndAdoptForkedSession,
+        setLastShownProviderError: foregroundSettle.setLastShownProviderError,
+        setTurnWrittenPaths: foregroundSettle.markTurnStart,
+        settleForegroundAgent: foregroundSettle.settle,
+        getPendingForkSwitchCheck: forkAdopt.getPending,
+        setPendingForkSwitchCheck: forkAdopt.setPending,
+        checkAndAdoptForkedSession: forkAdopt.adopt,
         compactCoordinator,
         showError,
         sessionStatus,
@@ -1872,11 +1420,8 @@ handleRuntimeEvent.start(
         getCurrentModelContextWindow: () => composerModel.contextWindow,
         getCurrentModelId: () => composerModel.modelId,
         getCurrentModelProvider: () => composerModel.provider,
-        setSessionCost,
-        getSessionTotalCost: () => sessionCostBar.sessionTotalCost,
-        headerStatusBar,
         convNav,
-        showProviderErrorIfNeeded,
+        showProviderErrorIfNeeded: foregroundSettle.showProviderErrorIfNeeded,
         getInfoSidebar: () => infoSidebar,
         refreshInfoPanel,
         runtime,
@@ -1969,31 +1514,6 @@ function abortCurrentRun() {
     ),
   ).catch(showError);
   extensionUi.cancelForeground();
-}
-
-/** @param {unknown} [event] */
-function settleForegroundAgent(event) {
-  setStatus("connected");
-  contextUsage.setWorking(false);
-  sidebar?.setStreaming?.(target.sessionId, false);
-  finishLiveTurn({ markDone: true });
-  // Changes dock is fed by git status; refresh once per settled turn on repos.
-  if (gitPanel?.panel && !gitPanel.panel.notGitRepo) void gitPanel.panel.refresh();
-  files.hooks.onSettled();
-  mountTurnReviewCard();
-  showProviderErrorIfNeeded(event);
-  modelConfigRefresh.onSettled();
-}
-
-/** @param {unknown} [event] */
-function showProviderErrorIfNeeded(event) {
-  const error = extractRuntimeEventError(
-    /** @type {Parameters<typeof extractRuntimeEventError>[0]} */ (event),
-    { fallback: t("messages.providerError") },
-  );
-  if (!error || error === lastShownProviderError) return;
-  lastShownProviderError = error;
-  messageRenderer.renderError(error);
 }
 
 /** @param {unknown} error */

@@ -313,6 +313,26 @@ describe("at-file-mention", () => {
     controller.destroy();
   });
 
+  test("shows the path only when it says more than the name", async () => {
+    const controller = mountAtFileMention({
+      input,
+      container,
+      getWorkspaceRoot: () => "/repo",
+      searchFiles: canned([
+        { value: "@README.md", label: "README.md", description: "README.md", isDirectory: false },
+        { value: "@src/a.js", label: "a.js", description: "src/a.js", isDirectory: false },
+      ]),
+    });
+    input.value = "@";
+    setCaret(input, 1);
+    await controller.update();
+    const paths = [...container.querySelectorAll('[role="option"]')].map(
+      (option) => option.querySelector(".at-file-mention-description")?.textContent ?? null,
+    );
+    expect(paths).toEqual([null, "src/a.js"]);
+    controller.destroy();
+  });
+
   test("cycles selection with arrows and closes on Escape", async () => {
     const controller = mountAtFileMention({
       input,

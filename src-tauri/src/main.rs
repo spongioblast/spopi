@@ -463,7 +463,8 @@ fn setup_native_runtime(app: &AppHandle, static_dir: PathBuf) -> Result<(), Stri
         log::info!("[spopi-host] another SPOPI is running; unused projects are left alone");
     }
     let first_instance = sweep_lock.is_some_and(|lock| SWEEP_LOCK.set(lock).is_ok());
-    if let Some(store) = metadata.lock().ok().filter(|_| first_instance) {
+    // A scratch profile cannot see the real profile's lock, which may have a project open.
+    if let Some(store) = metadata.lock().ok().filter(|_| first_instance && !scratch) {
         use crate::data::projects_folder::{
             resolve_projects_folder, sweep_untouched_projects, PROJECTS_FOLDER_PREF,
         };

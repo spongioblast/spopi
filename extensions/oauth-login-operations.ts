@@ -1,18 +1,7 @@
-// ABOUTME: Tracks one Codex device-code login and the events it emits.
-// ABOUTME: Errors shown to the user are stripped of secrets.
-// ABOUTME: Owns in-memory Codex OAuth login operations inside the bridge process.
-// PROJECT: Projects only non-secret device-code progress and terminal states to the UI.
+// ABOUTME: Tracks the one in-memory Codex device-code login and the events it emits.
+// ABOUTME: Only non-secret progress and terminal events reach the UI; error text is stripped of secrets.
 
 import { randomUUID } from "node:crypto";
-
-export type OAuthOperationState =
-  | "starting"
-  | "awaiting_device_authorization"
-  | "polling"
-  | "succeeded"
-  | "failed"
-  | "cancelled"
-  | "expired";
 
 /**
  * Non-secret operation events projected to the WebView. The transport
@@ -38,12 +27,6 @@ export type OAuthLoginOperationManager = {
   /** Abort the active operation. Unknown ids are a tolerated no-op (M2). */
   cancel(operationId: string): OAuthOperationEvent | null;
   expire(operationId: string): OAuthOperationEvent;
-  /**
-   * Status lookup. Unknown operationIds (pi restart / extension reload wiped
-   * the in-memory map) resolve to `{ state: "expired" }` per design §5 (M2)
-   * so the UI returns to its initial state instead of hanging.
-   */
-  getStatus(operationId: string): { provider: "openai-codex"; state: OAuthOperationState };
 };
 
 /** Device-code payload forwarded from Pi's AuthEvent.device_code. */
@@ -56,11 +39,8 @@ export type OAuthDeviceCodeInput = {
 
 type OAuthOperation = {
   operationId: string;
-  state: OAuthOperationState;
   controller: AbortController;
 };
-
-const PROVIDER = "openai-codex";
 
 /**
  * Strip token-like material from a failure message before it reaches the
@@ -119,7 +99,6 @@ export function createOAuthLoginOperationManager(
       if (active) throw new Error("OAuth login already in progress");
       const operation: OAuthOperation = {
         operationId: createId(),
-        state: "starting",
         controller: new AbortController(),
       };
       active = operation;
@@ -127,8 +106,7 @@ export function createOAuthLoginOperationManager(
     },
 
     bindDeviceCode(operationId, code) {
-      const operation = assertActive(operationId);
-      operation.state = "awaiting_device_authorization";
+      assertActive(operationId);
       return {
         type: "device_code",
         verificationUri: code.verificationUri,
@@ -139,21 +117,19 @@ export function createOAuthLoginOperationManager(
     },
 
     bindProgress(operationId, message) {
-      const operation = assertActive(operationId);
-      operation.state = "polling";
+      assertActive(operationId);
       return { type: "progress", message };
     },
 
     complete(operationId) {
-      const operation = assertActive(operationId);
-      operation.state = "succeeded";
-      return terminal(operation, { type: "complete" });
+      return terminal(assertActive(operationId), { type: "complete" });
     },
 
     fail(operationId, error) {
-      const operation = assertActive(operationId);
-      operation.state = "failed";
-      return terminal(operation, { type: "failed", message: sanitizeOAuthError(error) });
+      return terminal(assertActive(operationId), {
+        type: "failed",
+        message: sanitizeOAuthError(error),
+      });
     },
 
     cancel(operationId) {
@@ -161,21 +137,11 @@ export function createOAuthLoginOperationManager(
       // pi restart or extension reload; the UI treats it as expired anyway.
       if (!active || active.operationId !== operationId) return null;
       active.controller.abort();
-      active.state = "cancelled";
       return terminal(active, { type: "cancelled" });
     },
 
     expire(operationId) {
-      const operation = assertActive(operationId);
-      operation.state = "expired";
-      return terminal(operation, { type: "expired" });
-    },
-
-    getStatus(operationId) {
-      if (!active || active.operationId !== operationId) {
-        return { provider: PROVIDER, state: "expired" };
-      }
-      return { provider: PROVIDER, state: active.state };
+      return terminal(assertActive(operationId), { type: "expired" });
     },
   };
 }

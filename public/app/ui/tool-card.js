@@ -1,26 +1,33 @@
 // ABOUTME: Renders collapsible tool execution cards and their streaming output.
 // ABOUTME: Uses container-level event delegation so dynamically added cards need no per-element listeners.
 
-const SVG_NS = "http://www.w3.org/2000/svg";
-
 import { previewFile, runInTerminal } from "../chat/file-actions.js";
-import { computeHunks, renderHunkList } from "../editor/merge-view.js";
 import { onLocaleChange, t } from "../i18n/i18n.js";
 import { chatFollow } from "./chat-follow.js";
 import { copyText } from "./clipboard.js";
+import {
+  appendToolResultImages,
+  createArgsPreview,
+  createNestedRow,
+  createToolChevron,
+  createToolCopyButton,
+  renderNestedRecord,
+  renderToolDiff,
+  showSavedOutput,
+} from "./tool-card-parts.js";
+import {
+  formatToolJson,
+  formatToolResult,
+  nestedRecord,
+  toolArgsPreview,
+} from "./tool-card-result.js";
+import { displayToolName } from "./tool-display-name.js";
 
 /**
- * @typedef {object} ToolArgs
- * @property {string} [path]
- * @property {string} [file_path]
- * @property {string} [filePath]
- * @property {string} [command]
- * @property {string} [query]
- * @property {string} [url]
- * @property {string} [oldText]
- * @property {string} [old_text]
- * @property {string} [newText]
- * @property {string} [new_text]
+ * @typedef {import("./tool-card-result.js").ToolArgs} ToolArgs
+ * @typedef {import("./tool-card-result.js").ToolResult} ToolResult
+ * @typedef {import("./tool-card-result.js").NestedCallRecord} NestedCallRecord
+ * @typedef {import("./tool-card-parts.js").NestedCall} NestedCall
  */
 
 /**
@@ -31,53 +38,6 @@ import { copyText } from "./clipboard.js";
  * @property {string} [status]
  * @property {string} [output]
  */
-
-/**
- * @typedef {object} ToolResultContentBlock
- * @property {string} [type]
- * @property {string} [text]
- * @property {string} [data]
- * @property {string} [mimeType]
- */
-
-/**
- * A screenshot is hundreds of KB of base64; the card names it instead of printing it.
- * @param {ToolResultContentBlock} block
- */
-function imagePlaceholder(block) {
-  const kb = Math.round(((block.data?.length ?? 0) * 3) / 4 / 1024);
-  return `[image ${block.mimeType ?? ""}, ${kb} KB]`.replace(" ,", ",");
-}
-
-/**
- * @typedef {object} ToolResult
- * @property {ToolResultContentBlock[]} [content]
- * @property {{ spopiToolOutput?: { path?: unknown } }} [details]
- */
-
-/**
- * Project-relative file where spopi-tool-output saved a long result, or "".
- * @param {ToolResult | string | null | undefined} result
- */
-function savedOutputPath(result) {
-  if (!result || typeof result !== "object") return "";
-  const path = result.details?.spopiToolOutput?.path;
-  return typeof path === "string" ? path : "";
-}
-
-/**
- * @param {ToolArgs | null | undefined} args
- */
-function filePathFromArgs(args) {
-  if (!args || typeof args !== "object") return "";
-  /** @type {Array<"path" | "file_path" | "filePath">} */
-  const keys = ["path", "file_path", "filePath"];
-  for (const key of keys) {
-    const value = args[key];
-    if (typeof value === "string" && value.trim()) return value.trim();
-  }
-  return "";
-}
 
 export class ToolCardRenderer {
   /**
@@ -212,21 +172,22 @@ export class ToolCardRenderer {
 
     const headerLeft = document.createElement("div");
     headerLeft.className = "tool-header-left";
-    const chevron = this._createChevron(isExpanded);
+    const chevron = createToolChevron(isExpanded);
     headerLeft.appendChild(chevron);
 
     const name = document.createElement("span");
     name.className = "tool-name";
-    name.textContent = toolName;
+    name.textContent = displayToolName(toolName);
+    name.title = toolName;
     headerLeft.appendChild(name);
     if (argsPreview) {
-      headerLeft.appendChild(this._createArgsPreview(argsPreview, args));
+      headerLeft.appendChild(createArgsPreview(argsPreview, args));
     }
     header.appendChild(headerLeft);
 
     const headerRight = document.createElement("div");
     headerRight.className = "tool-header-right";
-    headerRight.appendChild(this._createCopyButton());
+    headerRight.appendChild(createToolCopyButton());
 
     const statusElement = document.createElement("div");
     statusElement.className = `tool-status ${status}`;
@@ -258,59 +219,6 @@ export class ToolCardRenderer {
     this.scrollToBottom();
 
     return card;
-  }
-
-  /**
-   * @param {boolean} [expanded]
-   */
-  _createChevron(expanded = false) {
-    const chevron = document.createElement("span");
-    chevron.className = `tool-card-chevron${expanded ? " expanded" : ""}`;
-    const svg = document.createElementNS(SVG_NS, "svg");
-    svg.setAttribute("width", "8");
-    svg.setAttribute("height", "8");
-    svg.setAttribute("viewBox", "0 0 8 8");
-    svg.setAttribute("fill", "currentColor");
-    const path = document.createElementNS(SVG_NS, "path");
-    path.setAttribute("d", "M2 1l4 3-4 3z");
-    svg.appendChild(path);
-    chevron.appendChild(svg);
-    return chevron;
-  }
-
-  _createCopyButton() {
-    const copyButton = document.createElement("button");
-    copyButton.className = "tool-action-btn copy-output-btn";
-    const label = t("tools.copyOutput");
-    copyButton.title = label;
-    copyButton.setAttribute("aria-label", label);
-
-    const svg = document.createElementNS(SVG_NS, "svg");
-    for (const [name, value] of [
-      ["width", "13"],
-      ["height", "13"],
-      ["viewBox", "0 0 24 24"],
-      ["fill", "none"],
-      ["stroke", "currentColor"],
-      ["stroke-width", "2"],
-      ["stroke-linecap", "round"],
-      ["stroke-linejoin", "round"],
-    ]) {
-      svg.setAttribute(name, value);
-    }
-    const rect = document.createElementNS(SVG_NS, "rect");
-    rect.setAttribute("width", "14");
-    rect.setAttribute("height", "14");
-    rect.setAttribute("x", "8");
-    rect.setAttribute("y", "8");
-    rect.setAttribute("rx", "2");
-    const path = document.createElementNS(SVG_NS, "path");
-    path.setAttribute("d", "M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2");
-    svg.append(rect, path);
-    copyButton.appendChild(svg);
-    // Click handling is delegated to the container listener; no per-button
-    // listener is needed here.
-    return copyButton;
   }
 
   /**
@@ -368,10 +276,10 @@ export class ToolCardRenderer {
     // Update output with final result
     const outputElement = card.querySelector(".tool-output");
     if (outputElement && result) {
-      const output = this.formatResult(result);
-      outputElement.textContent = output;
+      outputElement.textContent = this.formatResult(result, { includeImages: false });
+      this.appendResultImages(outputElement, result);
     }
-    this._showSavedOutput(card, result);
+    showSavedOutput(card, result);
 
     // Collapse completed cards (less noise)
     if (!isError) {
@@ -403,17 +311,18 @@ export class ToolCardRenderer {
     const headerLeft = document.createElement("div");
     headerLeft.className = "tool-header-left";
 
-    const chevron = this._createChevron();
+    const chevron = createToolChevron();
     headerLeft.appendChild(chevron);
 
     const name = document.createElement("span");
     name.className = "tool-name";
-    name.textContent = toolName;
+    name.textContent = displayToolName(toolName);
+    name.title = toolName;
     headerLeft.appendChild(name);
 
     const preview = this.getArgsPreview(toolName, args);
     if (preview) {
-      headerLeft.appendChild(this._createArgsPreview(preview, args));
+      headerLeft.appendChild(createArgsPreview(preview, args));
     }
 
     header.appendChild(headerLeft);
@@ -422,7 +331,7 @@ export class ToolCardRenderer {
     const headerRight = document.createElement("div");
     headerRight.className = "tool-header-right";
 
-    const copyBtn = this._createCopyButton();
+    const copyBtn = createToolCopyButton();
     headerRight.appendChild(copyBtn);
 
     const status = document.createElement("div");
@@ -491,35 +400,11 @@ export class ToolCardRenderer {
 
     const outputElement = card.querySelector(".tool-output");
     if (outputElement && result) {
-      outputElement.textContent = this.formatResult(result);
+      outputElement.textContent = this.formatResult(result, { includeImages: false });
+      this.appendResultImages(outputElement, result);
     }
-    this._showSavedOutput(card, result);
-  }
-
-  /**
-   * The card shows the full result; this line says the model got a digest and links the saved file.
-   * @param {HTMLElement} card
-   * @param {ToolResult | string | null | undefined} result
-   */
-  _showSavedOutput(card, result) {
-    card.querySelector(".tool-output-saved")?.remove();
-    const path = savedOutputPath(result);
-    if (!path) return;
-    const note = document.createElement("div");
-    note.className = "tool-output-saved";
-    const label = document.createElement("span");
-    label.className = "tool-output-saved-label";
-    label.textContent = t("tools.outputSaved");
-    const link = document.createElement("button");
-    link.type = "button";
-    link.className = "tool-file-ref";
-    link.dataset.path = path;
-    link.textContent = path;
-    const preview = t("tools.openInPreview");
-    link.title = preview;
-    link.setAttribute("aria-label", `${preview}: ${path}`);
-    note.append(label, link);
-    card.querySelector(".tool-card-body")?.appendChild(note);
+    this.renderNestedRecord(card, nestedRecord(result));
+    showSavedOutput(card, result);
   }
 
   /** Compact preview for the header line */
@@ -528,76 +413,14 @@ export class ToolCardRenderer {
    * @param {ToolArgs | null | undefined} [args]
    */
   getArgsPreview(_toolName, args) {
-    if (!args || Object.keys(args).length === 0) return "";
-
-    const filePath = filePathFromArgs(args);
-    if (filePath) return filePath;
-
-    // Show the most relevant arg inline
-    if (args.command) return args.command.substring(0, 80);
-    if (args.query) return args.query.substring(0, 60);
-    if (args.url) return args.url;
-
-    // Fallback: first string value
-    for (const val of Object.values(args)) {
-      if (typeof val === "string" && val.length > 0) {
-        return val.substring(0, 60);
-      }
-    }
-    return "";
-  }
-
-  /**
-   * @param {string} previewText
-   * @param {ToolArgs | null | undefined} args
-   */
-  _createArgsPreview(previewText, args) {
-    const filePath = filePathFromArgs(args);
-    if (filePath) {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "tool-args-preview tool-file-ref";
-      button.dataset.path = filePath;
-      button.textContent = previewText;
-      const label = t("tools.openInPreview");
-      button.title = label;
-      button.setAttribute("aria-label", `${label}: ${filePath}`);
-      return button;
-    }
-    if (args?.command) {
-      const wrap = document.createElement("span");
-      wrap.className = "tool-args-preview-wrap";
-      const preview = document.createElement("span");
-      preview.className = "tool-args-preview";
-      preview.textContent = previewText;
-      preview.title = String(args.command);
-      const run = document.createElement("button");
-      run.type = "button";
-      run.className = "tool-action-btn tool-run-in-terminal";
-      run.dataset.command = args.command;
-      run.title = t("files.runInTerminal") || "Run in terminal";
-      run.setAttribute("aria-label", run.title);
-      run.textContent = "▶";
-      wrap.append(preview, run);
-      return wrap;
-    }
-    const preview = document.createElement("span");
-    preview.className = "tool-args-preview";
-    preview.textContent = previewText;
-    preview.title = previewText;
-    return preview;
+    return toolArgsPreview(args);
   }
 
   /**
    * @param {ToolArgs | object | null | undefined} obj
    */
   formatJson(obj) {
-    try {
-      if (!obj || Object.keys(obj).length === 0) return "";
-      return JSON.stringify(obj, null, 2);
-    } catch {
-      return String(obj);
-    }
+    return formatToolJson(obj);
   }
 
   /** Render a hunk-level diff for Edit tool */
@@ -606,35 +429,61 @@ export class ToolCardRenderer {
    * @param {string} newText
    */
   renderDiff(oldText, newText) {
-    const container = document.createElement("div");
-    container.className = "tool-diff";
-    renderHunkList(container, computeHunks(oldText || "", newText || ""));
-    return container;
+    return renderToolDiff(oldText, newText);
+  }
+
+  /**
+   * @param {Element} outputElement
+   * @param {ToolResult | string | null | undefined} result
+   */
+  appendResultImages(outputElement, result) {
+    appendToolResultImages(outputElement, result);
+  }
+
+  /**
+   * Live nested call under a parent card. No card is created for the child.
+   * @param {string} parentId
+   * @param {NestedCall} call
+   */
+  upsertNestedCall(parentId, call) {
+    const card = this.toolCards.get(parentId);
+    if (!card) return;
+    const body = card.querySelector(".tool-card-body");
+    if (!body) return;
+    let list = body.querySelector(".tool-nested-calls");
+    if (!list) {
+      list = document.createElement("div");
+      list.className = "tool-nested-calls";
+      body.append(list);
+    }
+    const row = createNestedRow(call);
+    const existing = [...list.querySelectorAll("[data-nested-id]")].find(
+      (item) => item.getAttribute("data-nested-id") === call.id,
+    );
+    if (!existing) {
+      list.append(row);
+      return;
+    }
+    // Pi's end event has no args; keep the preview from the start.
+    const priorArgs = existing.querySelector(".tool-nested-args");
+    if (priorArgs && !row.querySelector(".tool-nested-args")) row.append(priorArgs);
+    existing.replaceWith(row);
+  }
+
+  /**
+   * @param {HTMLElement} card
+   * @param {NestedCallRecord | null} record
+   */
+  renderNestedRecord(card, record) {
+    renderNestedRecord(card, record);
   }
 
   /**
    * @param {ToolResult | string | null | undefined} result
+   * @param {{ includeImages?: boolean }} [options]
    */
-  formatResult(result) {
-    if (!result) return "";
-
-    if (typeof result === "object" && result.content && Array.isArray(result.content)) {
-      return (
-        result.content
-          .filter(Boolean)
-          /**
-           * @param {ToolResultContentBlock} block
-           */
-          .map((block) => {
-            if (block.type === "text") return block.text;
-            if (block.type === "image") return imagePlaceholder(block);
-            return JSON.stringify(block);
-          })
-          .join("\n")
-      );
-    }
-
-    return JSON.stringify(result, null, 2);
+  formatResult(result, options) {
+    return formatToolResult(result, options);
   }
 
   scrollToBottom() {

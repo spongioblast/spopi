@@ -1,5 +1,5 @@
 // ABOUTME: Tests that the chat stays pinned while content grows under an auto-scroll.
-// ABOUTME: Scrolling up unpins; scrolling back to the bottom pins again.
+// ABOUTME: Scrolling up unpins; scrolling back to the bottom pins again; late growth is followed.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { chatFollow } from "./chat-follow.js";
 
@@ -48,6 +48,43 @@ describe("chatFollow", () => {
     box.scrollTop = 1300;
     box.dispatchEvent(new Event("scroll"));
     expect(follow.pinned).toBe(true);
+  });
+
+  it("keeps jumping while drawn history messages grow past their estimated height", () => {
+    /** @type {FrameRequestCallback[]} */
+    const frames = [];
+    vi.stubGlobal("requestAnimationFrame", (/** @type {FrameRequestCallback} */ run) => {
+      frames.push(run);
+      return frames.length;
+    });
+    const size = { height: 800 };
+    const box = scroller(size);
+    chatFollow(box).force();
+    frames.shift()?.(0);
+    expect(box.scrollTop).toBe(800);
+    size.height = 1100;
+    frames.shift()?.(0);
+    expect(box.scrollTop).toBe(1100);
+    while (frames.length) frames.shift()?.(0);
+    expect(box.scrollTop).toBe(1100);
+  });
+
+  it("stops the jumps once the user scrolls up", () => {
+    /** @type {FrameRequestCallback[]} */
+    const frames = [];
+    vi.stubGlobal("requestAnimationFrame", (/** @type {FrameRequestCallback} */ run) => {
+      frames.push(run);
+      return frames.length;
+    });
+    const size = { height: 800 };
+    const box = scroller(size);
+    chatFollow(box).force();
+    frames.shift()?.(0);
+    box.scrollTop = 200;
+    box.dispatchEvent(new Event("scroll"));
+    size.height = 1100;
+    while (frames.length) frames.shift()?.(0);
+    expect(box.scrollTop).toBe(200);
   });
 
   it("shares one state between renderers of the same container", () => {

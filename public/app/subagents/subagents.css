@@ -68,7 +68,7 @@
 .subagent-name {
   flex: none;
   color: var(--text-primary);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
 }
 
 .subagent-meta {

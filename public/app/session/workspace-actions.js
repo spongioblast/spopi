@@ -193,16 +193,6 @@ export function mountNewSessionButton({ control, onError } = {}) {
   return true;
 }
 
-/**
- * @param {KeyboardEvent} event
- * @returns {boolean}
- */
-/** The + on the open project's row, which starts another chat in it. */
-export function requestNewChatInCurrentProject() {
-  const button = document.querySelector(".project-group.current-project .project-new-chat-btn");
-  if (button instanceof HTMLElement) button.click();
-}
-
 /** The sidebar + , which creates a project. */
 export function requestNewProject() {
   const button = sidebarChromeRefs().newSessionBtn;

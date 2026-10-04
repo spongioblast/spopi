@@ -161,6 +161,16 @@ export class ExtensionUiHost {
   }
 
   /**
+   * Cancel the shown foreground dialog only when `test` accepts its request.
+   * @param {(request: ExtensionUiRequest) => boolean} test
+   */
+  cancelForegroundWhere(test) {
+    const sessionId = this.#foregroundSessionId;
+    const inFlight = sessionId === null ? undefined : this.#inFlight.get(sessionId);
+    if (inFlight && test(inFlight.request)) inFlight.abort({ cancel: true });
+  }
+
+  /**
    * Move the currently displayed foreground prompt back into the foreground
    * queue without answering it. Call this before a full chat history re-render:
    * renderHistory() clears the messages container, so an inline prompt that is

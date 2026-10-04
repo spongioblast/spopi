@@ -2,6 +2,7 @@
 // ABOUTME: Includes "focuses the composer with / when focus is outside editable controls".
 import { JSDOM } from "jsdom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { trapModal } from "../ui/dialog.js";
 import { mountAppKeyboardShortcuts } from "./keyboard-shortcuts.js";
 
 describe("app keyboard shortcuts", () => {
@@ -33,7 +34,7 @@ describe("app keyboard shortcuts", () => {
 
   it("focuses the composer with / when focus is outside editable controls", () => {
     document.getElementById("other-button").focus();
-    mountAppKeyboardShortcuts({ input, abort: vi.fn(), isWorking: () => false });
+    mountAppKeyboardShortcuts({ input, abort: vi.fn(), isWorking: () => false, newChat: vi.fn() });
 
     document.dispatchEvent(new KeyboardEvent("keydown", { key: "/", cancelable: true }));
 
@@ -44,7 +45,7 @@ describe("app keyboard shortcuts", () => {
   it("does not steal / from editable controls", () => {
     const abort = vi.fn();
     input.focus();
-    mountAppKeyboardShortcuts({ input, abort, isWorking: () => false });
+    mountAppKeyboardShortcuts({ input, abort, isWorking: () => false, newChat: vi.fn() });
 
     document.dispatchEvent(new KeyboardEvent("keydown", { key: "/", cancelable: true }));
 
@@ -54,32 +55,33 @@ describe("app keyboard shortcuts", () => {
 
   it("aborts the running agent with Escape", () => {
     const abort = vi.fn();
-    mountAppKeyboardShortcuts({ input, abort, isWorking: () => true });
+    mountAppKeyboardShortcuts({ input, abort, isWorking: () => true, newChat: vi.fn() });
 
     document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", cancelable: true }));
 
     expect(abort).toHaveBeenCalledTimes(1);
   });
 
-  it("does not abort Escape when an overlay owns the key", () => {
-    document.getElementById("settings-panel").classList.remove("hidden");
+  it("does not abort Escape while the model menu is open", () => {
+    document.getElementById("model-dropdown-menu").classList.remove("hidden");
     const abort = vi.fn();
-    mountAppKeyboardShortcuts({ input, abort, isWorking: () => true });
+    mountAppKeyboardShortcuts({ input, abort, isWorking: () => true, newChat: vi.fn() });
 
     document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", cancelable: true }));
 
     expect(abort).not.toHaveBeenCalled();
   });
 
-  it("does not abort Escape when a modal overlay is open", () => {
+  it("does not abort Escape when a modal is open", () => {
     const overlay = document.createElement("div");
-    overlay.className = "ui-overlay";
     document.body.append(overlay);
+    const release = trapModal(overlay, { onClose: vi.fn() });
     const abort = vi.fn();
-    mountAppKeyboardShortcuts({ input, abort, isWorking: () => true });
+    mountAppKeyboardShortcuts({ input, abort, isWorking: () => true, newChat: vi.fn() });
 
     document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", cancelable: true }));
 
     expect(abort).not.toHaveBeenCalled();
+    release();
   });
 });

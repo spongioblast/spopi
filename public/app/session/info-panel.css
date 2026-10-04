@@ -21,7 +21,7 @@
 .info-panel-title {
   margin: 0;
   font-size: var(--font-size-sm);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--text-secondary);
@@ -91,7 +91,7 @@
 }
 
 .info-panel-tree-empty {
-  margin: 10px 4px;
+  margin: var(--space-2) var(--space-1);
   font-size: var(--font-size-sm);
   color: var(--text-secondary);
 }
@@ -196,7 +196,7 @@
 }
 
 .info-panel-branch-group {
-  margin: 0 0 2px 7px;
+  margin: 0 0 var(--space-0-5) var(--space-2);
   border-left: 1px solid var(--border);
 }
 
