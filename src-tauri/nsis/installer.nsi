@@ -20,6 +20,7 @@ ManifestDPIAwareness PerMonitorV2
 !include FileFunc.nsh
 !include x64.nsh
 !include WordFunc.nsh
+!include "Win\RestartManager.nsh"
 !include "utils.nsh"
 !include "FileAssociation.nsh"
 !include "Win\COM.nsh"

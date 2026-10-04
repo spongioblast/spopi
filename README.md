@@ -1,6 +1,6 @@
 # SPOPI
 
-**Pi, with a UI and editor. Nothing hidden, simple and clean.**
+**Pi, with a UI and editor. Nothing hidden, simple and clean and in PI's spirit.**
 
 An editor Pi can change while you use it.
 
@@ -102,6 +102,8 @@ When a turn finishes and the window is in the background, you get a desktop noti
 Turn on Phone access, scan the code, and follow or steer a session from your phone on the same network or over Tailscale. HTTPS only, each pairing code works once, and you decide whether a phone may watch, control, or do everything. On Windows, one button lets the phone through the firewall. It is assumed you use OpenVPN or Wireguard to tunnel into your network. Don't expose your port outside of your network.
 
 ![Settings → Phone access, with a pairing QR code open.](docs/readme/phone-settings.png)
+
+This is the phone side. Full control of SPOPI from the phone.
 
 <p>
 <img src="docs/readme/phone-pair.png" width="260" alt="The pairing page on a phone: name the device, then Pair this phone.">
