@@ -1,6 +1,6 @@
 # SPOPI
 
-**Pi, with a UI and editor. Nothing hidden, simple and clean and in PI's spirit.**
+**Pi, with a UI and editor. Nothing hidden, simple, clean and in PI's spirit.**
 
 An editor Pi can change while you use it.
 
