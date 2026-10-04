@@ -24,7 +24,7 @@ It shares your Pi setup: the same settings, packages, and sessions in `~/.pi/age
 - **Edits in place.** Select code, press Ctrl+K, and Pi rewrites just that part.
 - **A self-check.** If Pi breaks a file it just edited, it gets the error and fixes it before the turn ends.
 - **No waiting.** Steer Pi mid-turn, queue the next message, fork from any point, or retry with another model.
-- **Your phone, if you want it.** Off by default, over your own network or Tailscale.
+- **Your phone, if you want it.** Off by default, over your own network or WireGuard etc.
 
 ## No telemetry, no business model behind it
 
