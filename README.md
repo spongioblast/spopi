@@ -8,6 +8,10 @@ https://github.com/user-attachments/assets/dc23677b-3ea7-45e0-aaeb-d356e6d327e7
 
 *There is no pink. The video is Pi adding some.*
 
+![The default SPOPI window: sessions on the left, the editor in the middle, chat on the right, and the terminal under the editor.](docs/readme/default.png)
+
+*The default interface.*
+
 SPOPI is a free, open-source desktop app for the [Pi](https://pi.dev) coding agent. Your code sits in the middle, Pi's chat runs down the right, and a terminal and Git sit under the code.
 
 It shares your Pi setup: the same settings, packages, and sessions in `~/.pi/agent`. Close the window, type `pi -r` in a terminal, and carry on with the same chat. There is no account and no telemetry. With a local model, your code and prompts never leave your machine. 
