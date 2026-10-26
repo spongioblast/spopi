@@ -121,16 +121,15 @@ function details(server, tools) {
     server.toolExposure && typeof server.toolExposure === "object"
       ? /** @type {Record<string, string>} */ (server.toolExposure)
       : {};
-  const resources = Number(server.resources ?? 0);
-  const templates = Number(server.resourceTemplates ?? 0);
+  // Pi 1.2+ reports `resources: true`; older Pi reported a count.
+  const offersResources = server.resources === true || Number(server.resources) > 0;
   const extra = [
     tools
       .map((tool) =>
         overrides[String(tool)] ? `${tool} (${overrides[String(tool)]})` : String(tool),
       )
       .join("\n"),
-    resources ? t("settings.mcp.resources", { count: resources }) : "",
-    templates ? t("settings.mcp.templates", { count: templates }) : "",
+    offersResources ? t("settings.mcp.offersResources") : "",
     typeof server.error === "string" ? server.error : "",
   ]
     .filter(Boolean)

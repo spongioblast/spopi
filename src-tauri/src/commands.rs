@@ -9,8 +9,8 @@ use tauri_plugin_dialog::DialogExt;
 use crate::host::server::HostServer;
 
 /// Open the native folder picker and, if the user selects a directory, switch
-/// the focused SPOPI window to that workspace. Returns the chosen path, or
-/// `None` if cancelled.
+/// the calling SPOPI window to that workspace. Returns the URL the calling page
+/// loads, or `None` if cancelled or opened in another window.
 #[tauri::command]
 pub(crate) async fn open_folder_as_workspace(
     app: AppHandle,
@@ -23,12 +23,16 @@ pub(crate) async fn open_folder_as_workspace(
         .as_path()
         .ok_or_else(|| "Selected folder is not a local path".to_string())?
         .to_path_buf();
-    super::workspace_windows::open_workspace_at_path(&app, Some(&window), &path, None)?;
-    Ok(Some(path.to_string_lossy().into_owned()))
+    super::workspace_windows::open_workspace_at_path(&app, Some(caller(&window)), &path, None)
+}
+
+fn caller(window: &WebviewWindow) -> super::workspace_windows::SourceWindow<'_> {
+    super::workspace_windows::SourceWindow::Caller(window)
 }
 
 /// The project at `from_path` went missing. Let the user pick where it is now,
-/// bring its chats and records along, and open it there. `None` if cancelled.
+/// bring its chats and records along, and open it there. Returns the URL the
+/// calling page loads; `None` if cancelled.
 #[tauri::command]
 pub(crate) async fn locate_workspace(
     app: AppHandle,
@@ -53,37 +57,38 @@ pub(crate) async fn locate_workspace(
         &path,
         &agent,
     )?;
-    super::workspace_windows::open_workspace_at_path(&app, Some(&window), &path, None)?;
-    Ok(Some(path.to_string_lossy().into_owned()))
+    super::workspace_windows::open_workspace_at_path(&app, Some(caller(&window)), &path, None)
 }
 
 /// Open a brand-new session in the given workspace (identified by its
 /// file-system path). If the workspace window is already open, spawn a fresh
 /// runtime and navigate that window to the new temporary session; otherwise
-/// open a new workspace window at the fresh session.
+/// open a new workspace window at the fresh session. Returns the URL the
+/// calling page loads, or `None` when another window opened it.
 #[tauri::command]
 pub(crate) async fn open_new_session_in_workspace(
     app: AppHandle,
     window: WebviewWindow,
     project_path: String,
-) -> Result<(), String> {
+) -> Result<Option<String>, String> {
     let cwd = PathBuf::from(&project_path);
     if !cwd.is_dir() {
         return Err(format!("Project folder no longer exists: {project_path}"));
     }
-    super::workspace_windows::open_fresh_session_at_path(&app, Some(&window), &cwd)
+    super::workspace_windows::open_fresh_session_at_path(&app, Some(caller(&window)), &cwd)
 }
 
 /// Switch the focused SPOPI window to `projectPath` and resume the given saved
 /// session in it. Used by the sidebar to jump to a session that belongs to a
-/// different project without opening a second project window.
+/// different project without opening a second project window. Returns the URL
+/// the calling page loads.
 #[tauri::command]
 pub(crate) async fn open_session_in_project(
     app: AppHandle,
     window: WebviewWindow,
     project_path: String,
     session_id: String,
-) -> Result<(), String> {
+) -> Result<Option<String>, String> {
     let cwd = PathBuf::from(&project_path);
     if !cwd.is_dir() {
         return Err(format!("Project folder no longer exists: {project_path}"));
@@ -94,7 +99,12 @@ pub(crate) async fn open_session_in_project(
     } else {
         Some(session.to_string())
     };
-    super::workspace_windows::open_workspace_at_path(&app, Some(&window), &cwd, resume.as_deref())
+    super::workspace_windows::open_workspace_at_path(
+        &app,
+        Some(caller(&window)),
+        &cwd,
+        resume.as_deref(),
+    )
 }
 
 /// Show a task notification whose default click opens the completed session.

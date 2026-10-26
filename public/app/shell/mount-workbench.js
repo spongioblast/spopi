@@ -16,6 +16,7 @@ import {
   renderDockStatus,
 } from "../dock/dock.js";
 import { mountProblemsDock } from "../dock/problems-dock.js";
+import { onVerifyFindings } from "../dock/verify-findings.js";
 import { mountCenterTabs } from "../editor/center-tabs.js";
 import { mountHomePane } from "../editor/home-pane.js";
 import { closeReview } from "../editor/review-pane.js";
@@ -24,7 +25,7 @@ import { searchWorkspace } from "../files/search-model.js";
 import { t } from "../i18n/i18n.js";
 import { connectCacheWarming } from "../metrics/cache-warming-control.js";
 import { MetricsOverlay } from "../metrics/metrics-overlay.js";
-import { createAffordances, FIRST_RUN_KEY } from "../packages/packages-recommended.js";
+import { FIRST_RUN_KEY } from "../packages/packages-recommended.js";
 import { mountRunFileButton } from "../terminal/run-file.js";
 import { composerChromeRefs } from "./chrome/composer.js";
 import { filePreviewRefs } from "./chrome/file-preview.js";
@@ -83,6 +84,7 @@ import { createWorkbenchPackages } from "./workbench-packages.js";
  *   onNavigateTree?: ((target: unknown) => unknown) | null,
  *   installPackage?: ((source: string) => unknown) | null,
  *   scrapeEngine?: ((args: { baseUrl: string, metricsUrl: string }) => Promise<unknown>) | null,
+ *   onCompactContext?: (() => unknown) | null,
  *   onPinContext?: ((item: unknown) => unknown) | null,
  *   onDropContext?: ((item: unknown) => unknown) | null,
  *   configCall?: ConfigCall | null,
@@ -163,6 +165,7 @@ const paintMetrics = /** @type {(status?: DockStatusMetrics) => void} */ (paintH
  * @param {CreateSpopiWorkbenchOptions["onNavigateTree"]} [options.onNavigateTree]
  * @param {CreateSpopiWorkbenchOptions["installPackage"]} [options.installPackage]
  * @param {CreateSpopiWorkbenchOptions["scrapeEngine"]} [options.scrapeEngine]
+ * @param {CreateSpopiWorkbenchOptions["onCompactContext"]} [options.onCompactContext]
  * @param {CreateSpopiWorkbenchOptions["onPinContext"]} [options.onPinContext]
  * @param {CreateSpopiWorkbenchOptions["onDropContext"]} [options.onDropContext]
  * @param {CreateSpopiWorkbenchOptions["configCall"]} [options.configCall]
@@ -184,6 +187,7 @@ export function createSpopiWorkbench({
   onNavigateTree,
   installPackage,
   scrapeEngine,
+  onCompactContext,
   onPinContext,
   onDropContext,
   configCall,
@@ -233,13 +237,13 @@ export function createSpopiWorkbench({
     if (root.querySelector(".problem-row")) return;
     const empty = document.createElement("p");
     empty.className = "dock-empty";
-    const affordance = createAffordances("problems", packages());
-    empty.textContent = affordance?.why ? t(affordance.why) : t("dock.noProblems");
+    empty.textContent = t("dock.noProblems");
     root.appendChild(empty);
   };
   registerProblemsLanguageStatus((text) => {
     problems?.setLanguageStatus(text);
   });
+  onVerifyFindings((report) => problems?.setCheckReport(report));
   paintProblemsEmpty();
   const metricsOverlay = new MetricsOverlay({
     getModelInfo,
@@ -347,7 +351,7 @@ export function createSpopiWorkbench({
   });
   const context = mountContextInspector(center?.context, {
     t,
-    onCompact: () => sendPrompt?.("/compact"),
+    onCompact: onCompactContext || undefined,
     onPin: onPinContext || undefined,
     onDrop: onDropContext || undefined,
   });

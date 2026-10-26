@@ -1018,8 +1018,7 @@
       "packages": "パッケージから",
       "packageNote": "拡張機能が登録しています。そのパッケージで変更します。",
       "tools": "{count} 個のツール",
-      "resources": "{count} 個のリソース",
-      "templates": "{count} 個のリソーステンプレート",
+      "offersResources": "リソースを提供",
       "state": {
         "connected": "接続済み",
         "needsAuth": "サインインが必要",
@@ -1365,8 +1364,7 @@
     "changes": "変更",
     "cockpit": "コックピット",
     "status": "セッションとサーバーの指標",
-    "installLens": "Problems を埋めるには pi-lens をインストール",
-    "noProblems": "問題はありません",
+    "noProblems": "問題はありません。ファイルを編集した実行の後、プロジェクトのチェック結果がここに表示されます。",
     "lensError": "言語チェックに失敗しました",
     "languageServers": {
       "none": "言語サーバー: 実行なし",
@@ -1382,6 +1380,11 @@
     "terminalTab": {
       "closeLabel": "ターミナルタブを閉じる",
       "closeConfirm": "{name} を閉じますか？"
+    },
+    "check": {
+      "passed": "{command} は成功しました",
+      "failed": "{command} は失敗しました: {count} 件",
+      "couldNotRun": "{command} を実行できませんでした"
     }
   },
   "search": {
@@ -1431,9 +1434,6 @@
     "recommended": {
       "checkpoints": {
         "why": "任意のターンの開始時点にファイルを戻せます"
-      },
-      "problems": {
-        "why": "問題タブ向けのコンパイラ検査"
       },
       "workers": {
         "why": "スカウト、ワーカー、レビュアー。入力欄の上で確認、表示、停止"
@@ -1614,6 +1614,12 @@
       "summaryRetryIn": "要約の再試行 {attempt} 回目まで {seconds} 秒",
       "summaryRetrying": "要約を再試行しています（{source}）",
       "extensionFailed": "拡張機能が失敗しました"
+    },
+    "piHung": {
+      "message": "Pi が応答しません: {seconds} 秒間何も届かず、状態確認にも応答がありません。再起動すると進行中の返答は止まりますが、それまでの会話は残ります。",
+      "restart": "Pi を再起動",
+      "wait": "待ち続ける",
+      "restarting": "Pi を再起動しています…"
     }
   },
   "pair": {
@@ -1725,6 +1731,13 @@
     "queuedSteering": "操縦",
     "queuedFollowUp": "フォローアップ",
     "removeQueued": "キューのメッセージを削除",
+    "sendNowTitle": "現在の応答を停止し(未完了の思考は破棄されます)、今すぐ送信",
+    "queue": {
+      "header": "{count} 件待機中",
+      "steerTitle": "現在のステップの後に送信",
+      "followUpTitle": "Pi の完了後に送信",
+      "reorder": "ドラッグまたは Alt+矢印キーで並べ替え"
+    },
     "context": "コンテキスト",
     "modelConfigMissing": "{model} は構成されていません。セッションは現在のモデルのままです。",
     "modelSwitchFailed": "Pi は {model} に切り替えられませんでした",

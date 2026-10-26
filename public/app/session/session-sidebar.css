@@ -410,17 +410,21 @@
 }
 
 /* Status dot shared by mirror-live, unread and streaming indicators.
-   Unread overrides mirror-live's dot in the same slot; streaming overrides both. */
+   Unread overrides mirror-live's dot in the same slot; streaming overrides both.
+   It sits in the title's left padding, so a wrapped second line lines up with the first. */
+.session-item .session-title {
+  position: relative;
+  padding-left: var(--space-4);
+}
+
 .session-item .session-title::before {
   content: "";
-  display: inline-block;
+  position: absolute;
+  left: var(--space-0-5);
+  top: calc(0.5lh - 3px);
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  margin-right: var(--space-2);
-  margin-left: var(--space-0-5);
-  margin-top: -3px;
-  vertical-align: middle;
   animation: pulse 2s infinite;
 }
 

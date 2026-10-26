@@ -1,5 +1,24 @@
-/* ABOUTME: Problems dock groups pi-lens diagnostics by file. */
-/* ABOUTME: The language-server line is the header; a row opens that file. */
+/* ABOUTME: Problems dock groups the check's findings (and pi-lens diagnostics) by file. */
+/* ABOUTME: The check result and the language-server line head the list; a row opens that file. */
+
+.problems-check-status {
+  margin: 0;
+  padding: var(--space-2) var(--space-3) 0;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.problems-check-status[data-status="passed"] {
+  color: var(--success);
+}
+
+.problems-check-status[data-status="failed"] {
+  color: var(--error);
+}
+
+.problems-check-status[data-status="could-not-run"] {
+  color: var(--warning);
+}
 
 .problems-language-status {
   margin: 0;

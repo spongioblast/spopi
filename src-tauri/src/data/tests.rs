@@ -88,6 +88,30 @@ fn lists_registered_workspace_files_and_rejects_escape_paths() {
 }
 
 #[test]
+fn stat_file_reports_the_mtime_a_read_returns_and_stays_inside_the_workspace() {
+    let (temp, data, workspace) = isolated_workspace("stat");
+    fs::create_dir_all(workspace.join("docs")).unwrap();
+    fs::write(workspace.join("docs/notes.md"), "# notes").unwrap();
+    fs::write(temp.join("secret.txt"), "secret").unwrap();
+
+    let stat = data.stat_file("workspace-a", "docs/notes.md").unwrap();
+    let read = data
+        .read_file_content("workspace-a", "docs/notes.md")
+        .unwrap();
+    assert_eq!(stat.size, 7);
+    assert_eq!(stat.mtime_ms, read.mtime_ms);
+    assert_eq!(
+        data.stat_file("workspace-a", "docs"),
+        Err(HostDataError::NotFile)
+    );
+    assert_eq!(
+        data.stat_file("workspace-a", "../secret.txt"),
+        Err(HostDataError::InvalidRelativePath)
+    );
+    fs::remove_dir_all(temp).unwrap();
+}
+
+#[test]
 fn resolve_open_path_stays_inside_registered_workspace() {
     let nonce = SystemTime::now()
         .duration_since(UNIX_EPOCH)

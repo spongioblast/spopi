@@ -81,6 +81,85 @@ export function relevantOutput(output: string, files: ChangedFile[]): string[] {
   return kept;
 }
 
+export const MAX_FINDINGS = 200;
+const MAX_FINDING_CHARS = 300;
+
+export type Finding = {
+  file: string;
+  line: number;
+  column: number;
+  severity: "error" | "warning" | "info";
+  message: string;
+  code: string;
+};
+
+/** `src/a.ts(3,5): error TS2322: ...` */
+const TSC_LINE = /^\s*(.+?\.[A-Za-z0-9]+)\((\d+),(\d+)\):\s*(.*)$/;
+/** `a.py:3:5: F401 ...`, `src/main.rs:3:5: error[E0425]: ...`, `D:\x\a.go:3: ...` */
+const COLON_LINE = /^\s*((?:[A-Za-z]:)?[^:\s"'][^:"']*?\.[A-Za-z0-9]+):(\d+)(?::(\d+))?:?\s+(.*)$/;
+
+/**
+ * One finding per output line that starts with a file and a line number, in the
+ * formats tsc, ruff, mypy, eslint (unix), cargo (short), go vet, and biome print.
+ * Lines without a message (cargo's `-->` pointers) are skipped.
+ */
+export function parseFindings(output: string, cwd: string): Finding[] {
+  const findings: Finding[] = [];
+  const seen = new Set<string>();
+  for (const raw of output.replaceAll("\r\n", "\n").split("\n")) {
+    if (findings.length >= MAX_FINDINGS) break;
+    const match = raw.match(TSC_LINE) ?? raw.match(COLON_LINE);
+    if (!match) continue;
+    const [, file, line, column, rest] = match;
+    const text = rest.replace(/[━─]+/g, " ").replace(/\s+/g, " ").trim();
+    if (!text) continue;
+    const named = file.trim();
+    const absolute = (
+      /^[A-Za-z]:[\\/]/.test(named) ? path.win32.normalize(named) : path.resolve(cwd, named)
+    ).replaceAll("\\", "/");
+    const key = `${absolute}:${line}:${column ?? 0}:${text}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    findings.push({
+      file: absolute,
+      line: Number(line),
+      column: column ? Number(column) : 0,
+      severity: severityOf(text),
+      message: stripLead(text).slice(0, MAX_FINDING_CHARS),
+      code: codeOf(text),
+    });
+  }
+  return findings;
+}
+
+function severityOf(raw: string): Finding["severity"] {
+  const text = raw.replace(/^-\s+/, "");
+  const word = text.match(/\b(error|warning|warn|note|info|hint)\b/i)?.[1]?.toLowerCase();
+  if (word === "warning" || word === "warn") return "warning";
+  if (word === "note" || word === "info" || word === "hint") return "info";
+  return "error";
+}
+
+function codeOf(raw: string): string {
+  const text = raw.replace(/^-\s+/, "");
+  return (
+    text.match(/^(?:error|warning)\[(\w+)\]/i)?.[1] ??
+    text.match(/\b(TS\d{3,5})\b/)?.[1] ??
+    text.match(/^([A-Z]{1,4}\d{2,5})\b/)?.[1] ??
+    text.match(/^(lint\/\S+)/)?.[1] ??
+    ""
+  );
+}
+
+/** `error TS2322: msg` → `msg`; `error[E0425]: msg` → `msg`; `F401 [*] msg` → `msg`. */
+function stripLead(text: string): string {
+  return text
+    .replace(/^-\s+/, "")
+    .replace(/^(?:error|warning|note)(?:\[\w+\])?\s*(?:TS\d+)?\s*:\s*/i, "")
+    .replace(/^[A-Z]{1,4}\d{2,5}\s+(?:\[\*\]\s+)?/, "")
+    .trim();
+}
+
 /** The last lines of the output, for a failure that names no changed file after a clean check. */
 export function outputTail(output: string): string[] {
   const lines = output

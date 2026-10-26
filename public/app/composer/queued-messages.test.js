@@ -25,23 +25,97 @@ describe("queued messages", () => {
     });
 
     expect(container.classList.contains("hidden")).toBe(false);
-    expect(container.querySelectorAll(".queued-msg")).toHaveLength(2);
-    expect(container.textContent).toContain("composer.queuedSteering");
+    expect(container.querySelector(".queued-header")?.textContent).toContain(
+      "composer.queue.header",
+    );
+    const rows = container.querySelectorAll(".queued-msg");
+    expect(rows).toHaveLength(2);
+    expect(rows[0]?.dataset.kind).toBe("steer");
+    expect(rows[1]?.dataset.kind).toBe("follow_up");
+    expect(rows[0]?.querySelector(".queued-msg-kind")?.getAttribute("aria-label")).toBe(
+      "composer.queuedSteering",
+    );
+    expect(rows[1]?.querySelector(".queued-msg-kind")?.getAttribute("aria-label")).toBe(
+      "composer.queuedFollowUp",
+    );
     expect(container.textContent).toContain("Use the test fixture");
-    expect(container.textContent).toContain("composer.queuedFollowUp");
-    expect(container.innerHTML).not.toContain("<script>");
+    const followText = rows[1]?.querySelector(".queued-msg-text");
+    expect(followText?.textContent).toBe("<script>alert('x')</script>");
+    expect(followText?.innerHTML).toContain("&lt;script&gt;");
   });
 
-  it("uses the shared compact buttons, with an icon for remove", () => {
+  it("collapses and expands the list", () => {
+    const container = document.createElement("div");
+    renderQueuedMessages(container, { steering: ["one"], followUp: [] });
+    container
+      .querySelector(".queued-header")
+      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    expect(container.querySelector(".queued-header")?.getAttribute("aria-expanded")).toBe("false");
+    expect(container.querySelector(".queued-list")).toBeNull();
+    container
+      .querySelector(".queued-header")
+      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    expect(container.querySelector(".queued-list")).not.toBeNull();
+  });
+
+  it("uses icon buttons, with the interrupt hint on send now", () => {
     const container = document.createElement("div");
     renderQueuedMessages(container, { steering: ["hi there"], followUp: [] });
-    for (const selector of [".queued-msg-edit", ".queued-msg-send"]) {
-      expect(container.querySelector(selector)?.classList.contains("ui-button")).toBe(true);
+    for (const selector of [
+      ".queued-msg-edit",
+      ".queued-msg-send",
+      ".queued-msg-cancel",
+      ".queued-msg-grip",
+    ]) {
+      const button = container.querySelector(selector);
+      expect(button?.classList.contains("ui-icon-button")).toBe(true);
+      expect(button?.querySelector("svg")).not.toBeNull();
+      expect(button?.getAttribute("aria-label")).toBeTruthy();
     }
-    const remove = container.querySelector(".queued-msg-cancel");
-    expect(remove?.classList.contains("ui-icon-button")).toBe(true);
-    expect(remove?.querySelector("svg")).not.toBeNull();
-    expect(remove?.getAttribute("aria-label")).toBe("composer.removeQueued");
+    expect(container.querySelector(".queued-msg-send")?.title).toBe("composer.sendNowTitle");
+    expect(container.querySelector(".queued-msg-cancel")?.getAttribute("aria-label")).toBe(
+      "composer.removeQueued",
+    );
+  });
+
+  it("reorders within a kind from the keyboard and not across kinds", () => {
+    const moved = [];
+    const container = document.createElement("div");
+    renderQueuedMessages(
+      container,
+      { steering: ["first", "second"], followUp: ["later", "after"] },
+      { onReorder: (item, to) => moved.push([item.message, to]) },
+    );
+    const rows = container.querySelectorAll(".queued-msg");
+    rows[3]?.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "ArrowUp", altKey: true, bubbles: true }),
+    );
+    rows[0]?.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "ArrowUp", altKey: true, bubbles: true }),
+    );
+    rows[1]?.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "ArrowDown", altKey: true, bubbles: true }),
+    );
+    expect(moved).toEqual([["after", 0]]);
+  });
+
+  it("keeps focus on a moved row while Pi sends the queue back", async () => {
+    const container = document.createElement("div");
+    document.body.append(container);
+    const actions = { onReorder: () => {} };
+    renderQueuedMessages(container, { followUp: ["a", "b"] }, actions);
+    const rows = container.querySelectorAll(".queued-msg");
+    /** @type {HTMLElement} */ (rows[1]).focus();
+    rows[1]?.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "ArrowUp", altKey: true, bubbles: true }),
+    );
+    renderQueuedMessages(container, { followUp: [] }, actions);
+    renderQueuedMessages(container, { followUp: ["b"] }, actions);
+    renderQueuedMessages(container, { followUp: ["b", "a"] }, actions);
+    await Promise.resolve();
+    expect(document.activeElement?.textContent).toContain("b");
+    expect(document.activeElement?.classList.contains("queued-msg")).toBe(true);
+    container.remove();
   });
 
   it("clicking × removes that row and re-queues the others", async () => {

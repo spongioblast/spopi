@@ -31,6 +31,7 @@
   "app/composer/composer-slash-menu.css",
   "app/composer/at-file-mention.css",
   "app/composer/queued-messages.css",
+  "app/chat/pi-hung-notice.css",
   "app/chat/rpiv-todo-mirror.css",
   "app/terminal/terminal-panel.css",
   "app/metrics/metrics-overlay.css",

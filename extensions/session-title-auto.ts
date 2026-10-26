@@ -22,6 +22,7 @@ export function registerAutomaticSessionTitle(
   let inFlight = false;
 
   pi.on("before_agent_start", (event, ctx) => {
+    if (event.messageType !== "user") return;
     const prompt = event.prompt.trim();
     if (!prompt || attempted || inFlight || pi.getSessionName()) return;
 

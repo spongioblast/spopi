@@ -200,6 +200,17 @@ export function requestNewProject() {
 }
 
 /**
+ * The desktop open commands answer with the page this window loads next. The
+ * page navigates itself after the answer: a window navigated while its command
+ * is still pending gets the command sent a second time by Tauri's IPC fallback.
+ * @param {unknown} url
+ * @param {(url: string) => void} [navigate]
+ */
+export function loadOpenedPage(url, navigate = (next) => window.location.assign(next)) {
+  if (typeof url === "string" && url) navigate(url);
+}
+
+/**
  * The project at `fromPath` is missing. On the desktop the picker's choice
  * gets the project's chats and records; elsewhere it opens like Open folder.
  * @param {string} fromPath
@@ -212,7 +223,7 @@ export async function requestLocateFolder(fromPath, onError) {
     return;
   }
   try {
-    await invoke("locate_workspace", { fromPath });
+    loadOpenedPage(await invoke("locate_workspace", { fromPath }));
   } catch (error) {
     onError?.(error instanceof Error ? error : new Error(String(error)));
   }
@@ -244,7 +255,7 @@ export function mountOpenFolderButton({ onError } = {}) {
   button.addEventListener("click", async () => {
     button.disabled = true;
     try {
-      await invoke("open_folder_as_workspace");
+      loadOpenedPage(await invoke("open_folder_as_workspace"));
     } catch (error) {
       onError?.(error instanceof Error ? error : new Error(String(error)));
     } finally {

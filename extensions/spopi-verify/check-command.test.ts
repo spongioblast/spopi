@@ -1,4 +1,4 @@
-// ABOUTME: Tests check-command: .pi/verify.json wins, then package scripts, local tsc, cargo, and go.
+// ABOUTME: Tests check-command: .pi/verify.json wins, then package scripts, local tsc, cargo, go, and ruff.
 // ABOUTME: Includes "never proposes npx for a TypeScript project without a local tsc".
 
 // @vitest-environment node
@@ -7,7 +7,12 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { DEFAULT_MAX_REPAIRS, DEFAULT_TIMEOUT_SECONDS, resolveCheckCommand } from "./check-command";
+import {
+  DEFAULT_MAX_REPAIRS,
+  DEFAULT_TIMEOUT_SECONDS,
+  resolveCheckCommand,
+  secretScanEnabled,
+} from "./check-command";
 
 const dirs: string[] = [];
 
@@ -26,6 +31,16 @@ afterEach(() => {
 });
 
 const scripts = (map: Record<string, string>) => JSON.stringify({ scripts: map });
+
+describe("secretScanEnabled", () => {
+  it("is on without a config and off with secrets or enabled set to false", () => {
+    const config = (value: unknown) => project({ ".pi/verify.json": JSON.stringify(value) });
+    expect(secretScanEnabled(project({}))).toBe(true);
+    expect(secretScanEnabled(config({ command: "make lint" }))).toBe(true);
+    expect(secretScanEnabled(config({ secrets: false }))).toBe(false);
+    expect(secretScanEnabled(config({ enabled: false }))).toBe(false);
+  });
+});
 
 describe("resolveCheckCommand", () => {
   it("uses the project's .pi/verify.json command and clamps its limits", () => {
@@ -95,6 +110,24 @@ describe("resolveCheckCommand", () => {
       check: { command: "go vet ./..." },
     });
     expect(resolveCheckCommand(project({ "README.md": "" }))).toEqual({ kind: "none" });
+  });
+
+  it("uses ruff for Python only when ruff is installed", () => {
+    const bin = project({ [process.platform === "win32" ? "ruff.exe" : "ruff"]: "" });
+    const savedPath = process.env.PATH;
+    try {
+      process.env.PATH = bin;
+      expect(resolveCheckCommand(project({ "build.py": "" }))).toMatchObject({
+        check: { command: "ruff check --output-format=concise .", source: "*.py" },
+      });
+      expect(resolveCheckCommand(project({ "pyproject.toml": "" }))).toMatchObject({
+        check: { source: "pyproject.toml" },
+      });
+      process.env.PATH = "";
+      expect(resolveCheckCommand(project({ "build.py": "" }))).toEqual({ kind: "none" });
+    } finally {
+      process.env.PATH = savedPath;
+    }
   });
 
   it("ignores a malformed verify.json", () => {

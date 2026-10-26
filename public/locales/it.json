@@ -1018,8 +1018,7 @@
       "packages": "Dai pacchetti",
       "packageNote": "Registrato da un'estensione; modificalo in quel pacchetto.",
       "tools": "{count} strumenti",
-      "resources": "{count} risorse",
-      "templates": "{count} modelli di risorsa",
+      "offersResources": "Offre risorse",
       "state": {
         "connected": "connesso",
         "needsAuth": "serve l'accesso",
@@ -1365,8 +1364,7 @@
     "changes": "Modifiche",
     "cockpit": "Cruscotto",
     "status": "Metriche di sessione e server",
-    "installLens": "Installa pi-lens per riempire Problemi",
-    "noProblems": "Nessun problema",
+    "noProblems": "Nessun problema. Dopo un'esecuzione che modifica file, il controllo del progetto elenca qui ciò che ha trovato.",
     "lensError": "Controllo del linguaggio non riuscito",
     "languageServers": {
       "none": "Server di linguaggio: nessuno attivo",
@@ -1382,6 +1380,11 @@
     "terminalTab": {
       "closeLabel": "Chiudi la scheda del terminale",
       "closeConfirm": "Chiudere {name}?"
+    },
+    "check": {
+      "passed": "{command} superato",
+      "failed": "{command} non superato: {count} risultati",
+      "couldNotRun": "{command} non è stato eseguito"
     }
   },
   "search": {
@@ -1431,9 +1434,6 @@
     "recommended": {
       "checkpoints": {
         "why": "Ripristina i file all'inizio di qualsiasi turno"
-      },
-      "problems": {
-        "why": "Risultati del compilatore nel ciclo, per la scheda Problemi"
       },
       "workers": {
         "why": "Figli esploratore, esecutore e revisore; li guardi, li apri e li fermi sopra la casella dei messaggi"
@@ -1614,6 +1614,12 @@
       "summaryRetryIn": "Nuovo tentativo del riepilogo {attempt} tra {seconds} s",
       "summaryRetrying": "Nuovo tentativo del riepilogo ({source})",
       "extensionFailed": "Estensione non riuscita"
+    },
+    "piHung": {
+      "message": "Pi non risponde: nulla da {seconds} s e nessuna risposta a un controllo di stato. Il riavvio interrompe la risposta in corso; la conversazione precedente resta.",
+      "restart": "Riavvia Pi",
+      "wait": "Continua ad aspettare",
+      "restarting": "Riavvio di Pi…"
     }
   },
   "pair": {
@@ -1725,6 +1731,13 @@
     "queuedSteering": "Guida",
     "queuedFollowUp": "Seguito",
     "removeQueued": "Rimuovi il messaggio in coda",
+    "sendNowTitle": "Interrompi la risposta corrente (il ragionamento incompleto viene scartato) e invia ora",
+    "queue": {
+      "header": "{count} in coda",
+      "steerTitle": "Inviato dopo il passo corrente",
+      "followUpTitle": "Inviato quando Pi ha finito",
+      "reorder": "Trascina, o usa Alt+frecce, per riordinare"
+    },
     "context": "Contesto",
     "modelConfigMissing": "{model} non è più configurato; la sessione tiene il modello attuale.",
     "modelSwitchFailed": "Pi non è riuscito a passare a {model}",

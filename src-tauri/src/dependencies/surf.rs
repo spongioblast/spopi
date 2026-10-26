@@ -10,6 +10,7 @@ use super::exec::run_capture;
 const SURF_SOURCE: &str = "npm:surf-cli";
 /// Read-only tab list. surf-cli 2.21.0 tells you to restart the browser and run `surf tab.list`, which talks to the native host.
 const SURF_PROBE_ARGS: &[&str] = &["tab.list"];
+const HOST_MANIFEST: &str = "surf.browser.host.json";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SurfPackage {
@@ -49,6 +50,61 @@ pub fn valid_extension_id(id: &str) -> bool {
 
 pub fn allowed_connect_browser(browser: &str) -> bool {
     matches!(browser, "chrome" | "chromium" | "brave" | "edge")
+}
+
+/// The extension ID `surf install` last registered for the first of `browsers` that has one.
+pub fn registered_extension_id<'a>(browsers: impl IntoIterator<Item = &'a str>) -> Option<String> {
+    browsers
+        .into_iter()
+        .filter_map(manifest_path)
+        .find_map(|path| extension_id_in(&std::fs::read_to_string(path).ok()?))
+}
+
+/// surf-cli's `scripts/install-native-host.cjs` writes one manifest for every browser on
+/// Windows (the registry points each browser at it) and one per browser elsewhere.
+fn manifest_path(browser: &str) -> Option<PathBuf> {
+    if cfg!(windows) {
+        return Some(dirs::data_local_dir()?.join("surf-cli").join(HOST_MANIFEST));
+    }
+    let profile = if cfg!(target_os = "macos") {
+        match browser {
+            "chrome" => "Library/Application Support/Google/Chrome",
+            "chromium" => "Library/Application Support/Chromium",
+            "brave" => "Library/Application Support/BraveSoftware/Brave-Browser",
+            "edge" => "Library/Application Support/Microsoft Edge",
+            _ => return None,
+        }
+    } else {
+        match browser {
+            "chrome" => ".config/google-chrome",
+            "chromium" => ".config/chromium",
+            "brave" => ".config/BraveSoftware/Brave-Browser",
+            "edge" => ".config/microsoft-edge",
+            _ => return None,
+        }
+    };
+    Some(
+        dirs::home_dir()?
+            .join(profile)
+            .join("NativeMessagingHosts")
+            .join(HOST_MANIFEST),
+    )
+}
+
+/// `surf install` appends each new origin, so the last valid one is the latest.
+fn extension_id_in(manifest: &str) -> Option<String> {
+    let root: Value = serde_json::from_str(manifest).ok()?;
+    root.get("allowed_origins")?
+        .as_array()?
+        .iter()
+        .rev()
+        .filter_map(Value::as_str)
+        .find_map(|origin| {
+            let id = origin
+                .strip_prefix("chrome-extension://")?
+                .trim_end_matches('/');
+            valid_extension_id(id).then(|| id.to_string())
+        })
 }
 
 pub async fn probe_connection(cli: &Path) -> Result<(), String> {
@@ -162,5 +218,24 @@ mod tests {
         assert!(!valid_extension_id("abcdefghijklmnopabcdefghijklmnoq"));
         assert!(!allowed_connect_browser("firefox"));
         assert!(allowed_connect_browser("edge"));
+    }
+
+    #[test]
+    fn registered_id_is_the_last_valid_allowed_origin() {
+        let manifest = json!({
+            "name": "surf.browser.host",
+            "allowed_origins": [
+                "chrome-extension://abcdefghijklmnopabcdefghijklmnop/",
+                "chrome-extension://eephfmagafmglkahpommaflgnepcaijl/",
+                "chrome-extension://not-an-id/"
+            ]
+        })
+        .to_string();
+        assert_eq!(
+            extension_id_in(&manifest).as_deref(),
+            Some("eephfmagafmglkahpommaflgnepcaijl")
+        );
+        assert_eq!(extension_id_in(r#"{"allowed_origins":[]}"#), None);
+        assert_eq!(extension_id_in("not json"), None);
     }
 }

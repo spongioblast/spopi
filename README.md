@@ -10,7 +10,7 @@ https://github.com/user-attachments/assets/dc23677b-3ea7-45e0-aaeb-d356e6d327e7
 
 ![The default SPOPI window: sessions on the left, the editor in the middle, chat on the right, and the terminal under the editor.](docs/readme/default.png)
 
-*The default interface.*
+*The default interface (Dawn).*
 
 SPOPI is a free, open-source desktop app for the [Pi](https://pi.dev) coding agent. Your code sits in the middle, Pi's chat runs down the right, and a terminal and Git sit under the code.
 
@@ -55,7 +55,7 @@ When a turn finishes and the window is in the background, you get a desktop noti
 ## Pi's way, not a new one
 
 - **Plans are files.** There is no plan mode. Ask Pi to write the plan in Markdown, edit it, then have Pi work through it.
-- **Packages just work.** Install them from Settings → Packages. A package's dialogs, panels, and slash commands appear in SPOPI as they do in the terminal. The recommended ones add per-turn undo (`pi-workspace-history`), live diagnostics (`pi-lens`), subagents (`pi-subagents`), and worktree commands (`@pify/worktree`).
+- **Packages just work.** Install them from Settings → Packages. A package's dialogs, panels, and slash commands appear in SPOPI as they do in the terminal. The recommended ones add per-turn undo (`pi-workspace-history`), subagents (`pi-subagents`), and worktree commands (`@pify/worktree`).
 - **MCP is Pi's.** Settings → MCP adds and lists servers through Pi. The π button opens Pi in a terminal tab for anything only Pi's own interface does, such as switching servers on and off. Quit it and SPOPI picks up the changes.
 - **Your setup is plain files.** Keys, models, prompts, and `AGENTS.md` can be edited in Settings, and they are the files the terminal reads.
 

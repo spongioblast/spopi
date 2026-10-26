@@ -1,30 +1,73 @@
-/* ABOUTME: Styles the strip of queued steering and follow-up messages. */
-/* ABOUTME: Each row can be removed before it is sent. */
-/* ═══════════════════════════════════════════════════════
-   Queued (steering/follow-up) messages strip (public/app/queued-messages.js)
-   ═══════════════════════════════════════════════════════ */
+/* ABOUTME: Styles the queued-message list that sits on top of the composer card. */
+/* ABOUTME: One line per message; actions show on hover or focus; drag shows a drop line. */
 
 .queued-messages {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1-5);
-  padding: 0 var(--space-1);
+  padding: var(--space-1) var(--space-1) 0;
+  background: var(--bg-glass);
+  border: 1px solid var(--border);
+  border-bottom: none;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  font-size: var(--font-size-sm);
 }
 
 .queued-messages.hidden {
   display: none;
 }
 
+.input-area:has(> .queued-messages:not(.hidden)) .composer-card {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+.queued-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-0-5) var(--space-1-5);
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font: inherit;
+  cursor: pointer;
+}
+
+.queued-header svg {
+  transition: transform var(--duration) var(--ease);
+}
+
+.queued-header[aria-expanded="false"] svg {
+  transform: rotate(-90deg);
+}
+
+.queued-list {
+  display: flex;
+  flex-direction: column;
+}
+
 .queued-msg {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  background: var(--bg-glass);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  font-size: var(--font-size-md);
-  animation: msgIn 0.2s var(--ease);
+  gap: var(--space-1-5);
+  min-height: var(--space-6);
+  padding: 0 var(--space-1-5);
+  border-radius: var(--radius-sm);
+}
+
+.queued-msg:hover,
+.queued-msg:focus-within {
+  background: var(--bg-glass-hover);
+}
+
+.queued-msg:focus-visible {
+  outline: 1px solid var(--accent);
+}
+
+.queued-msg-kind {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--text-secondary);
 }
 
 .queued-msg-text {
@@ -35,31 +78,37 @@
   white-space: nowrap;
 }
 
-.queued-msg-label {
-  color: var(--text-secondary);
-  font-size: var(--font-size-sm);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+.queued-msg .ui-icon-button {
   flex-shrink: 0;
+  opacity: 0;
 }
 
-/* Same compact buttons as the live strip above the composer. */
-.queued-msg .ui-button {
-  flex-shrink: 0;
-  height: 20px;
-  min-height: 20px;
-  padding: 0 var(--space-1-5);
-  border: 1px solid var(--border);
-  font-size: var(--font-size-sm);
+.queued-msg:hover .ui-icon-button,
+.queued-msg:focus-within .ui-icon-button {
+  opacity: 1;
 }
 
-.queued-msg-cancel {
-  flex-shrink: 0;
-  width: 20px;
-  height: 20px;
-  min-height: 20px;
-  border-radius: var(--radius-sm);
-  color: var(--text-secondary);
+@media (hover: none) {
+  .queued-msg .ui-icon-button {
+    opacity: 1;
+  }
+}
+
+.queued-msg-grip {
+  cursor: grab;
+  touch-action: none;
+}
+
+.queued-msg.dragging {
+  opacity: 0.6;
+}
+
+.queued-msg.drop-before {
+  box-shadow: inset 0 var(--space-0-5) 0 var(--accent);
+}
+
+.queued-msg.drop-after {
+  box-shadow: inset 0 calc(-1 * var(--space-0-5)) 0 var(--accent);
 }
 
 .queued-msg-cancel:hover:not(:disabled) {

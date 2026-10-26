@@ -9,7 +9,8 @@
       "exposure": "direct",
       "transport": "node C:\\Users\\me\\mcp\\echo-server.mjs",
       "state": "connected",
-      "tools": ["echo", "write_note", "pixel"]
+      "tools": ["echo", "write_note", "pixel"],
+      "resources": true
     },
     {
       "name": "broken",

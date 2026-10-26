@@ -40,6 +40,7 @@ pub(super) fn router(state: Arc<HostState>, static_dir: PathBuf) -> Router {
             get(files::read_file_content).put(files::write_file_content),
         )
         .route("/api/files/raw", get(files::raw_file_content))
+        .route("/api/files/stat", get(files::file_stat))
         .route("/api/git/diff", get(git::git_file_diff))
         .route("/api/git/stat", get(git::git_stat_handler))
         .route("/api/file-mentions", get(files::file_mentions))

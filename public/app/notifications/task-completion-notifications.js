@@ -101,6 +101,8 @@ export function createTaskCompletionNotifications({
   logger = console,
 } = {}) {
   const runningTargets = new Set();
+  /** @type {Map<string, string | null>} */
+  const endErrors = new Map();
 
   const enabled = () => {
     const read = storage?.getItem;
@@ -139,7 +141,9 @@ export function createTaskCompletionNotifications({
   function handleRuntimeFrame(frame) {
     if (!frame || typeof frame !== "object") return;
     const eventFrame =
-      /** @type {{ type?: string, target?: TaskTarget, event?: { type?: string } }} */ (frame);
+      /** @type {{ type?: string, target?: TaskTarget, event?: { type?: string, aborted?: boolean } }} */ (
+        frame
+      );
     if (eventFrame.type !== "runtime_event") return;
     const key = targetKey(eventFrame.target);
     if (!key) {
@@ -149,17 +153,27 @@ export function createTaskCompletionNotifications({
       });
       return;
     }
-    if (eventFrame.event?.type === "agent_start") {
+    const type = eventFrame.event?.type;
+    if (type === "agent_start") {
       runningTargets.add(key);
+      endErrors.delete(key);
       return;
     }
-    if (eventFrame.event?.type !== "agent_settled" && eventFrame.event?.type !== "agent_end")
+    // agent_end comes first and carries the error; only agent_settled says whether the run
+    // was stopped, and it fires once after retries and queued continuations.
+    if (type === "agent_end") {
+      if (runningTargets.has(key)) endErrors.set(key, extractRuntimeEventError(eventFrame.event));
       return;
+    }
+    if (type !== "agent_settled") return;
+    const endError = endErrors.get(key) ?? null;
+    endErrors.delete(key);
     if (!runningTargets.delete(key)) {
       logger.warn("[Notifications] completion skipped: no matching agent start", { key });
       return;
     }
-    const error = extractRuntimeEventError(eventFrame.event);
+    if (eventFrame.event?.aborted === true) return;
+    const error = extractRuntimeEventError(eventFrame.event) || endError;
     void showCompletion(eventFrame.target, error).catch(onError);
   }
 

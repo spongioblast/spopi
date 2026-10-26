@@ -79,4 +79,18 @@ describe("surf card", () => {
     expect(card.textContent).not.toContain("Install the Surf package.");
     expect(card.textContent).toContain("Connect again");
   });
+
+  it("shows the extension ID Surf was connected with", () => {
+    const card = surfCard({
+      report: {
+        state: "ok",
+        installed: true,
+        enabled: true,
+        extensionId: "eephfmagafmglkahpommaflgnepcaijl",
+        browsers,
+      },
+    });
+    const input = /** @type {HTMLInputElement} */ (card.querySelector("input"));
+    expect(input.value).toBe("eephfmagafmglkahpommaflgnepcaijl");
+  });
 });

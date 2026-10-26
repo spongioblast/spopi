@@ -1,10 +1,11 @@
-// ABOUTME: Problems dock lists pi-lens diagnostics grouped by file.
-// ABOUTME: A later result replaces the files it covered; the footer keeps pi-lens-lsp.
+// ABOUTME: Problems dock lists the project check's findings, and pi-lens diagnostics if installed, by file.
+// ABOUTME: Each check run replaces the last one; a lens result replaces the files it covered.
 
 import { findingsFromToolResult, isLensTool } from "./lens-findings.js";
 
 /**
  * @typedef {import("./lens-findings.js").LensFinding} LensFinding
+ * @typedef {import("./verify-findings.js").CheckReport} CheckReport
  * @typedef {{
  *   t?: (key: string, params?: Record<string, unknown>) => string,
  *   onOpenFile?: (path: string, line?: number) => void,
@@ -12,10 +13,17 @@ import { findingsFromToolResult, isLensTool } from "./lens-findings.js";
  * }} MountProblemsDockOptions
  * @typedef {{
  *   noteResult: (name: unknown, result: unknown) => void,
+ *   setCheckReport: (report: CheckReport) => void,
  *   clear: () => void,
  *   setLanguageStatus: (text: string) => void,
  * }} ProblemsDockApi
  */
+
+const CHECK_STATUS_KEYS = {
+  passed: "dock.check.passed",
+  failed: "dock.check.failed",
+  "could-not-run": "dock.check.couldNotRun",
+};
 
 /**
  * "Inactive" contains the letters of "Active", so the idle wording is matched first.
@@ -43,16 +51,34 @@ function languageServerLabel(text, translate) {
 export function mountProblemsDock(root, { t = (key) => key, onOpenFile, onChange } = {}) {
   if (!root || !("replaceChildren" in root)) return null;
   const host = /** @type {HTMLElement} */ (root);
+  const checkLine = document.createElement("p");
+  checkLine.className = "problems-check-status";
+  checkLine.hidden = true;
   const header = document.createElement("p");
   header.className = "problems-language-status";
   header.hidden = true;
   const list = document.createElement("div");
   list.className = "problems-list";
-  host.replaceChildren(header, list);
+  host.replaceChildren(checkLine, header, list);
 
   /** @type {Map<string, LensFinding[]>} */
   let byFile = new Map();
+  /** @type {LensFinding[]} */
+  let checkFindings = [];
   let errorText = "";
+
+  const merged = () => {
+    /** @type {Map<string, LensFinding[]>} */
+    const groups = new Map();
+    for (const finding of checkFindings) {
+      const existing = groups.get(finding.file);
+      if (existing) existing.push(finding);
+      else groups.set(finding.file, [finding]);
+    }
+    for (const [file, findings] of byFile)
+      groups.set(file, [...(groups.get(file) ?? []), ...findings]);
+    return groups;
+  };
 
   const render = () => {
     list.replaceChildren();
@@ -63,7 +89,7 @@ export function mountProblemsDock(root, { t = (key) => key, onOpenFile, onChange
       list.append(row);
       return;
     }
-    for (const [file, findings] of byFile) {
+    for (const [file, findings] of merged()) {
       const group = document.createElement("section");
       group.className = "problem-file";
       const head = document.createElement("div");
@@ -160,8 +186,22 @@ export function mountProblemsDock(root, { t = (key) => key, onOpenFile, onChange
       render();
       onChange?.();
     },
+    /** @param {CheckReport} report */
+    setCheckReport(report) {
+      checkFindings = report.findings;
+      checkLine.hidden = false;
+      checkLine.dataset.status = report.status;
+      checkLine.textContent = t(CHECK_STATUS_KEYS[report.status], {
+        command: report.command,
+        count: report.findings.length,
+      });
+      render();
+      onChange?.();
+    },
     clear() {
       byFile = new Map();
+      checkFindings = [];
+      checkLine.hidden = true;
       errorText = "";
       render();
       onChange?.();

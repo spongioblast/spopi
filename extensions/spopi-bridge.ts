@@ -1,6 +1,7 @@
 // ABOUTME: Bundled Pi extension that registers SPOPI commands and notify channels.
 // ABOUTME: The WebView calls /spopi-config and /spopi-custom-ui; Pi stays the agent.
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { registerContextBudget } from "./bridge/context-budget";
 import { registerContextDrop } from "./bridge/context-drop";
 import { registerCustomUiBridge } from "./bridge/custom-ui-bridge";
 import { registerHostUiCapabilityReporter } from "./bridge/host-ui-capabilities";
@@ -26,6 +27,7 @@ export default function spopiBridge(pi: ExtensionAPI) {
   // src-tauri/src/child_supervision.rs for the other layers.
   startOrphanWatchdog();
   registerSpopiAwareness(pi);
+  registerContextBudget(pi);
   registerSpopiScreenshot(pi);
   registerSpopiUiCopy(pi);
   projectTrust(pi);

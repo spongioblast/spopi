@@ -1,5 +1,5 @@
 // ABOUTME: CodeMirror editor lifecycle for the file preview pane.
-// ABOUTME: Language servers are not attached here. The agent uses pi-lens.
+// ABOUTME: Language servers are not attached here; the project check fills the Problems tab.
 
 /**
  * CodeMirror editor lifecycle wrapper.

@@ -31,17 +31,27 @@ export function resolveCheckCommand(cwd: string): CheckResolution {
   return detected ? { kind: "command", check: detected } : { kind: "none" };
 }
 
-function readProjectConfig(cwd: string): CheckResolution | null {
-  const file = path.join(cwd, ".pi", "verify.json");
-  let raw: unknown;
+/** The secret scan runs unless `.pi/verify.json` has `"secrets": false` or `"enabled": false`. */
+export function secretScanEnabled(cwd: string): boolean {
+  const config = readConfigFile(cwd);
+  return config?.enabled !== false && config?.secrets !== false;
+}
+
+function readConfigFile(cwd: string): Record<string, unknown> | null {
   try {
-    raw = JSON.parse(fs.readFileSync(file, "utf8"));
+    const raw: unknown = JSON.parse(fs.readFileSync(path.join(cwd, ".pi", "verify.json"), "utf8"));
+    return raw && typeof raw === "object" && !Array.isArray(raw)
+      ? (raw as Record<string, unknown>)
+      : null;
   } catch {
     return null;
   }
+}
+
+function readProjectConfig(cwd: string): CheckResolution | null {
+  const config = readConfigFile(cwd);
+  if (!config) return null;
   const source = ".pi/verify.json";
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
-  const config = raw as Record<string, unknown>;
   if (config.enabled === false) return { kind: "disabled", source };
   const command = typeof config.command === "string" ? config.command.trim() : "";
   if (!command) {
@@ -89,7 +99,33 @@ export function detectCheckCommand(cwd: string): CheckCommand | null {
   if (exists(cwd, "go.mod")) {
     return { command: "go vet ./...", source: "go.mod", ...defaults };
   }
+  const python = pythonMarker(cwd);
+  if (python && onPath("ruff")) {
+    return { command: "ruff check --output-format=concise .", source: python, ...defaults };
+  }
   return null;
+}
+
+const PYTHON_FILES = ["pyproject.toml", "ruff.toml", ".ruff.toml", "setup.py", "setup.cfg"];
+
+/** A Python project file, or loose `.py` files at the top (scripts folders have no project file). */
+function pythonMarker(cwd: string): string | null {
+  const file = PYTHON_FILES.find((name) => exists(cwd, name));
+  if (file) return file;
+  try {
+    return fs.readdirSync(cwd).some((name) => name.endsWith(".py")) ? "*.py" : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Ruff is used only when it is already installed; detection never fetches a tool. */
+function onPath(name: string): boolean {
+  const names = process.platform === "win32" ? [`${name}.exe`, `${name}.cmd`] : [name];
+  return (process.env.PATH ?? "")
+    .split(path.delimiter)
+    .filter(Boolean)
+    .some((dir) => names.some((file) => fs.existsSync(path.join(dir, file))));
 }
 
 function readPackageScripts(cwd: string): Record<string, unknown> | null {

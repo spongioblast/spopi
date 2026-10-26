@@ -14,6 +14,7 @@ import {
   mountDisclosure,
 } from "./sidebar-workspace-group.js";
 import { buildWorktreeGroups } from "./sidebar-worktree-group.js";
+import { loadOpenedPage } from "./workspace-actions.js";
 
 /**
  * @typedef {import("./session-sidebar.js").SessionSidebar} SessionSidebar
@@ -75,7 +76,9 @@ function unsavedSessionRow(sessionId) {
 export function startSessionIn(sidebar, project) {
   const invoke = tauriGlobal().__TAURI__?.core?.invoke ?? null;
   const started = invoke
-    ? invoke("open_new_session_in_workspace", { projectPath: project.path })
+    ? invoke("open_new_session_in_workspace", { projectPath: project.path }).then((url) =>
+        loadOpenedPage(url),
+      )
     : project.isCurrent
       ? sidebar.onCreateSession?.(sidebar.getTarget()?.workspaceId)
       : sidebar.onCreateSessionInProject?.(project.path ?? "");
@@ -163,7 +166,7 @@ export function appendArchivedRow(sidebar, list, path, sessions) {
   list.appendChild(row);
   if (!open) return;
   for (const session of sessions) {
-    const item = sidebar.buildItem(session, { showArchiveButton: false });
+    const item = sidebar.buildItem(session);
     item.classList.add("session-item-archived");
     list.appendChild(item);
   }

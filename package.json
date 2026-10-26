@@ -1,6 +1,6 @@
 {
   "name": "spopi",
-  "version": "0.7.2",
+  "version": "0.7.3",
   "description": "A desktop IDE-lite for the Pi coding agent. Pi, with an editor. Nothing hidden.",
   "keywords": [
     "spopi",
@@ -76,7 +76,7 @@
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
     "@biomejs/biome": "^2.5.2",
-    "@earendil-works/pi-coding-agent": "1.0.2",
+    "@earendil-works/pi-coding-agent": "1.4.0",
     "@tauri-apps/cli": "^2.12.1",
     "@vitest/coverage-istanbul": "5.0.1",
     "esbuild": "^0.28.0",

@@ -17,17 +17,27 @@ import { appKeybindings, formatChord } from "../ui/keybindings.js";
  *   shortcut?: string,
  *   action?: string,
  *   passArgsToPi?: boolean,
+ *   streamingCompatible?: boolean,
  * }} SlashSourceCommand
  */
 
+// Pi runs these only in its terminal; RPC `prompt` would hand the text to the
+// model. Each one maps to the RPC call or SPOPI view that does the same thing.
 /** @type {SlashSourceCommand[]} */
 export const PI_BUILTINS = [
-  { name: "model", descriptionKey: "composer.slashMenu.cmd.model", source: "pi", type: "pi" },
+  {
+    name: "model",
+    descriptionKey: "composer.slashMenu.cmd.model",
+    source: "pi",
+    type: "pi",
+    action: "pi_model",
+  },
   {
     name: "thinking",
     descriptionKey: "composer.slashMenu.cmd.thinking",
     source: "pi",
     type: "pi",
+    action: "pi_thinking",
   },
   {
     name: "tree",
@@ -36,9 +46,28 @@ export const PI_BUILTINS = [
     type: "pi",
     action: "open_tree",
   },
-  { name: "fork", descriptionKey: "composer.slashMenu.cmd.fork", source: "pi", type: "pi" },
-  { name: "compact", descriptionKey: "composer.slashMenu.cmd.compact", source: "pi", type: "pi" },
-  { name: "export", descriptionKey: "composer.slashMenu.cmd.export", source: "pi", type: "pi" },
+  {
+    name: "fork",
+    descriptionKey: "composer.slashMenu.cmd.fork",
+    source: "pi",
+    type: "pi",
+    action: "open_tree",
+  },
+  {
+    name: "compact",
+    descriptionKey: "composer.slashMenu.cmd.compact",
+    source: "pi",
+    type: "pi",
+    action: "pi_compact",
+    streamingCompatible: false,
+  },
+  {
+    name: "export",
+    descriptionKey: "composer.slashMenu.cmd.export",
+    source: "pi",
+    type: "pi",
+    action: "pi_export",
+  },
 ];
 
 /** @type {SlashSourceCommand[]} */

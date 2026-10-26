@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { mountProblemsDock } from "./problems-dock.js";
+import { parseVerifyFindings } from "./verify-findings.js";
 
 const en = JSON.parse(readFileSync(join(process.cwd(), "public/locales/en.json"), "utf8"));
 
@@ -25,6 +26,50 @@ function t(key, params = {}) {
     return next == null ? "" : String(next);
   });
 }
+
+describe("mountProblemsDock check reports", () => {
+  it("shows the check's findings and replaces them on the next run", () => {
+    const root = document.createElement("div");
+    const opened = [];
+    const dock = mountProblemsDock(root, {
+      t,
+      onOpenFile: (path, line) => opened.push([path, line]),
+    });
+    const report = parseVerifyFindings([
+      JSON.stringify({
+        command: "ruff check .",
+        status: "failed",
+        findings: [
+          {
+            file: "D:/w/a.py",
+            line: 3,
+            column: 1,
+            severity: "error",
+            message: "bad",
+            code: "F401",
+          },
+        ],
+      }),
+    ]);
+    if (!report) throw new Error("report did not parse");
+    dock?.setCheckReport(report);
+    expect(root.querySelector(".problems-check-status")?.textContent).toBe(
+      "ruff check . failed: 1 findings",
+    );
+    expect(root.querySelector(".problem-path")?.textContent).toBe("D:/w/a.py");
+    /** @type {HTMLElement | null} */ (root.querySelector(".problem-row"))?.click();
+    expect(opened).toEqual([["D:/w/a.py", 3]]);
+
+    dock?.setCheckReport({ command: "ruff check .", status: "passed", findings: [] });
+    expect(root.querySelector(".problem-row")).toBeNull();
+    expect(root.querySelector(".problems-check-status")?.textContent).toBe("ruff check . passed");
+  });
+
+  it("ignores a widget line that is not a report", () => {
+    expect(parseVerifyFindings(["not json"])).toBeNull();
+    expect(parseVerifyFindings([JSON.stringify({ command: "x", status: "odd" })])).toBeNull();
+  });
+});
 
 describe("mountProblemsDock", () => {
   it("renders diagnostic messages instead of content blocks", () => {

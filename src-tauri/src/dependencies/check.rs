@@ -10,7 +10,7 @@ use super::browsers::detect_browsers;
 use super::npm::{
     npm_command, npm_install_offer, npm_version, NpmInstallOffer, NpmSettingsLocations,
 };
-use super::surf::{probe_connection, surf_cli, surf_package_state};
+use super::surf::{probe_connection, registered_extension_id, surf_cli, surf_package_state};
 use crate::pi::binary::{locked_pi_version, pi_agent_dir};
 use crate::pi::launch::PiLaunchResolver;
 
@@ -40,6 +40,8 @@ pub struct DependencyStatus {
     pub browsers: Option<Vec<super::browsers::InstalledBrowser>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub no_sandbox: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub extension_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
@@ -98,6 +100,7 @@ fn plain(state: &str) -> DependencyStatus {
         installed: None,
         browsers: None,
         no_sandbox: None,
+        extension_id: None,
     }
 }
 
@@ -246,6 +249,16 @@ async fn check_browser(static_dir: &Path, enabled: bool) -> DependencyStatus {
 }
 
 async fn check_surf() -> DependencyStatus {
+    let mut status = surf_status().await;
+    if status.installed == Some(true) {
+        let browsers = status.browsers.as_deref().unwrap_or_default();
+        status.extension_id =
+            registered_extension_id(browsers.iter().map(|browser| browser.id.as_str()));
+    }
+    status
+}
+
+async fn surf_status() -> DependencyStatus {
     let browsers = detect_browsers();
     let agent_dir = pi_agent_dir();
     let package =

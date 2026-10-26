@@ -303,7 +303,7 @@ export const sidebarRender = /** @satisfies {ThisType<SessionSidebar>} */ ({
       archiveBtn.className = "session-archive-btn";
       archiveBtn.title = archiveBtnLabel;
       archiveBtn.setAttribute("aria-label", archiveBtnLabel);
-      const archiveGlyph = createIcon("archive");
+      const archiveGlyph = createIcon(isArchived ? "archive-restore" : "archive");
       if (archiveGlyph) archiveBtn.appendChild(archiveGlyph);
       archiveBtn.addEventListener("click", (event) => {
         event.stopPropagation();

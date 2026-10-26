@@ -1018,8 +1018,7 @@
       "packages": "Aus Paketen",
       "packageNote": "Von einer Erweiterung eingetragen; ändere es in dem Paket.",
       "tools": "{count} Tools",
-      "resources": "{count} Ressourcen",
-      "templates": "{count} Ressourcenvorlagen",
+      "offersResources": "Bietet Ressourcen",
       "state": {
         "connected": "verbunden",
         "needsAuth": "Anmeldung nötig",
@@ -1365,8 +1364,7 @@
     "changes": "Änderungen",
     "cockpit": "Cockpit",
     "status": "Metriken von Sitzung und Server",
-    "installLens": "Installiere pi-lens, damit der Tab Probleme gefüllt wird",
-    "noProblems": "Keine Probleme",
+    "noProblems": "Keine Probleme. Nach einem Lauf, der Dateien ändert, listet die Projektprüfung hier ihre Funde.",
     "lensError": "Sprachprüfung fehlgeschlagen",
     "languageServers": {
       "none": "Sprachserver: keiner läuft",
@@ -1382,6 +1380,11 @@
     "terminalTab": {
       "closeLabel": "Terminal-Tab schließen",
       "closeConfirm": "{name} schließen?"
+    },
+    "check": {
+      "passed": "{command} bestanden",
+      "failed": "{command} fehlgeschlagen: {count} Funde",
+      "couldNotRun": "{command} konnte nicht laufen"
     }
   },
   "search": {
@@ -1431,9 +1434,6 @@
     "recommended": {
       "checkpoints": {
         "why": "Dateien auf den Anfang eines Zugs zurücksetzen"
-      },
-      "problems": {
-        "why": "Befunde aus dem Compiler für den Tab Probleme"
       },
       "workers": {
         "why": "Kinder als Späher, Arbeiter und Prüfer; beobachte, öffne und stoppe sie über dem Nachrichtenfeld"
@@ -1614,6 +1614,12 @@
       "summaryRetryIn": "Zusammenfassung, Versuch {attempt} in {seconds}s",
       "summaryRetrying": "Zusammenfassung wird wiederholt ({source})",
       "extensionFailed": "Erweiterung fehlgeschlagen"
+    },
+    "piHung": {
+      "message": "Pi antwortet nicht: seit {seconds} s nichts und keine Antwort auf eine Statusabfrage. Ein Neustart bricht die laufende Antwort ab; das Gespräch davor bleibt erhalten.",
+      "restart": "Pi neu starten",
+      "wait": "Weiter warten",
+      "restarting": "Pi wird neu gestartet…"
     }
   },
   "pair": {
@@ -1725,6 +1731,13 @@
     "queuedSteering": "Lenken",
     "queuedFollowUp": "Danach",
     "removeQueued": "Nachricht aus der Warteschlange entfernen",
+    "sendNowTitle": "Aktuelle Antwort stoppen (ihr unfertiges Denken geht verloren) und dies jetzt senden",
+    "queue": {
+      "header": "{count} in der Warteschlange",
+      "steerTitle": "Wird nach dem aktuellen Schritt gesendet",
+      "followUpTitle": "Wird gesendet, wenn Pi fertig ist",
+      "reorder": "Ziehen oder Alt+Pfeiltasten zum Umsortieren"
+    },
     "context": "Kontext",
     "modelConfigMissing": "{model} ist nicht mehr eingerichtet; die Sitzung behält ihr aktuelles Modell.",
     "modelSwitchFailed": "Pi konnte nicht zu {model} wechseln",

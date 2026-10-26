@@ -21,6 +21,27 @@ pub(crate) struct WorkspaceLauncher {
     pub(crate) launch: PiLaunchResolver,
 }
 
+/// The window an open request came from, and who loads the new page in it.
+#[derive(Clone, Copy)]
+pub(crate) enum SourceWindow<'a> {
+    /// A menu item: the window is navigated here.
+    #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+    Navigate(&'a WebviewWindow),
+    /// A Tauri command from this window's page. The page loads the returned URL
+    /// itself once the command has answered: navigating it from inside the
+    /// command cancels the pending IPC request, and Tauri's IPC script then
+    /// sends the same command again (a second folder picker, a second Pi).
+    Caller(&'a WebviewWindow),
+}
+
+impl<'a> SourceWindow<'a> {
+    fn window(self) -> &'a WebviewWindow {
+        match self {
+            Self::Navigate(window) | Self::Caller(window) => window,
+        }
+    }
+}
+
 pub(crate) struct FocusedWorkspaceState(pub(crate) Mutex<Option<String>>);
 pub(crate) struct WindowWorkspaceState(pub(crate) Mutex<HashMap<String, String>>);
 
@@ -52,11 +73,12 @@ fn spawn_fresh_runtime(
     Ok(target)
 }
 
+/// `Ok(Some(url))`: the calling page loads `url` itself (see [`SourceWindow::Caller`]).
 pub(crate) fn open_fresh_session_at_path(
     app: &AppHandle,
-    source_window: Option<&WebviewWindow>,
+    source_window: Option<SourceWindow<'_>>,
     cwd: &Path,
-) -> Result<(), String> {
+) -> Result<Option<String>, String> {
     let launcher = app
         .try_state::<WorkspaceLauncher>()
         .ok_or_else(|| "Workspace launcher is not ready".to_string())?;
@@ -70,28 +92,52 @@ pub(crate) fn open_fresh_session_at_path(
 
     host.register_workspace(&workspace_id, cwd.to_path_buf())?;
     let target = spawn_fresh_runtime(&runtimes, &launcher.launch, cwd, workspace_id.clone())?;
-    if let Some(window) =
-        source_window.filter(|window| window.label().starts_with("native-workspace-"))
-    {
-        return navigate_workspace_window(app, window, host.origin(), &target, true);
+    if let Some(source) = workspace_source(source_window) {
+        return load_in_source(app, source, host.origin(), &target, true);
     }
     let label = format!("native-workspace-{workspace_id}");
     if let Some(existing) = app.get_webview_window(&label) {
-        return navigate_workspace_window(app, &existing, host.origin(), &target, true);
+        navigate_workspace_window(app, &existing, host.origin(), &target, true)?;
+        return Ok(None);
     }
     if let Err(error) = open_native_workspace_window(app, host.origin(), &target) {
         let _ = runtimes.stop(&target);
         return Err(error);
     }
-    Ok(())
+    Ok(None)
 }
 
+fn workspace_source(source: Option<SourceWindow<'_>>) -> Option<SourceWindow<'_>> {
+    source.filter(|source| source.window().label().starts_with("native-workspace-"))
+}
+
+fn load_in_source(
+    app: &AppHandle,
+    source: SourceWindow<'_>,
+    host_origin: &str,
+    target: &RuntimeTarget,
+    stop_target_on_error: bool,
+) -> Result<Option<String>, String> {
+    match source {
+        SourceWindow::Navigate(window) => {
+            navigate_workspace_window(app, window, host_origin, target, stop_target_on_error)?;
+            Ok(None)
+        }
+        SourceWindow::Caller(window) => {
+            let url = native_workspace_url(host_origin, target)?;
+            set_window_workspace(app, window.label(), &target.workspace_id);
+            Ok(Some(url.to_string()))
+        }
+    }
+}
+
+/// `Ok(Some(url))`: the calling page loads `url` itself (see [`SourceWindow::Caller`]).
 pub(crate) fn open_workspace_at_path(
     app: &AppHandle,
-    source_window: Option<&WebviewWindow>,
+    source_window: Option<SourceWindow<'_>>,
     cwd: &Path,
     resume_session_id: Option<&str>,
-) -> Result<(), String> {
+) -> Result<Option<String>, String> {
     let launcher = app
         .try_state::<WorkspaceLauncher>()
         .ok_or_else(|| "Workspace launcher is not ready".to_string())?;
@@ -117,12 +163,10 @@ pub(crate) fn open_workspace_at_path(
         None => spawn_fresh_runtime(&runtimes, &launcher.launch, cwd, workspace_id.clone())?,
     };
 
-    if let Some(window) =
-        source_window.filter(|window| window.label().starts_with("native-workspace-"))
-    {
-        return navigate_workspace_window(
+    if let Some(source) = workspace_source(source_window) {
+        return load_in_source(
             app,
-            window,
+            source,
             host.origin(),
             &target,
             resume_session_id.is_none(),
@@ -131,13 +175,14 @@ pub(crate) fn open_workspace_at_path(
 
     let label = format!("native-workspace-{workspace_id}");
     if let Some(existing) = app.get_webview_window(&label) {
-        return navigate_workspace_window(
+        navigate_workspace_window(
             app,
             &existing,
             host.origin(),
             &target,
             resume_session_id.is_none(),
-        );
+        )?;
+        return Ok(None);
     }
 
     if let Err(error) = open_native_workspace_window(app, host.origin(), &target) {
@@ -146,7 +191,7 @@ pub(crate) fn open_workspace_at_path(
         }
         return Err(error);
     }
-    Ok(())
+    Ok(None)
 }
 
 fn native_workspace_url(host_origin: &str, target: &RuntimeTarget) -> Result<tauri::Url, String> {
@@ -265,5 +310,6 @@ pub fn open_fresh_session_for_focused_workspace(app: &AppHandle) -> Result<(), S
         .try_state::<HostServer>()
         .ok_or_else(|| "Host server is not ready".to_string())?;
     let cwd = host.workspace_root_path(&workspace_id)?;
-    open_fresh_session_at_path(app, Some(&focused_window), &cwd)
+    open_fresh_session_at_path(app, Some(SourceWindow::Navigate(&focused_window)), &cwd)?;
+    Ok(())
 }

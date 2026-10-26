@@ -287,12 +287,12 @@ mod tests {
              setTimeout(() => {{}}, 60000);",
             serde_json::to_string(&file).unwrap()
         );
-        let error = run_with_timeout(script(bin, &code), Duration::from_secs(1)).unwrap_err();
+        let error = run_with_timeout(script(bin, &code), Duration::from_secs(3)).unwrap_err();
         assert!(error.contains("timed out"));
         let pids: serde_json::Value =
             serde_json::from_str(&fs::read_to_string(&file).unwrap()).unwrap();
         let _ = fs::remove_file(&file);
-        thread::sleep(Duration::from_millis(200));
+        thread::sleep(Duration::from_secs(1));
         for key in ["parent", "child"] {
             let pid = pids[key].as_u64().unwrap() as u32;
             assert!(

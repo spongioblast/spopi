@@ -279,7 +279,9 @@ export function createMetricsModel({
       tools: tools.map((entry) => ({
         ...entry,
         durationMs: entry.finishedAt
-          ? Math.max(0, entry.finishedAt - entry.startedAt)
+          ? typeof entry.recordedMs === "number"
+            ? entry.recordedMs
+            : Math.max(0, entry.finishedAt - entry.startedAt)
           : Math.max(0, at - entry.startedAt),
       })),
       runningToolCount: runningTools.length,

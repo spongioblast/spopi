@@ -1,5 +1,5 @@
-// ABOUTME: The verify gate: after a run that edited files, run the project check once before Pi settles.
-// ABOUTME: A failure in a changed file asks the model for one repair, capped; everything else goes to the user.
+// ABOUTME: The verify gate: after a run that edited files, scan them for secrets and run the project check.
+// ABOUTME: A new secret or a failure in a changed file asks the model for a repair, capped; the rest goes to the user.
 
 import * as path from "node:path";
 import {
@@ -11,17 +11,36 @@ import {
   type ExtensionContext,
   SettingsManager,
 } from "@earendil-works/pi-coding-agent";
-import { type CheckResolution, resolveCheckCommand } from "./check-command";
-import { describeChangedFiles, outputTail, relevantOutput, repairMessage } from "./check-report";
+import { type CheckResolution, resolveCheckCommand, secretScanEnabled } from "./check-command";
+import {
+  describeChangedFiles,
+  outputTail,
+  parseFindings,
+  relevantOutput,
+  repairMessage,
+} from "./check-report";
 import { type CheckRun, runCheck } from "./run-check";
+import { type SecretFinding, scanSecrets, secretMessage, secretNotice } from "./secret-scan";
 
 export const STATUS_KEY = "spopi-verify";
 export const MESSAGE_TYPE = "spopi-verify";
+/** SPOPI's Problems tab reads this widget as one JSON line; the terminal never gets it. */
+export const FINDINGS_WIDGET = "spopi-verify-findings";
+
+export function findingsReport(run: CheckRun, command: string, cwd: string) {
+  return {
+    command,
+    status:
+      run.status === "failed-to-run" ? "could-not-run" : run.exitCode === 0 ? "passed" : "failed",
+    findings: run.status === "done" && run.exitCode !== 0 ? parseFindings(run.output, cwd) : [],
+  };
+}
 
 export type VerifyGateDeps = {
   resolve: (cwd: string) => CheckResolution;
   operations: (cwd: string) => BashOperations;
   run: typeof runCheck;
+  scanSecrets: (cwd: string, files: Iterable<string>) => SecretFinding[];
 };
 
 export function defaultVerifyGateDeps(): VerifyGateDeps {
@@ -37,6 +56,7 @@ export function defaultVerifyGateDeps(): VerifyGateDeps {
       return ops;
     },
     run: runCheck,
+    scanSecrets: (cwd, files) => (secretScanEnabled(cwd) ? scanSecrets(cwd, files) : []),
   };
 }
 
@@ -73,6 +93,9 @@ export function registerVerifyGate(
   // True once the check has passed in this session: a later failure then comes
   // from what changed since, even when its output names no changed file.
   let cleanBefore = false;
+  // Secrets already reported in this session, so an old one is not raised on every run.
+  const reportedSecrets = new Set<string>();
+  let secretsAsked = false;
 
   const status = (ctx: ExtensionContext, text: string | undefined) => {
     if (ctx.hasUI) ctx.ui.setStatus(STATUS_KEY, text);
@@ -81,8 +104,8 @@ export function registerVerifyGate(
     if (ctx.hasUI) ctx.ui.notify(text, level);
   };
 
-  const check = async (ctx: ExtensionContext, command: string, timeoutSeconds: number) =>
-    deps.run({
+  const check = async (ctx: ExtensionContext, command: string, timeoutSeconds: number) => {
+    const run = await deps.run({
       operations: deps.operations(ctx.cwd),
       command,
       cwd: ctx.cwd,
@@ -90,6 +113,11 @@ export function registerVerifyGate(
       logName: ctx.sessionManager.getSessionId() || "check",
       signal: ctx.signal,
     });
+    if (ctx.hasUI && process.env.SPOPI_HOST_ORIGIN) {
+      ctx.ui.setWidget(FINDINGS_WIDGET, [JSON.stringify(findingsReport(run, command, ctx.cwd))]);
+    }
+    return run;
+  };
 
   pi.on("tool_result", (event, ctx) => {
     if (event.isError || !isFileEditTool(event.toolName)) return;
@@ -103,10 +131,12 @@ export function registerVerifyGate(
     changed.clear();
     repairs = 0;
     editsSinceCheck = 0;
+    secretsAsked = false;
   };
   pi.on("session_start", () => {
     reset();
     cleanBefore = false;
+    reportedSecrets.clear();
   });
   pi.on("agent_settled", reset);
 
@@ -117,6 +147,31 @@ export function registerVerifyGate(
       ctx: ExtensionContext,
     ): Promise<AgentBeforeSettleEventResult | undefined> => {
       if (event.outcome !== "completed" || changed.size === 0) return;
+      // Reading what the model wrote runs no project code, so it does not wait for trust.
+      const secrets = deps
+        .scanSecrets(ctx.cwd, changed)
+        .filter((finding) => !reportedSecrets.has(finding.fingerprint));
+      for (const finding of secrets) reportedSecrets.add(finding.fingerprint);
+      if (secrets.length > 0) {
+        if (secretsAsked || ctx.hasPendingMessages()) {
+          tell(ctx, secretNotice(secrets), "warning");
+        } else {
+          secretsAsked = true;
+          return {
+            entries: [
+              ...event.entries,
+              {
+                type: "custom_message",
+                customType: MESSAGE_TYPE,
+                content: secretMessage(secrets),
+                display: true,
+                details: { secrets: secrets.length },
+              },
+            ],
+            continue: true,
+          };
+        }
+      }
       // The command is the project's own code. Pi's trust decision is the consent to run it.
       if (!ctx.isProjectTrusted() || ctx.hasPendingMessages()) return;
       const resolution = deps.resolve(ctx.cwd);

@@ -20,12 +20,15 @@ Generated. Do not edit by hand. Paths are relative to the shipped UI folder; the
 - `app/chat/history-render.js` — Draws turns as prompt, one work row, then the final answer, live and from history.
 - `app/chat/live-label.js` — Names what Pi is doing right now for the live strip: the running tool and its target,
 - `app/chat/live-strip.js` — One 22px row above the composer while the agent runs: tool, elapsed, Steer, Stop.
-- `app/chat/manual-compaction.js` — Manual compaction from the header button: sends Pi's compact command once at a time.
+- `app/chat/manual-compaction.js` — Manual compaction from the header button or /compact: sends Pi's compact command once at a time.
 - `app/chat/message-actions.js` — Fork and edit on a user message are chat actions.
 - `app/chat/messages.css` — Styles the scrolling message list and its empty state.
 - `app/chat/mount-chat-file-actions.js` — Chat file.preview and terminal.run subscriptions.
 - `app/chat/mount-history.js` — Transcript history mount and snapshot hydration.
 - `app/chat/on-next-settled.js` — One-shot callbacks for the next agent_settled of the open session.
+- `app/chat/pi-hung-notice.css` — Styles the "Pi is not responding" notice above the composer.
+- `app/chat/pi-hung-notice.js` — The notice above the composer when Pi stopped answering: Restart Pi, or keep waiting.
+- `app/chat/pi-watchdog.js` — Notices a Pi that stopped answering during a turn: quiet for a while, then a get_state ping with no reply.
 - `app/chat/retry-banner.css` — The single retry and endpoint-down banner above the composer.
 - `app/chat/retry-banner.js` — One retry banner for repeated model failures.
 - `app/chat/rpiv-todo-mirror.css` — Styles the mirrored todo panel that tracks an extension widget.
@@ -67,8 +70,9 @@ Generated. Do not edit by hand. Paths are relative to the shipped UI folder; the
 - `app/composer/model-selection.js` — Compares provider-scoped model identities for composer selection state.
 - `app/composer/model-visibility.js` — Catalog visibility filter, context-window lookup, and thinking-level events.
 - `app/composer/mount-composer.js` — Composer submit path: resolve the input, then send or run a builtin.
-- `app/composer/queued-messages.css` — Styles the strip of queued steering and follow-up messages.
-- `app/composer/queued-messages.js` — Renders messages waiting to be sent as steering or follow-up.
+- `app/composer/pi-builtin-commands.js` — Runs Pi's terminal-only slash commands (/compact, /model, /thinking, /export) from the composer.
+- `app/composer/queued-messages.css` — Styles the queued-message list that sits on top of the composer card.
+- `app/composer/queued-messages.js` — Renders the queue of steering and follow-up messages as one list on top of the composer.
 - `app/composer/send-model-gate.js` — Holds back a prompt while the model picker has no usable model.
 - `app/composer/session-chrome.js` — Paints the retry banner, guard chip, and status footer after each transcript update.
 - `app/composer/slash-commands.js` — Builds the slash-command catalog and matches the text being typed.
@@ -79,10 +83,11 @@ Generated. Do not edit by hand. Paths are relative to the shipped UI folder; the
 - `app/dock/dock.css` — Dock under the editor: tab strip, status chips, Cockpit layout.
 - `app/dock/dock.js` — Editor-column dock: Terminal, Problems, Cockpit + status strip.
 - `app/dock/lens-findings.js` — Reads pi-lens diagnostics from a finished tool result.
-- `app/dock/problems-dock.css` — Problems dock groups pi-lens diagnostics by file.
-- `app/dock/problems-dock.js` — Problems dock lists pi-lens diagnostics grouped by file.
+- `app/dock/problems-dock.css` — Problems dock groups the check's findings (and pi-lens diagnostics) by file.
+- `app/dock/problems-dock.js` — Problems dock lists the project check's findings, and pi-lens diagnostics if installed, by file.
 - `app/dock/terminal-panel.js` — Terminal Panel: DOM, tab bar, collapse/expand, height clamp, close-risk.
 - `app/dock/terminal-profile-menu.js` — Dock + button profile picker: default-profile create, chevron and
+- `app/dock/verify-findings.js` — Reads the project check's findings that spopi-verify sends as one JSON widget line.
 
 ## editor
 
@@ -96,6 +101,7 @@ Generated. Do not edit by hand. Paths are relative to the shipped UI folder; the
 - `app/editor/file-pdf-preview.js` — Renders a PDF into canvases with pdf.js.
 - `app/editor/file-preview-dialogs.js` — Shows the file preview's modal choices: unsaved changes and a file changed on disk.
 - `app/editor/file-preview-diff-renderer.js` — Renders a file's git patch as an inline colour-coded diff with collapsed unchanged runs.
+- `app/editor/file-preview-disk-watch.js` — Reloads the open preview tab when its file changes on disk, whoever changed it.
 - `app/editor/file-preview-follow.js` — Opens or refreshes the file preview when the agent writes a file.
 - `app/editor/file-preview-git-diff.js` — Fetches and caches the git diff of a preview tab's file, one in-flight request per tab.
 - `app/editor/file-preview-html.js` — Live HTML preview renderer for the file preview panel.

@@ -11,6 +11,19 @@ describe("MCP row More menu", () => {
     document.body.replaceChildren();
   });
 
+  it("says a server offers resources when Pi reports the flag", () => {
+    const withResources = renderServerRow(
+      { name: "docs", scope: "global", state: "connected", exposure: "direct", resources: true },
+      {},
+    );
+    expect(withResources.textContent).toContain("settings.mcp.offersResources");
+    const without = renderServerRow(
+      { name: "docs", scope: "global", state: "connected", exposure: "direct" },
+      {},
+    );
+    expect(without.textContent).not.toContain("settings.mcp.offersResources");
+  });
+
   it("stays open when a document click listener closes menus", () => {
     const closeOnClick = () => closeContextMenu();
     document.addEventListener("click", closeOnClick);

@@ -4,8 +4,8 @@
 import { expect, test, vi } from "vitest";
 import { mountComposer } from "./mount-composer.js";
 
-/** @param {{ allowPrompt?: () => boolean, catalog?: Map<string, any> }} [options] */
-function makeComposer({ allowPrompt, catalog = new Map() } = {}) {
+/** @param {{ allowPrompt?: () => boolean, catalog?: Map<string, any>, piCommands?: Record<string, any> }} [options] */
+function makeComposer({ allowPrompt, catalog = new Map(), piCommands } = {}) {
   const input = document.createElement("textarea");
   const form = document.createElement("form");
   form.append(input);
@@ -24,6 +24,7 @@ function makeComposer({ allowPrompt, catalog = new Map() } = {}) {
     getCommandCatalog: () => catalog,
     clearPendingFork() {},
     allowPrompt,
+    piCommands,
   });
   return { input, runtime, sendComposerInput };
 }
@@ -57,6 +58,35 @@ test("bare /mcp sends nothing to the runtime", async () => {
   input.value = "/mcp";
   await sendComposerInput({ altKey: false });
   expect(runtime.request).not.toHaveBeenCalled();
+});
+
+test("/compact runs Pi's compact command with its text and never prompts the model", async () => {
+  const compact = vi.fn(async () => {});
+  const catalog = new Map([
+    ["compact", { type: "pi", action: "pi_compact", capabilityState: "enabled" }],
+  ]);
+  const { input, runtime, sendComposerInput } = makeComposer({
+    catalog,
+    piCommands: { pi_compact: compact },
+  });
+  input.value = "/compact keep the API notes";
+  await sendComposerInput({ altKey: false });
+  expect(compact).toHaveBeenCalledWith("keep the API notes");
+  expect(runtime.request).not.toHaveBeenCalled();
+  expect(input.value).toBe("");
+});
+
+test("a failed built-in keeps the draft", async () => {
+  const catalog = new Map([
+    ["compact", { type: "pi", action: "pi_compact", capabilityState: "enabled" }],
+  ]);
+  const { input, sendComposerInput } = makeComposer({
+    catalog,
+    piCommands: { pi_compact: vi.fn(async () => Promise.reject(new Error("Nothing to compact"))) },
+  });
+  input.value = "/compact";
+  await expect(sendComposerInput({ altKey: false })).rejects.toThrow("Nothing to compact");
+  expect(input.value).toBe("/compact");
 });
 
 test("an allowed prompt is sent and the box clears", async () => {

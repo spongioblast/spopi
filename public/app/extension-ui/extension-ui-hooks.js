@@ -5,6 +5,11 @@ import { isRpivTodoCommandNotify, isRpivTodoWidgetRequest } from "../chat/rpiv-t
 import { paintExtensionNotice } from "../chat/turn-block.js";
 import { historyNotice } from "../chat/undo-marker.js";
 import {
+  emitVerifyFindings,
+  isVerifyFindingsWidget,
+  parseVerifyFindings,
+} from "../dock/verify-findings.js";
+import {
   INSPECT_WIDGET,
   isSubagentWidget,
   parseInspect,
@@ -113,6 +118,11 @@ export function createExtensionUiHooks(deps) {
       const widget = /** @type {{ method?: string, widgetKey?: string, widgetLines?: unknown }} */ (
         request
       );
+      if (isVerifyFindingsWidget(widget)) {
+        const report = parseVerifyFindings(widget.widgetLines);
+        if (report) emitVerifyFindings(report);
+        return;
+      }
       if (isSubagentWidget(widget)) {
         if (widget.widgetKey === INSPECT_WIDGET) {
           const reply = parseInspect(widget.widgetLines);

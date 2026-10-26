@@ -114,6 +114,17 @@ pub(crate) async fn read_file_content(
         .map_err(|_| api_error(StatusCode::INTERNAL_SERVER_ERROR, "serialization_failed"))
 }
 
+pub(crate) async fn file_stat(
+    State(state): State<Arc<HostState>>,
+    Query(query): Query<FilePreviewQuery>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    let data = state.data.clone();
+    let stat = blocking(move || data.stat_file(&query.workspace_id, &query.path)).await?;
+    serde_json::to_value(stat)
+        .map(Json)
+        .map_err(|_| api_error(StatusCode::INTERNAL_SERVER_ERROR, "serialization_failed"))
+}
+
 pub(crate) async fn raw_file_content(
     State(state): State<Arc<HostState>>,
     Query(query): Query<FilePreviewQuery>,

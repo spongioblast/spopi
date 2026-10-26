@@ -1,0 +1,24 @@
+/* ABOUTME: Styles the "Pi is not responding" notice above the composer. */
+/* ABOUTME: One wrapped line of text with the Restart Pi and Keep waiting buttons after it. */
+
+.pi-hung-notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+  margin-bottom: var(--space-1);
+  padding: var(--space-1) var(--space-1-5);
+  border: 1px solid var(--warning);
+  border-radius: var(--radius-md);
+  background: var(--bg-glass);
+  font-size: var(--font-size-sm);
+}
+
+.pi-hung-notice.hidden {
+  display: none;
+}
+
+.pi-hung-notice-text {
+  flex: 1 1 12rem;
+  color: var(--text-primary);
+}

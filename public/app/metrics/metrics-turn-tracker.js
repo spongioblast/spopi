@@ -39,6 +39,7 @@ import { describeToolArgs, summarizeToolArgs } from "./metrics-tool-args.js";
  *   title: string,
  *   startedAt: number,
  *   finishedAt: number,
+ *   recordedMs?: number,
  *   status: string,
  *   updates: number,
  *   outputChars: number,
@@ -109,6 +110,7 @@ import { describeToolArgs, summarizeToolArgs } from "./metrics-tool-args.js";
  *   partialResult?: { content?: unknown },
  *   result?: unknown,
  *   isError?: boolean,
+ *   durationMs?: number,
  *   reason?: unknown,
  *   errorMessage?: unknown,
  *   error?: unknown,
@@ -422,6 +424,9 @@ export function createTurnTracker({ now, historyLimit }) {
         const entry = findTool(ev.toolCallId);
         if (entry) {
           entry.finishedAt = at;
+          if (typeof ev.durationMs === "number" && ev.durationMs >= 0) {
+            entry.recordedMs = ev.durationMs;
+          }
           entry.status = ev.isError ? "error" : "ok";
           const resultContent = /** @type {{ content?: unknown } | null | undefined} */ (ev.result)
             ?.content;

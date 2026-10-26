@@ -1,6 +1,6 @@
 [package]
 name = "spopi"
-version = "0.7.2"
+version = "0.7.3"
 description = "SPOPI - desktop IDE-lite for the Pi coding agent"
 authors = ["spongioblast"]
 edition = "2021"

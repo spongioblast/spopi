@@ -10,9 +10,89 @@ import {
   describeChangedFiles,
   MAX_REPORT_LINES,
   outputTail,
+  parseFindings,
   relevantOutput,
   repairMessage,
 } from "./check-report";
+
+describe("parseFindings", () => {
+  const root = path.resolve("/work/app");
+  const at = (file: string) => path.resolve(root, file).replaceAll("\\", "/");
+
+  it("reads tsc, ruff, cargo, mypy, and biome lines", () => {
+    const output = [
+      "src/cart.ts(3,5): error TS2322: Type 'string' is not assignable to type 'number'.",
+      "src/cart.ts:9:2 - error TS2304: Cannot find name 'x'.",
+      "tools/a.py:1:8: F401 [*] `os` imported but unused",
+      "src/main.rs:4:9: warning[unused_variables]: unused variable: `y`",
+      "pkg/b.py:12: note: Revealed type is int",
+      "src/ui.ts:7:3 lint/style/useConst  FIXABLE  ━━━━━━━━━━",
+      "  --> src/main.rs:4:9",
+      "Found 3 errors.",
+    ].join("\n");
+    expect(parseFindings(output, root)).toEqual([
+      {
+        file: at("src/cart.ts"),
+        line: 3,
+        column: 5,
+        severity: "error",
+        message: "Type 'string' is not assignable to type 'number'.",
+        code: "TS2322",
+      },
+      {
+        file: at("src/cart.ts"),
+        line: 9,
+        column: 2,
+        severity: "error",
+        message: "Cannot find name 'x'.",
+        code: "TS2304",
+      },
+      {
+        file: at("tools/a.py"),
+        line: 1,
+        column: 8,
+        severity: "error",
+        message: "`os` imported but unused",
+        code: "F401",
+      },
+      {
+        file: at("src/main.rs"),
+        line: 4,
+        column: 9,
+        severity: "warning",
+        message: "unused variable: `y`",
+        code: "unused_variables",
+      },
+      {
+        file: at("pkg/b.py"),
+        line: 12,
+        column: 0,
+        severity: "info",
+        message: "Revealed type is int",
+        code: "",
+      },
+      {
+        file: at("src/ui.ts"),
+        line: 7,
+        column: 3,
+        severity: "error",
+        message: "lint/style/useConst FIXABLE",
+        code: "lint/style/useConst",
+      },
+    ]);
+  });
+
+  it("keeps a Windows drive path whole", () => {
+    const [finding] = parseFindings("D:\\w\\a.py:2:1: E999 SyntaxError: bad", root);
+    expect(finding?.file).toBe("D:/w/a.py");
+    expect(finding?.line).toBe(2);
+  });
+
+  it("caps the list", () => {
+    const output = Array.from({ length: 400 }, (_, i) => `a.py:${i + 1}:1: F401 x`).join("\n");
+    expect(parseFindings(output, root)).toHaveLength(200);
+  });
+});
 
 const cwd = path.resolve("/work/app");
 const changed = describeChangedFiles(cwd, [path.join(cwd, "src", "cart.ts")]);

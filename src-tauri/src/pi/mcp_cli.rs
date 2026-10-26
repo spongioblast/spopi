@@ -407,6 +407,7 @@ mod tests {
         assert_eq!(servers.len(), 4);
         assert_eq!(servers[0]["state"], "connected");
         assert_eq!(servers[0]["tools"].as_array().unwrap().len(), 3);
+        assert_eq!(servers[0]["resources"], true);
         assert_eq!(servers[0]["override"], r"C:\Users\me\code\app\.pi\mcp.json");
         assert_eq!(servers[2]["state"], "needs-auth");
         assert_eq!(servers[2]["transport"], "https://mcp.sentry.dev/mcp");

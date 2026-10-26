@@ -700,6 +700,43 @@ describe("SessionSidebar.render", () => {
     ).toBeTruthy();
   });
 
+  it("unarchives an archived session from its context menu", async () => {
+    const { sidebar, container } = makeSidebar([
+      { id: "s-arc", timestamp: new Date().toISOString(), name: "Arc" },
+      { id: "s-reg", timestamp: new Date().toISOString(), name: "Reg" },
+    ]);
+    sidebar.toggleArchived("s-arc");
+    await sidebar.load();
+    container.querySelector(".project-archived-toggle").click();
+    const row = container.querySelector('.session-item-archived[data-session-id="s-arc"]');
+    row.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true }));
+    const menuItem = [
+      ...document.querySelectorAll(".session-context-menu .context-menu-item"),
+    ].find((el) => el.textContent?.trim() === "Unarchive");
+    expect(menuItem).toBeTruthy();
+    menuItem.click();
+    expect(sidebar.isArchived("s-arc")).toBe(false);
+    expect(container.querySelector(".project-archived-row")).toBeNull();
+    expect(
+      container.querySelector('.session-item[data-session-id="s-arc"]:not(.session-item-archived)'),
+    ).toBeTruthy();
+  });
+
+  it("unarchives an archived session from its row button", async () => {
+    const { sidebar, container } = makeSidebar([
+      { id: "s-arc", timestamp: new Date().toISOString(), name: "Arc", filePath: "/w/arc.jsonl" },
+    ]);
+    sidebar.toggleArchived("s-arc");
+    await sidebar.load();
+    container.querySelector(".project-archived-toggle").click();
+    const button = container.querySelector(
+      '.session-item-archived[data-session-id="s-arc"] .session-archive-btn',
+    );
+    expect(button?.getAttribute("aria-label")).toBe("Unarchive session");
+    button.click();
+    expect(sidebar.isArchived("s-arc")).toBe(false);
+  });
+
   it("archives every session in a project from the project header context menu", async () => {
     const { sidebar, container } = makeSidebar([
       { id: "s-fav", timestamp: new Date().toISOString(), name: "Fav" },

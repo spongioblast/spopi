@@ -1018,8 +1018,7 @@
       "packages": "来自软件包",
       "packageNote": "由扩展注册；请在该软件包中修改。",
       "tools": "{count} 个工具",
-      "resources": "{count} 个资源",
-      "templates": "{count} 个资源模板",
+      "offersResources": "提供资源",
       "state": {
         "connected": "已连接",
         "needsAuth": "需要登录",
@@ -1365,8 +1364,7 @@
     "changes": "更改",
     "cockpit": "驾驶舱",
     "status": "会话与服务器指标",
-    "installLens": "安装 pi-lens 以填充问题列表",
-    "noProblems": "没有问题",
+    "noProblems": "没有问题。在编辑文件的运行之后，项目检查会在这里列出发现的问题。",
     "lensError": "语言检查失败",
     "languageServers": {
       "none": "语言服务器：没有运行",
@@ -1382,6 +1380,11 @@
     "terminalTab": {
       "closeLabel": "关闭终端标签",
       "closeConfirm": "关闭 {name}？"
+    },
+    "check": {
+      "passed": "{command} 通过",
+      "failed": "{command} 失败：{count} 项",
+      "couldNotRun": "{command} 无法运行"
     }
   },
   "search": {
@@ -1431,9 +1434,6 @@
     "recommended": {
       "checkpoints": {
         "why": "把文件恢复到任意一轮开始时的状态"
-      },
-      "problems": {
-        "why": "为问题面板提供编译器检查结果"
       },
       "workers": {
         "why": "侦察、执行和复查子代理，在输入框上方查看、打开和停止"
@@ -1614,6 +1614,12 @@
       "summaryRetryIn": "{seconds} 秒后第 {attempt} 次重试摘要",
       "summaryRetrying": "正在重试摘要（{source}）",
       "extensionFailed": "扩展失败"
+    },
+    "piHung": {
+      "message": "Pi 没有响应：{seconds} 秒内没有任何内容，状态检查也没有回应。重启会停止正在进行的回复；之前的对话会保留。",
+      "restart": "重启 Pi",
+      "wait": "继续等待",
+      "restarting": "正在重启 Pi…"
     }
   },
   "pair": {
@@ -1725,6 +1731,13 @@
     "queuedSteering": "引导",
     "queuedFollowUp": "后续",
     "removeQueued": "移除排队的消息",
+    "sendNowTitle": "停止当前回复(未完成的思考将被丢弃)并立即发送",
+    "queue": {
+      "header": "{count} 条排队中",
+      "steerTitle": "在当前步骤之后发送",
+      "followUpTitle": "Pi 完成后发送",
+      "reorder": "拖动或使用 Alt+方向键重新排序"
+    },
     "context": "上下文",
     "modelConfigMissing": "{model} 已不再配置；会话保留当前模型。",
     "modelSwitchFailed": "Pi 无法切换到 {model}",

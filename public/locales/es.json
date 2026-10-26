@@ -1018,8 +1018,7 @@
       "packages": "De paquetes",
       "packageNote": "Lo registra una extensión; cámbialo en ese paquete.",
       "tools": "{count} herramientas",
-      "resources": "{count} recursos",
-      "templates": "{count} plantillas de recursos",
+      "offersResources": "Ofrece recursos",
       "state": {
         "connected": "conectado",
         "needsAuth": "necesita iniciar sesión",
@@ -1365,8 +1364,7 @@
     "changes": "Cambios",
     "cockpit": "Cabina",
     "status": "Métricas de sesión y servidor",
-    "installLens": "Instala pi-lens para llenar Problemas",
-    "noProblems": "Sin problemas",
+    "noProblems": "Sin problemas. Tras una ejecución que edita archivos, la comprobación del proyecto muestra aquí lo que encontró.",
     "lensError": "Falló la comprobación del lenguaje",
     "languageServers": {
       "none": "Servidores de lenguaje: ninguno en ejecución",
@@ -1382,6 +1380,11 @@
     "terminalTab": {
       "closeLabel": "Cerrar pestaña de terminal",
       "closeConfirm": "¿Cerrar {name}?"
+    },
+    "check": {
+      "passed": "{command} pasó",
+      "failed": "{command} falló: {count} hallazgos",
+      "couldNotRun": "{command} no se pudo ejecutar"
     }
   },
   "search": {
@@ -1431,9 +1434,6 @@
     "recommended": {
       "checkpoints": {
         "why": "Restaura los archivos al inicio de cualquier turno"
-      },
-      "problems": {
-        "why": "Hallazgos del compilador para la pestaña Problemas"
       },
       "workers": {
         "why": "Hijos explorador, trabajador y revisor; síguelos, ábrelos y detenlos sobre el cuadro de mensaje"
@@ -1614,6 +1614,12 @@
       "summaryRetryIn": "Reintento {attempt} del resumen en {seconds} s",
       "summaryRetrying": "Reintentando el resumen ({source})",
       "extensionFailed": "La extensión falló"
+    },
+    "piHung": {
+      "message": "Pi no responde: nada en {seconds} s y ninguna respuesta a una consulta de estado. Reiniciar detiene la respuesta en curso; la conversación anterior se conserva.",
+      "restart": "Reiniciar Pi",
+      "wait": "Seguir esperando",
+      "restarting": "Reiniciando Pi…"
     }
   },
   "pair": {
@@ -1725,6 +1731,13 @@
     "queuedSteering": "Dirigir",
     "queuedFollowUp": "Seguimiento",
     "removeQueued": "Quitar mensaje en cola",
+    "sendNowTitle": "Detener la respuesta actual (su razonamiento sin terminar se descarta) y enviar esto ahora",
+    "queue": {
+      "header": "{count} en cola",
+      "steerTitle": "Se envía tras el paso actual",
+      "followUpTitle": "Se envía cuando Pi termina",
+      "reorder": "Arrastra, o usa Alt+flechas, para reordenar"
+    },
     "context": "Contexto",
     "modelConfigMissing": "{model} ya no está configurado; la sesión mantiene su modelo actual.",
     "modelSwitchFailed": "Pi no pudo cambiar a {model}",

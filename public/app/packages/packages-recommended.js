@@ -18,7 +18,6 @@
  *
  * @typedef {{
  *   checkpoints: boolean,
- *   problems: boolean,
  *   workers: boolean,
  *   context: boolean,
  *   fff: boolean,
@@ -34,12 +33,6 @@ export const RECOMMENDED_PACKAGES = [
     name: "pi-workspace-history",
     why: "packages.recommended.checkpoints.why",
     enables: "checkpoints",
-  },
-  {
-    source: "npm:pi-lens",
-    name: "pi-lens",
-    why: "packages.recommended.problems.why",
-    enables: "problems",
   },
   {
     source: "npm:pi-subagents",
@@ -95,7 +88,6 @@ export function capabilityState(packages = []) {
   const names = installedNames(packages);
   return {
     checkpoints: names.has("pi-workspace-history"),
-    problems: names.has("pi-lens"),
     workers: [...names].some((name) => name.includes("pi-subagents")),
     context: names.has("pi-context-view"),
     fff: [...names].some((name) => name.includes("pi-fff")),

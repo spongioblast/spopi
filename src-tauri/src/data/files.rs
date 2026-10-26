@@ -194,6 +194,24 @@ impl HostDataPlane {
         })
     }
 
+    pub fn stat_file(
+        &self,
+        workspace_id: &str,
+        relative_path: &str,
+    ) -> Result<FileStat, HostDataError> {
+        let root = self.workspace_root(workspace_id)?;
+        let path = safe_join(&root, relative_path)?;
+        let metadata =
+            std::fs::metadata(&path).map_err(|error| HostDataError::Io(error.to_string()))?;
+        if !metadata.is_file() {
+            return Err(HostDataError::NotFile);
+        }
+        Ok(FileStat {
+            size: metadata.len(),
+            mtime_ms: file_mtime_ms(&metadata)?,
+        })
+    }
+
     pub fn read_convertible_file(
         &self,
         workspace_id: &str,

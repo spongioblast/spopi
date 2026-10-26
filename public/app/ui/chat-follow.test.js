@@ -87,6 +87,52 @@ describe("chatFollow", () => {
     expect(box.scrollTop).toBe(200);
   });
 
+  it("a wheel up unpins even when this container did not move", () => {
+    const size = { height: 1000 };
+    const box = scroller(size);
+    const follow = chatFollow(box);
+    follow.follow();
+    box.dispatchEvent(new WheelEvent("wheel", { deltaY: -40 }));
+    expect(follow.pinned).toBe(false);
+    size.height = 1400;
+    follow.follow();
+    expect(box.scrollTop).toBe(1000);
+  });
+
+  it("a wheel up stops the jumps that are already queued", () => {
+    /** @type {FrameRequestCallback[]} */
+    const frames = [];
+    vi.stubGlobal("requestAnimationFrame", (/** @type {FrameRequestCallback} */ run) => {
+      frames.push(run);
+      return frames.length;
+    });
+    const size = { height: 800 };
+    const box = scroller(size);
+    chatFollow(box).force();
+    frames.shift()?.(0);
+    box.dispatchEvent(new WheelEvent("wheel", { deltaY: -10 }));
+    size.height = 1200;
+    while (frames.length) frames.shift()?.(0);
+    expect(box.scrollTop).toBe(800);
+  });
+
+  it("a wheel down at the bottom pins again", () => {
+    const size = { height: 1000 };
+    const box = scroller(size);
+    const follow = chatFollow(box);
+    follow.follow();
+    box.dispatchEvent(new WheelEvent("wheel", { deltaY: -40 }));
+    box.dispatchEvent(new WheelEvent("wheel", { deltaY: 40 }));
+    expect(follow.pinned).toBe(true);
+  });
+
+  it("PageUp unpins", () => {
+    const box = scroller({ height: 1000 });
+    const follow = chatFollow(box);
+    box.dispatchEvent(new KeyboardEvent("keydown", { key: "PageUp" }));
+    expect(follow.pinned).toBe(false);
+  });
+
   it("shares one state between renderers of the same container", () => {
     const box = scroller({ height: 500 });
     expect(chatFollow(box)).toBe(chatFollow(box));

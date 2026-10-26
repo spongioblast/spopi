@@ -1,12 +1,12 @@
 {
-  "version": "1.0.2",
+  "version": "1.4.0",
   "_comment": "Locked Pi release version that spopi bundles (github.com/earendil-works/pi). Change it with `bun run bump:pi <version>`, which also fills `sha256` from the release's SHA256SUMS; see docs/PI_BUMP.md.",
   "sha256": {
-    "pi-darwin-arm64.tar.gz": "c2f035ea4adba87916f005c99515e3c91674b11d16ba75d95d0881e4781aa3bb",
-    "pi-darwin-x64.tar.gz": "d54be8df33ab6a2f3457bd7de37edc947050ac4a7f043456d37e03afd15684de",
-    "pi-linux-arm64.tar.gz": "3321ccdc3ff38d6c52274bdab28246e06434618d1988a54e99cce45e535a013c",
-    "pi-linux-x64.tar.gz": "0d7687a6a9fcbaa88ff664cb6b28683ce9ee3e028931b55eb48a70ae9a285d18",
-    "pi-windows-arm64.zip": "4eb7c89f12c523d28069fed66f2ceb2466f909e41c87a6367a52728cec938b15",
-    "pi-windows-x64.zip": "37a2ee3c5222a73efc78b49f571748f11a74f4dbe160da3030a404da71f464e7"
+    "pi-darwin-arm64.tar.gz": "79d9979d76a2a5adb7c28e27e9b44629928ccd0dc9fbb6ae7217860bd5e8be5d",
+    "pi-darwin-x64.tar.gz": "1bdefc9e1074c1de458ea9f2e43e6013ce49cd05326009b3de144037036585e2",
+    "pi-linux-arm64.tar.gz": "fa5829c7ef83ffeaebba015715c8306220f89b2aa8a00154efbba98dd5440156",
+    "pi-linux-x64.tar.gz": "f2e4e4329603223d03260cdb8bd5033dbdc1f73ba58ab8939db2e56546e115d2",
+    "pi-windows-arm64.zip": "17ab17ee0e9088545c7dfa56d29490c45bd915425610b0db0cd937632f2df714",
+    "pi-windows-x64.zip": "0f7256ea8bdac3af20012b94fdc1252a31cc6dc0d2f9b9eb539555d22e3e321b"
   }
 }

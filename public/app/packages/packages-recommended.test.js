@@ -6,13 +6,13 @@ import { capabilityState, createAffordances, missingRecommended } from "./packag
 describe("capabilityState", () => {
   it("turns on checkpoints when workspace-history is enabled", () => {
     expect(capabilityState([{ packageName: "pi-workspace-history" }]).checkpoints).toBe(true);
-    expect(capabilityState([]).problems).toBe(false);
+    expect(capabilityState([]).checkpoints).toBe(false);
   });
 });
 
 describe("createAffordances", () => {
   it("returns the package to install for a missing feature", () => {
-    expect(createAffordances("problems", []).name).toBe("pi-lens");
+    expect(createAffordances("checkpoints", []).name).toBe("pi-workspace-history");
     expect(createAffordances("checkpoints", [{ packageName: "pi-workspace-history" }])).toBeNull();
   });
 });
@@ -20,5 +20,9 @@ describe("createAffordances", () => {
 describe("missingRecommended", () => {
   it("lists packages that are not installed yet", () => {
     expect(missingRecommended([]).length).toBeGreaterThan(3);
+  });
+
+  it("no longer recommends pi-lens", () => {
+    expect(missingRecommended([]).map((item) => item.name)).not.toContain("pi-lens");
   });
 });

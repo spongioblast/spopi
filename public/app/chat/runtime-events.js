@@ -241,6 +241,8 @@ function say(key, fallback, t, target = "") {
  */
 function streamingPhaseLabel(content, t) {
   const blocks = Array.isArray(content) ? content : [];
+  const last = blocks[blocks.length - 1];
+  if (last?.type === "toolCall" && last.draft) return toolDraftLabel(last, t);
   const hasText = blocks.some(
     (block) => block?.type === "text" && String(block.text || "").trim().length > 0,
   );
@@ -248,6 +250,42 @@ function streamingPhaseLabel(content, t) {
     return say("chat.live.answering", "Writing the answer", t);
   }
   return say("chat.live.thinking", "Thinking", t);
+}
+
+/**
+ * A tool call the model is still writing: which tool, which file, and how much so far.
+ * @param {{ name?: string, draft: { chars: number, head: string } }} block
+ * @param {(key: string, params?: Record<string, unknown>) => string} t
+ */
+function toolDraftLabel(block, t) {
+  const name = String(block.name || "");
+  const path = draftField(block.draft.head, ["path", "file_path", "filePath"]);
+  const file = path.split(/[\\/]/).pop() || path;
+  const chars = block.draft.chars;
+  const size = chars < 1024 ? `${chars} B` : `${(chars / 1024).toFixed(1)} KB`;
+  const target = (/** @type {string} */ subject) => (subject ? `${subject} · ${size}` : size);
+  const lower = name.toLowerCase();
+  if (lower === "write") return say("chat.live.writing", "Writing {target}", t, target(file));
+  if (lower === "edit") return say("chat.live.editing", "Editing {target}", t, target(file));
+  return say("chat.live.tool", "Using {target}", t, target(name));
+}
+
+/**
+ * The first string value of one of these keys in partial JSON (`{"path":"a/b.js","content":"…`).
+ * @param {string} head
+ * @param {string[]} keys
+ */
+function draftField(head, keys) {
+  for (const key of keys) {
+    const match = head.match(new RegExp(`"${key}"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)"`));
+    if (!match) continue;
+    try {
+      return String(JSON.parse(`"${match[1]}"`));
+    } catch {
+      return match[1];
+    }
+  }
+  return "";
 }
 
 /**

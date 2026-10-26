@@ -162,10 +162,10 @@ async function resolveSaveConflict(panel, tabId) {
 /**
  * @param {FilePreviewPanel} panel
  * @param {string} tabId
- * @param {{ skipConfirmation?: boolean }} [options]
+ * @param {{ skipConfirmation?: boolean, keepView?: boolean }} [options]
  * @returns {Promise<boolean>}
  */
-export async function reloadTab(panel, tabId, { skipConfirmation = false } = {}) {
+export async function reloadTab(panel, tabId, { skipConfirmation = false, keepView = false } = {}) {
   panel._captureActiveRenderer();
   const tab = panel.state.getTab(tabId);
   if (!tab) return false;
@@ -181,7 +181,35 @@ export async function reloadTab(panel, tabId, { skipConfirmation = false } = {})
   });
   const fresh = panel.state.getTab(tabId);
   if (!fresh) return false;
-  return panel._loadTabContent(fresh);
+  const view = keepView && panel.state.activeTabId === tabId ? readScroll(panel) : null;
+  const loaded = await panel._loadTabContent(fresh);
+  if (loaded && view && panel.state.activeTabId === tabId) restoreScroll(panel, view);
+  return loaded;
+}
+
+/** The elements that scroll inside a mounted renderer (see file-preview-panel.css). */
+const SCROLLER = ".cm-scroller, .file-markdown-preview, .file-pdf-container";
+
+/** @param {FilePreviewPanel} panel */
+function readScroll(panel) {
+  const scroller = panel.content?.querySelector(SCROLLER);
+  return scroller ? { top: scroller.scrollTop, left: scroller.scrollLeft } : null;
+}
+
+/**
+ * CodeMirror measures its content a frame after mount, so the position is set again then.
+ * @param {FilePreviewPanel} panel
+ * @param {{ top: number, left: number }} view
+ */
+function restoreScroll(panel, view) {
+  const apply = () => {
+    const scroller = panel.content?.querySelector(SCROLLER);
+    if (!scroller) return;
+    scroller.scrollTop = view.top;
+    scroller.scrollLeft = view.left;
+  };
+  apply();
+  globalThis.requestAnimationFrame?.(apply);
 }
 
 /**

@@ -7,8 +7,8 @@ import { createIcon } from "../../ui/icons.js";
 /** @param {ParentNode} root */
 export function mountComposerChrome(root) {
   const inputArea = el("div", { class: "input-area" }, [
-    el("div", { class: "queued-messages hidden", id: "queued-messages" }),
     el("div", { class: "extension-widgets hidden", id: "extension-widgets-above" }),
+    el("div", { class: "queued-messages hidden", id: "queued-messages" }),
     el("form", { id: "chat-form" }, [
       el("div", { class: "composer-card", id: "composer-card" }, [
         el("div", { class: "approval-host hidden", id: "approval-bar" }),

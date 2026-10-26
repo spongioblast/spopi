@@ -182,6 +182,13 @@ const ICONS = {
     ["path", { d: "M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8" }],
     ["path", { d: "M10 12h4" }],
   ],
+  "archive-restore": [
+    ["rect", { width: "20", height: "5", x: "2", y: "3", rx: "1" }],
+    ["path", { d: "M4 8v11a2 2 0 0 0 2 2h2" }],
+    ["path", { d: "M20 8v11a2 2 0 0 1-2 2h-2" }],
+    ["path", { d: "m9 15 3-3 3 3" }],
+    ["path", { d: "M12 12v9" }],
+  ],
   "trash-2": [
     ["path", { d: "M10 11v6" }],
     ["path", { d: "M14 11v6" }],
@@ -190,6 +197,22 @@ const ICONS = {
     ["path", { d: "M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" }],
   ],
   "chevron-right": [["path", { d: "m9 18 6-6-6-6" }]],
+  "corner-down-right": [
+    ["polyline", { points: "15 10 20 15 15 20" }],
+    ["path", { d: "M4 4v7a4 4 0 0 0 4 4h12" }],
+  ],
+  clock: [
+    ["circle", { cx: "12", cy: "12", r: "10" }],
+    ["polyline", { points: "12 6 12 12 16 14" }],
+  ],
+  "grip-vertical": [
+    ["circle", { cx: "9", cy: "12", r: "1" }],
+    ["circle", { cx: "9", cy: "5", r: "1" }],
+    ["circle", { cx: "9", cy: "19", r: "1" }],
+    ["circle", { cx: "15", cy: "12", r: "1" }],
+    ["circle", { cx: "15", cy: "5", r: "1" }],
+    ["circle", { cx: "15", cy: "19", r: "1" }],
+  ],
   "folder-open": [
     [
       "path",

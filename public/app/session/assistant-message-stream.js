@@ -4,10 +4,13 @@
 /**
  * @typedef {{ type: "text", text: string }} TextBlock
  * @typedef {{ type: "thinking", thinking: string }} ThinkingBlock
- * @typedef {{ type: "toolCall", id: string, name: string, arguments: Record<string, unknown> }} ToolCallBlock
+ * @typedef {{ chars: number, head: string }} ToolCallDraft
+ * @typedef {{ type: "toolCall", id: string, name: string, arguments: Record<string, unknown>, draft?: ToolCallDraft }} ToolCallBlock
  * @typedef {TextBlock | ThinkingBlock | ToolCallBlock | { type: string, [key: string]: unknown }} ContentBlock
  * @typedef {{ role: string, content: Array<ContentBlock>, usage?: unknown }} AssistantMessage
  */
+
+const DRAFT_HEAD_CHARS = 600;
 
 /** @returns {AssistantMessage} */
 function createEmptyAssistantMessage() {
@@ -63,6 +66,8 @@ function applyDelta(message, event) {
          *     delta?: string,
          *     content?: string,
          *     toolCall?: ContentBlock,
+         *     id?: string,
+         *     toolName?: string,
          *   },
          *   usage?: unknown,
          * }} */ (event)
@@ -101,9 +106,26 @@ function applyDelta(message, event) {
       if (typeof delta.content === "string") block.thinking = delta.content;
       break;
     }
-    case "toolcall_start":
-      ensureBlock(content, index, "toolCall");
+    case "toolcall_start": {
+      const block = /** @type {ToolCallBlock} */ (ensureBlock(content, index, "toolCall"));
+      if (typeof delta.id === "string") block.id = delta.id;
+      if (typeof delta.toolName === "string") block.name = delta.toolName;
+      block.draft = { chars: 0, head: "" };
       break;
+    }
+    // A large write streams its arguments for minutes. Only the size and the start are kept,
+    // so every update stays cheap to clone, and the start holds the path.
+    case "toolcall_delta": {
+      const block = /** @type {ToolCallBlock} */ (ensureBlock(content, index, "toolCall"));
+      const draft = block.draft ?? { chars: 0, head: "" };
+      const chunk = String(delta.delta ?? "");
+      draft.chars += chunk.length;
+      if (draft.head.length < DRAFT_HEAD_CHARS) {
+        draft.head += chunk.slice(0, DRAFT_HEAD_CHARS - draft.head.length);
+      }
+      block.draft = draft;
+      break;
+    }
     case "toolcall_end":
       if (delta.toolCall) content[index] = structuredClone(delta.toolCall);
       break;

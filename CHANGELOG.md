@@ -1,5 +1,33 @@
 # Changelog
 
+## 0.7.3
+
+### Features
+
+- Embedded Pi is 1.4.0. Compaction summaries use the model's output limit, so long reasoning no longer makes them fail. A session recovers after a reply cut off at the output limit, and switching models drops the previous model's thinking.
+- Open files reload when they change on disk. A clean tab updates in place and keeps its scroll position. A tab with unsaved edits is marked as a conflict.
+- Settings → Dependencies shows the Surf extension ID SPOPI connected with.
+- Pi tells the model its context window and when it will compact, from the active model's settings.
+- Queued messages are one list on top of the composer. Collapse it, edit a line, or reorder within steering or follow-ups by dragging or with Alt+Arrow.
+- The Problems tab lists the findings of the end-of-run project check, with the command and whether it passed. Python projects are checked with `ruff check` when ruff is installed.
+- After a run that edits files, the changed files are scanned for API keys, tokens, and private keys. A new one goes back to the model once, with only its first characters. `"secrets": false` in `.pi/verify.json` turns it off.
+- While the model writes a tool call, the chat names the tool, the file, and the size so far.
+- When Pi stops answering during a run, a notice offers **Restart Pi** or **Keep waiting**.
+- `pi-lens` is no longer a recommended package.
+
+### Fixes
+
+- `/compact`, `/model`, `/thinking`, and `/export` run instead of being sent to the model as text. `/compact` instructions are kept when the cut falls inside a turn.
+- A run you stop no longer shows a completion notice, and a run that retries shows one notice when it settles.
+- The chat no longer pulls you down while you read further up during a streaming reply. Scrolling up stops following until you return to the bottom.
+- **Send now** on a queued message stops the current reply and sends that message at once. Finished steps and tool results stay in context. The reply that was still streaming, including its unfinished thinking, is dropped. A tool that was mid-run stops and returns an error result.
+- Automatic session titles ignore runs that a custom message starts, so they no longer fail.
+- After you open a folder, the folder picker no longer comes back by itself. A new session in another project, or a session opened from another project, no longer starts a second Pi.
+- A session title that wraps lines up its second line with the first.
+- An archived session has an Unarchive button on its row, not only in its right-click menu.
+- Settings → MCP says a server offers resources. Pi 1.2 and later report that as a flag, not a count.
+- Kimi Coding base URL overrides in `models.json` must include `/v1`. The Azure provider key is `azure` (it was `azure-openai-responses`).
+
 ## 0.7.2
 
 ### Features

@@ -69,6 +69,7 @@ import { onLeadTabChange } from "./lead-tab.js";
  *
  * @typedef {{
  *   readFileContent?: (path: string, options?: { signal?: AbortSignal }) => Promise<Response>,
+ *   statFile?: (path: string) => Promise<Response>,
  *   writeFileContent?: (args: {
  *     path: string,
  *     content: string,
@@ -282,7 +283,7 @@ export class FilePreviewPanel {
     const existing = this.state.getTabs().find((tab) => tab.filePath === normalizedPath);
     if (!existing) return null;
     if (existing.dirty) return this.openFile(normalizedPath);
-    await this._reloadTab(existing.id, { skipConfirmation: true });
+    await this._reloadTab(existing.id, { skipConfirmation: true, keepView: true });
     return this.state.getTab(existing.id);
   }
 
@@ -524,7 +525,7 @@ export class FilePreviewPanel {
 
   /**
    * @param {string} tabId
-   * @param {{ skipConfirmation?: boolean }} [options]
+   * @param {{ skipConfirmation?: boolean, keepView?: boolean }} [options]
    */
   _reloadTab(tabId, options) {
     return reloadTab(this, tabId, options);

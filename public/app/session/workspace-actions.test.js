@@ -3,9 +3,18 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { onSessionCreated } from "./session-created-action.js";
 import { SessionSidebar } from "./session-sidebar.js";
-import { errorFromHostBody, mountNewSessionButton } from "./workspace-actions.js";
+import { errorFromHostBody, loadOpenedPage, mountNewSessionButton } from "./workspace-actions.js";
 
 describe("workspace actions", () => {
+  it("loads the page a desktop open command answers with, and nothing for null", () => {
+    const navigate = vi.fn();
+    loadOpenedPage("http://127.0.0.1:57620/app/workspaces/w/sessions/s", navigate);
+    loadOpenedPage(null, navigate);
+    loadOpenedPage("", navigate);
+    expect(navigate).toHaveBeenCalledTimes(1);
+    expect(navigate).toHaveBeenCalledWith("http://127.0.0.1:57620/app/workspaces/w/sessions/s");
+  });
+
   it("keeps the host error code when the body is an object", () => {
     const error = errorFromHostBody({ error: { code: "project_not_found" } }, 404);
     expect(error).toBeInstanceOf(Error);

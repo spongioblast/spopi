@@ -216,6 +216,18 @@ describe("metrics model", () => {
     const snapshot = model.snapshot(2000);
     expect(snapshot.tools.map((tool) => tool.id)).toEqual(["b", "a"]);
     expect(snapshot.tools[1]).toMatchObject({ status: "ok", durationMs: 450, outputChars: 5 });
+    model.onRuntimeEvent(
+      {
+        type: "tool_execution_end",
+        toolCallId: "b",
+        toolName: "edit",
+        result: { content: [] },
+        isError: false,
+        durationMs: 120,
+      },
+      1900,
+    );
+    expect(model.snapshot(2000).tools[0].durationMs).toBe(120);
     expect(snapshot.tools[0]).toMatchObject({ status: "running", label: "native/app.js" });
     expect(snapshot.runningToolCount).toBe(1);
   });

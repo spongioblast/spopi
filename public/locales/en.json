@@ -1018,8 +1018,7 @@
       "packages": "From packages",
       "packageNote": "Registered by an extension; change it in that package.",
       "tools": "{count} tools",
-      "resources": "{count} resources",
-      "templates": "{count} resource templates",
+      "offersResources": "Offers resources",
       "state": {
         "connected": "connected",
         "needsAuth": "needs sign-in",
@@ -1365,8 +1364,7 @@
     "changes": "Changes",
     "cockpit": "Cockpit",
     "status": "Session and server metrics",
-    "installLens": "Install pi-lens to populate Problems",
-    "noProblems": "No problems",
+    "noProblems": "No problems. After a run that edits files, the project check lists what it found here.",
     "lensError": "Language check failed",
     "languageServers": {
       "none": "Language servers: none running",
@@ -1382,6 +1380,11 @@
     "terminalTab": {
       "closeLabel": "Close terminal tab",
       "closeConfirm": "Close {name}?"
+    },
+    "check": {
+      "passed": "{command} passed",
+      "failed": "{command} failed: {count} findings",
+      "couldNotRun": "{command} could not run"
     }
   },
   "search": {
@@ -1431,9 +1434,6 @@
     "recommended": {
       "checkpoints": {
         "why": "Restore files to the start of any turn"
-      },
-      "problems": {
-        "why": "Compiler-in-the-loop findings for the Problems tab"
       },
       "workers": {
         "why": "Scout, worker, and reviewer children; watch, open, and stop them above the message box"
@@ -1614,6 +1614,12 @@
       "summaryRetryIn": "Summary retry {attempt} in {seconds}s",
       "summaryRetrying": "Retrying the summary ({source})",
       "extensionFailed": "Extension failed"
+    },
+    "piHung": {
+      "message": "Pi is not responding: nothing for {seconds} s and no answer to a status check. Restarting stops the reply in progress; the conversation before it is kept.",
+      "restart": "Restart Pi",
+      "wait": "Keep waiting",
+      "restarting": "Restarting Pi…"
     }
   },
   "pair": {
@@ -1725,6 +1731,13 @@
     "queuedSteering": "Steering",
     "queuedFollowUp": "Follow-up",
     "removeQueued": "Remove queued message",
+    "sendNowTitle": "Stop the current reply (its unfinished thinking is dropped) and send this now",
+    "queue": {
+      "header": "{count} queued",
+      "steerTitle": "Sent after the current step",
+      "followUpTitle": "Sent when Pi finishes",
+      "reorder": "Drag, or Alt+Arrow keys, to reorder"
+    },
     "context": "Context",
     "modelConfigMissing": "{model} is no longer configured; the session keeps its current model.",
     "modelSwitchFailed": "Pi could not switch to {model}",

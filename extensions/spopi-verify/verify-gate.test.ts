@@ -8,7 +8,8 @@ import type { BashOperations, ExtensionAPI } from "@earendil-works/pi-coding-age
 import { describe, expect, it, vi } from "vitest";
 import type { CheckResolution } from "./check-command";
 import type { CheckRun } from "./run-check";
-import { MESSAGE_TYPE, registerVerifyGate, STATUS_KEY } from "./verify-gate";
+import type { SecretFinding } from "./secret-scan";
+import { FINDINGS_WIDGET, MESSAGE_TYPE, registerVerifyGate, STATUS_KEY } from "./verify-gate";
 
 type Handler = (event: Record<string, unknown>, ctx: unknown) => unknown;
 
@@ -20,6 +21,7 @@ function harness(options: {
   resolution?: CheckResolution;
   trusted?: boolean;
   pending?: boolean;
+  secrets?: SecretFinding[][];
 }) {
   const handlers = new Map<string, Handler>();
   const commands = new Map<string, { handler: (args: string, ctx: unknown) => Promise<void> }>();
@@ -30,16 +32,18 @@ function harness(options: {
   } as unknown as ExtensionAPI;
   const notify = vi.fn();
   const setStatus = vi.fn();
+  const setWidget = vi.fn();
   const ctx = {
     cwd,
     hasUI: true,
-    ui: { notify, setStatus },
+    ui: { notify, setStatus, setWidget },
     signal: undefined,
     isProjectTrusted: () => options.trusted ?? true,
     hasPendingMessages: () => options.pending ?? false,
     sessionManager: { getSessionId: () => "s1" },
   };
   const runs = [...options.runs];
+  const secretScans = [...(options.secrets ?? [])];
   const run = vi.fn(async () => {
     const next = runs.shift();
     if (!next) throw new Error("no more runs");
@@ -58,6 +62,7 @@ function harness(options: {
       },
     operations: () => ({}) as BashOperations,
     run,
+    scanSecrets: () => secretScans.shift() ?? [],
   });
   const emit = (name: string, event: Record<string, unknown> = {}) =>
     handlers.get(name)?.({ type: name, ...event }, ctx);
@@ -71,7 +76,7 @@ function harness(options: {
       continue: false,
       context: { canContinue: false },
     }) as Promise<{ entries: Array<Record<string, unknown>>; continue: boolean } | undefined>;
-  return { emit, edit, settle, run, notify, setStatus, commands, ctx };
+  return { emit, edit, settle, run, notify, setStatus, setWidget, commands, ctx };
 }
 
 const done = (exitCode: number, output = ""): CheckRun => ({
@@ -86,6 +91,42 @@ describe("verify gate", () => {
     const h = harness({ runs: [] });
     expect(await h.settle()).toBeUndefined();
     expect(h.run).not.toHaveBeenCalled();
+  });
+
+  it("asks the model once about a new secret, also in an untrusted project", async () => {
+    const secret: SecretFinding = {
+      file: "src/cart.ts",
+      line: 4,
+      kind: "GitHub token",
+      preview: "ghp_ab…",
+      fingerprint: "f1",
+    };
+    const h = harness({ runs: [done(0)], secrets: [[secret], [secret]], trusted: false });
+    h.edit();
+    const first = await h.settle();
+    expect(first?.continue).toBe(true);
+    expect(String(first?.entries[0]?.content)).toContain("- src/cart.ts:4 GitHub token (ghp_ab…)");
+    expect(h.run).not.toHaveBeenCalled();
+
+    expect(await h.settle()).toBeUndefined();
+    expect(h.notify).not.toHaveBeenCalled();
+  });
+
+  it("tells the user instead when the model was already asked about a secret this run", async () => {
+    const one = (fingerprint: string): SecretFinding => ({
+      file: "a.js",
+      line: 1,
+      kind: "npm token",
+      preview: "npm_ab…",
+      fingerprint,
+    });
+    const h = harness({ runs: [done(0)], secrets: [[one("f1")], [one("f2")]] });
+    h.edit();
+    expect((await h.settle())?.continue).toBe(true);
+    h.edit();
+    expect(await h.settle()).toBeUndefined();
+    expect(h.notify).toHaveBeenCalledWith(expect.stringContaining("a.js:1 npm token"), "warning");
+    expect(h.run).toHaveBeenCalledOnce();
   });
 
   it("passes quietly after a clean check", async () => {
@@ -110,6 +151,41 @@ describe("verify gate", () => {
     expect(String(entry?.content)).toContain("src/cart.ts(3,1): error TS2322: bad");
     expect(String(entry?.content)).toContain("Full output: /tmp/spopi-verify/s1.log");
     expect(h.setStatus).toHaveBeenLastCalledWith(STATUS_KEY, "check: failed, repair 1/2");
+  });
+
+  it("sends the findings to SPOPI's Problems tab, and nothing to a plain terminal", async () => {
+    const saved = process.env.SPOPI_HOST_ORIGIN;
+    try {
+      delete process.env.SPOPI_HOST_ORIGIN;
+      const terminal = harness({ runs: [done(1, FAIL_IN_CART)] });
+      terminal.edit();
+      await terminal.settle();
+      expect(terminal.setWidget).not.toHaveBeenCalled();
+
+      process.env.SPOPI_HOST_ORIGIN = "http://127.0.0.1:57620";
+      const h = harness({ runs: [done(1, FAIL_IN_CART)] });
+      h.edit();
+      await h.settle();
+      const [key, lines] = h.setWidget.mock.calls[0] ?? [];
+      expect(key).toBe(FINDINGS_WIDGET);
+      expect(JSON.parse(lines[0])).toEqual({
+        command: "bun run check",
+        status: "failed",
+        findings: [
+          {
+            file: path.resolve(cwd, "src/cart.ts").replaceAll("\\", "/"),
+            line: 3,
+            column: 1,
+            severity: "error",
+            message: "bad",
+            code: "TS2322",
+          },
+        ],
+      });
+    } finally {
+      if (saved === undefined) delete process.env.SPOPI_HOST_ORIGIN;
+      else process.env.SPOPI_HOST_ORIGIN = saved;
+    }
   });
 
   it("asks for at most maxRepairs repairs, then tells the user", async () => {

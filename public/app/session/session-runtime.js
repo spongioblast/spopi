@@ -15,6 +15,7 @@ import {
 import { summarizeMessageRoles } from "./session-log.js";
 import { switchSessionTo } from "./switch-session.js";
 import { handOffProjectOnLeave, takeLeftProject } from "./window-project.js";
+import { loadOpenedPage } from "./workspace-actions.js";
 
 /**
  * @typedef {{ workspaceId: string, sessionId: string, instanceId?: string }} SessionTarget
@@ -95,6 +96,7 @@ import { handOffProjectOnLeave, takeLeftProject } from "./window-project.js";
  *   resolveConfigGatewayReady: () => void,
  *   signalConfigGatewayReady: () => void,
  *   cancelQueueItem: (item?: unknown) => void,
+ *   reorderQueueItem: (item: unknown, to: number) => void,
  *   syncSessionInfo: () => void,
  *   hydrateHeaderSessionStats: () => void,
  *   updateComposerModel: (model: { provider?: string, id?: string }) => void,
@@ -153,7 +155,10 @@ export function createSessionRuntime(deps) {
     // A frame only advances the sequence; nothing on screen depends on it.
     if (action?.type === "frame") return state;
     if (previous.queue !== state.queue) {
-      renderQueuedMessages(deps.queuedMessages, state.queue, { onCancel: deps.cancelQueueItem });
+      renderQueuedMessages(deps.queuedMessages, state.queue, {
+        onCancel: deps.cancelQueueItem,
+        onReorder: deps.reorderQueueItem,
+      });
     }
     paintSessionChrome(state);
     for (const fn of subscribers) fn(state, action);
@@ -438,10 +443,12 @@ export function createSessionRuntime(deps) {
       await deps.openSessionInProjectViaHost(session);
       return;
     }
-    await invoke("open_session_in_project", {
-      projectPath: session.projectPath,
-      sessionId: session.id,
-    });
+    loadOpenedPage(
+      await invoke("open_session_in_project", {
+        projectPath: session.projectPath,
+        sessionId: session.id,
+      }),
+    );
   }
 
   async function start() {

@@ -83,6 +83,13 @@ pub struct FileMentionSearchResult {
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct FileStat {
+    pub size: u64,
+    pub mtime_ms: f64,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct FileContent {
     pub path: String,
     pub content: String,

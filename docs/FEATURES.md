@@ -46,7 +46,8 @@ Open a file and it fills the center, in tabs.
 - **Use:** click a file in the Files sidebar. The **Save file** control writes it. **Auto-save** is off by default. The tab for the open file is marked current. In the tab bar, arrow keys move between tabs and Delete or Backspace closes the focused one.
 - **Selection bar:** selecting text shows **Edit** ([inline edit](#inline-edit), `Mod+K`) and **Ask Pi** (`Mod+L`) under the selection. It hides while the inline edit prompt is open. **Ask Pi** adds an `@file:lines` mention such as `@src/todo.js:1-9` to the composer, and the cursor waits after it for the question. Pi reads those lines from the file, so unsaved edits are not included. The mention is a pill like any `@` mention: click it to open the file at that line, or remove it with its ×.
 - **Configure:** `ui.editor.autoSaveOptIn` (Auto-save).
-- **Limits:** text editing is capped at 1 MiB per file. If the file changed on disk since it was opened, saving offers **Reload** or **Overwrite** instead of writing over it.
+- **Follows the disk:** while the window is visible, the open tab checks its file about every 1.5 seconds, and again when the window gets focus or you switch tabs. When something else changed it (Pi through any tool, a terminal, another editor, git), a tab without unsaved edits reloads in place and keeps its scroll position. A tab with unsaved edits is not touched: it shows **File modified externally**, and saving offers **Reload** or **Overwrite**.
+- **Limits:** text editing is capped at 1 MiB per file. Only the tab in front is checked; another tab catches up when you switch to it.
 - **Code:** `public/app/editor/file-preview-panel.js`, `code-editor.js`, `selection-actions.js`, `src-tauri/src/host/server/http/files.rs`.
 
 ## Inline edit
@@ -99,7 +100,7 @@ A git worktree is its own project, nested under the checkout it came from.
 The dock sits under the editor. `Mod+J` toggles it.
 
 - **Terminal:** profiles Git Bash, PowerShell, CMD, or Default. **Run in terminal** sends a language-specific run command for a file. A tab whose shell exits stays listed as exited until you close or restart it. Anything that opens a terminal for you (run, resume, the MCP manager) also brings the dock into view: it opens the editor drawer in a narrow window and leaves Focus. Configure in Settings → Terminal (`ui.terminalDefaultProfile`, theme, font, scrollback, WebGL).
-- **Problems:** diagnostics from the recommended `pi-lens` package, grouped by file. Empty without `pi-lens`.
+- **Problems:** the findings of the [verify gate](#verify-gate)'s last check, grouped by file, with a line that says which command ran and whether it passed. Each check replaces the previous list; a row opens the file at that line. Findings are read from output lines like `file:line:col: message` and tsc's `file(line,col): message`, at most 200. A check whose output names no file shows only its status line. Diagnostics from `pi-lens`, if you installed it yourself, still show up here.
 - **Cockpit:** for every model, what Pi reports per prompt: output and prompt tokens, tokens per second, cache hits, and wall time. When the model server is local (loopback or LAN) and answers `/metrics` with vLLM's counters, it adds KV cache, TPOT, TTFT, queue, prefill, and accept length; LM Studio, Ollama, and cloud APIs show only Pi's numbers. A metrics URL you set yourself replaces `<server>/metrics`. The thinking-budget button appears for a model that has Pi's `compat.thinkingTokenBudgetField`, whatever the provider is called. The **Prompts & tools** log has one row per prompt: output tokens summed over all its model calls, the latest call's prompt size, and "N calls" when Pi made more than one request (the tooltip lists each call's output). Under it are the prompt's newest 40 tool calls, with a row counting any earlier ones. Also the **Cache warming** control (Off, Streaming, Idle; writes Pi's `cacheWarming`, default Streaming). `/cockpit` opens it.
 - **Code:** `public/app/dock/`, `public/app/metrics/`, `public/app/terminal/`.
 
@@ -128,6 +129,9 @@ Pi's chat runs the full height of the window. The column is at least 280 px and 
 
 - Each prompt is one quiet turn. Thinking and tool calls fold into one row ("Worked for …" with counts of files read, commands run, and files edited); the final answer stays visible. A turn that changed files ends with "Changed N files · Review". Calls a script makes (codemode) stay under that script's card and are not counted again in "Worked for" or Cockpit. A file a script edits still appears in Review.
 - A metrics line under each reply: time to first token, cache hit or miss, output tokens, tokens per second (from first token onward), and model.
+- The chat follows new output while you are at the bottom. Scrolling up (wheel, keys, touch, or the scrollbar) stops it until you scroll back down.
+- While the model writes a tool call, the live row names it and counts the arguments so far ("Writing index.html · 12.4 KB"), so a long file write does not look stuck.
+- **Pi not responding:** when a run has sent nothing for 45 seconds, SPOPI asks Pi for its state. A long command or a slow model still answers. If Pi does not answer within 10 seconds, a notice above the composer offers **Restart Pi** (starts a new Pi for the session and reloads the window; the reply in progress is lost, the conversation before it is kept) or **Keep waiting** (asks again after 5 minutes). The notice goes away as soon as Pi sends anything.
 - **Links:** a click opens the address in the system browser only when it is `http:`, `https:`, or `mailto:`. Other schemes stay in the chat.
 - **Configure:** Settings → General → **Show thinking** (default on). The switch writes Pi's `hideThinkingBlock` (inverted) in the shared agent folder, so the Pi terminal follows it. Off hides thinking in the transcript; a finished work row that held only thinking is hidden too, while a running one stays so the turn still shows progress.
 - **Code:** `public/app/chat/turn-block.js`, `transcript-turns.js`, `history-render.js`, `public/app/ui/tool-card.js`.
@@ -145,7 +149,7 @@ Pi's chat runs the full height of the window. The column is at least 280 px and 
 
 ## Queue while Pi works
 
-- **Use:** while a turn runs, Enter sends a steering message into the running turn and Alt+Enter queues a follow-up for after it. Queued messages show as pills with **Edit**, **Send now**, and cancel.
+- **Use:** while a turn runs, Enter sends a steering message, delivered after the current step, and Alt+Enter queues a follow-up for when Pi finishes. Queued messages show as one list on top of the composer (collapsible) with edit, **Send now**, and remove, and can be reordered by dragging or with Alt+Arrow keys within their kind. **Send now** stops the current reply, whose unfinished thinking is dropped while finished steps stay, and sends the message at once. If Pi already took the message, nothing is stopped. If the send fails, the message goes back into the composer and the rest stay queued.
 - **Configure:** Settings → General: **While Pi is working, new messages** and **Follow-up messages**, each **One at a time** or **All at once**. They write Pi's `steeringMode` and `followUpMode` (default one at a time).
 - **Pi:** RPC `steer`, `follow_up`, `set_steering_mode`, `set_follow_up_mode`.
 - **Code:** `public/app/composer/queued-messages.js`, `public/app/settings/queue-modes.js`, `extensions/bridge/queue-prefs.ts`.
@@ -156,12 +160,13 @@ Pi's chat runs the full height of the window. The column is at least 280 px and 
 - **Fork and edit:** on a user message, **Fork session** or **Edit message**. **Duplicate session** in the sidebar clones it.
 - **Retry:** a failed request shows a retry banner with **Abort**. Auto-retry is on by default (Settings → General).
 - **Compact:** **Compact** in the header summarizes older context; it is offered from about 20,000 context tokens. Auto-compaction is on by default (Settings → General). The header shows context usage.
+- **The model knows its window:** each run, one prompt line gives the active model's `contextWindow` from `models.json` and the point where Pi compacts (the window minus `compaction.reserveTokens`, per-model overrides included), or says that auto-compaction is off. The model cannot see its token count, and without the line it guesses a limit and stops work early. The line changes only when the model or the compaction setting changes. A model without a `contextWindow` gets no line. The live token count is not sent.
 - **Pi:** RPC `fork`, `clone`, `compact`, bridge `navigate_tree` and `set_label`.
-- **Code:** `public/app/session/session-tree-tab.js`, `info-panel.js`, `message-fork.js`, `context-usage.js`, `public/app/chat/retry-banner.js`.
+- **Code:** `public/app/session/session-tree-tab.js`, `info-panel.js`, `message-fork.js`, `context-usage.js`, `public/app/chat/retry-banner.js`, `extensions/bridge/context-budget.ts`.
 
 ## Session list, titles, export
 
-- **Sidebar:** sessions grouped by project, with Pinned and Projects. A git worktree is nested under its project. Each project ends with a collapsed **Archived (n)** row. Session menu: **Rename**, **Generate title**, **Pin session** (up to 20), **Archive**, delete, **Duplicate session**, **Export as HTML**. Project menu: **Rename**, **New worktree…** (the open git project), **Close project**, **Keep chats in project folder**.
+- **Sidebar:** sessions grouped by project, with Pinned and Projects. A git worktree is nested under its project. Each project ends with a collapsed **Archived (n)** row; an archived session's row button, or **Unarchive** in its menu, brings it back. Session menu: **Rename**, **Generate title**, **Pin session** (up to 20), **Archive**, delete, **Duplicate session**, **Export as HTML**. Project menu: **Rename**, **New worktree…** (the open git project), **Close project**, **Keep chats in project folder**.
 - **Titles:** set automatically after the first turn.
 - **Search:** the sidebar search box, or `Mod+K` outside the editor for a search dialog.
 - **Pi:** RPC `export_html`, bridge `generate_session_title`, Pi's session files.
@@ -195,7 +200,7 @@ Use a cloud model or a local one (vLLM, Ollama, LM Studio, or any OpenAI-compati
 
 ## Notifications
 
-- **Use:** when a turn finishes while the window is not focused, SPOPI shows a system notification; clicking it opens that session.
+- **Use:** when a turn finishes while the window is not focused, SPOPI shows a system notification; clicking it opens that session. It waits until Pi settles (after retries), and a run you stopped shows none.
 - **Configure:** Settings → General → **Task completion notifications** (`ui.settings.task-notifications`, default on).
 - **Code:** `public/app/notifications/task-completion-notifications.js`, `src-tauri/src/commands.rs`.
 
@@ -246,19 +251,20 @@ When a project has its own Pi resources, SPOPI asks before Pi loads them.
 
 ## Verify gate
 
-After a turn that edits files, SPOPI runs the project's check before Pi stops. A failure in a file the turn changed goes back to Pi.
+After a turn that edits files, SPOPI scans them for secrets and runs the project's check before Pi stops. A secret, or a failure in a file the turn changed, goes back to Pi.
 
 - **Use:** automatic. `/verify` runs the same check on demand and reports the result to you only.
-- **What runs:** `.pi/verify.json` in the project, or a detected check: a `typecheck`, `type-check`, `check:types`, or `check` script in `package.json` (run with the package manager the lockfile names), `tsc --noEmit` when there is a `tsconfig.json` and a local `tsc`, `cargo check`, or `go vet`. Detection never installs anything.
+- **What runs:** `.pi/verify.json` in the project, or a detected check: a `typecheck`, `type-check`, `check:types`, or `check` script in `package.json` (run with the package manager the lockfile names), `tsc --noEmit` when there is a `tsconfig.json` and a local `tsc`, `cargo check`, `go vet`, or `ruff check` for a Python project (`pyproject.toml`, `ruff.toml`, `setup.py`, `setup.cfg`, or `.py` files at the top) when `ruff` is on PATH. Detection never installs anything.
 - **Configure** (`.pi/verify.json`):
 
   ```json
   { "command": "bun run check", "timeoutSeconds": 300, "maxRepairs": 2 }
   ```
 
-  `timeoutSeconds` 10–1800 (default 300), `maxRepairs` 0–5 (default 2). `{ "enabled": false }` turns it off for the project. To turn it off everywhere, switch off `spopi-verify` under Bundled with SPOPI on the Packages page.
+  `timeoutSeconds` 10–1800 (default 300), `maxRepairs` 0–5 (default 2). `"secrets": false` turns off only the secret scan. `{ "enabled": false }` turns both off for the project. To turn it off everywhere, switch off `spopi-verify` under Bundled with SPOPI on the Packages page.
+- **Secret scan:** before the check, the changed files are scanned for values that look like real secrets: AWS, GitHub, GitLab, OpenAI, Anthropic, OpenRouter, Google, Slack, Stripe live, Hugging Face, and npm keys and tokens, and private key blocks. A new one goes back to Pi once per run, with the file, the line, the kind, and only the first characters of the value, asking it to read the value from an environment variable or a git-ignored file, or to say it is a test value. A later one in the same run is a notification to you. Each secret is reported once per session. `.env` and `.env.local` are skipped, because that is where a secret belongs; `.env.example` is scanned. Placeholders such as `xxxxx` or `EXAMPLE` and files over 1 MB are skipped. It runs in untrusted projects too, because it only reads the files Pi wrote.
 - **What Pi sees:** the output lines that name a file it changed, at most 40, and the path of the full log (`<OS temp folder>/spopi-verify/<session id>.log`). After the check has passed once in a session, any later failure is sent as the output's last lines.
-- **What you see:** the check's status in the status footer, the repair request as a system note in the chat, and a notification when the check fails outside the changed files, times out, or still fails after the repairs.
+- **What you see:** the check's status in the status footer, its findings in the dock's Problems tab, the repair request as a system note in the chat, and a notification when the check fails outside the changed files, times out, or still fails after the repairs.
 - **Limits:** runs only in trusted projects. Notices edits made with Pi's `write` and `edit` tools, or package tools named like them; files changed only through shell commands do not trigger it. Asks for at most `maxRepairs` repairs per turn, and does not ask again if Pi answers without editing. Needs a check command that works in the project.
 - **Pi:** the `agent_before_settle` event and Pi's local shell executor. Also loads in the Pi terminal with `pi -e extensions/spopi-verify.ts`.
 - **Code:** `extensions/spopi-verify.ts`, `extensions/spopi-verify/`.
@@ -318,7 +324,6 @@ Not bundled. They need npm, which Settings → Dependencies tests. Install them 
 | Package | What SPOPI does with it |
 |---|---|
 | `pi-workspace-history` | Review Turn and Session scopes, `/undo` and `/redo` |
-| `pi-lens` | The Problems tab; checks on every edit |
 | `pi-subagents` | The Subagents strip and child tabs |
 | `pi-context-view` | Walk the actual prompt Pi sends |
 | `@ff-labs/pi-fff` | Fuzzy file search for Pi (the GUI's own search is ripgrep) |
@@ -347,7 +352,7 @@ SPOPI never runs sudo, and it never redownloads a built-in file.
 Two browsers, two jobs. Both can be on. The prompt then says which to use.
 
 - **Development browser (agent-browser).** Its own headless Chrome, with no logins. For pages and apps Pi builds. The switch is `ui.agentBrowser.enabled` (unset means on) and takes effect after a restart. Off drops it from Pi's PATH, hides the browser-check skill, and drops the live-debugging line. `agent-browser upgrade` is denied in Ask, Auto-edit, and Full access, so a per-user install cannot replace the bundled binary. `agent-browser install` still asks.
-- **Your browser (Surf).** Drives the Chrome, Edge, or Brave you already use, with your logins. For research and signed-in sites. Its tools are in every prompt while it is on, and they ask in Ask and Auto-edit. The switch is the Pi package `npm:surf-cli` in `~/.pi/agent/settings.json`, so the Pi terminal follows it. Setup is: install the package (needs npm), load the unpacked extension, paste its id, restart the browser, then Test. Snap Chromium cannot connect. The native host needs Node.
+- **Your browser (Surf).** Drives the Chrome, Edge, or Brave you already use, with your logins. For research and signed-in sites. Its tools are in every prompt while it is on, and they ask in Ask and Auto-edit. The switch is the Pi package `npm:surf-cli` in `~/.pi/agent/settings.json`, so the Pi terminal follows it. Setup is: install the package (needs npm), load the unpacked extension, paste its id, restart the browser, then Test. Afterwards the id field shows the id Surf last registered, read from Surf's native host manifest. Snap Chromium cannot connect. The native host needs Node.
 - **Chrome.** agent-browser uses a Chrome, Brave, Playwright, or Puppeteer browser it finds, or `executablePath` in `~/.agent-browser/config.json`. Otherwise **Download browser**. Edge is not used as a fallback on this build: it was not installed on the machine where that was checked.
 - **Code:** `extensions/spopi-verify/verify-skills.ts`, `extensions/bridge/spopi-awareness.ts`, `extensions/bridge/permission-recipes.ts`, `public/app/settings/dependencies/surf-card.js`.
 
@@ -382,7 +387,7 @@ Pi can see the SPOPI window you are looking at, and, when you allow it, click th
 
 Pi connects to MCP servers and gives their tools to the model. SPOPI configures them by running Pi. It does not write the config files and it does not connect to a server itself.
 
-- **Use:** Settings → MCP, or `/mcp`. **Add server** runs `pi mcp add`. **Remove** runs `pi mcp remove`. **Sign in** (on URL rows) and the row's **…** menu (**Sign out**, **Reconnect in this session**, **Remove**) send `/mcp login|logout|reconnect` to the open session, and Pi's message (including the sign-in link) shows on the row. **Manage in Pi** in the page header opens Pi's own manager in a new terminal tab (`pi --no-session --approve /mcp`), which is where you enable, disable, or change exposure. Quitting Pi closes that tab, and SPOPI then reloads the session and the list. If Pi fails to start, the tab stays open with the error. `/mcp` with more words, such as `/mcp reconnect echo`, goes to Pi.
+- **Use:** Settings → MCP, or `/mcp`. A server that offers resources says so on its row. **Add server** runs `pi mcp add`. **Remove** runs `pi mcp remove`. **Sign in** (on URL rows) and the row's **…** menu (**Sign out**, **Reconnect in this session**, **Remove**) send `/mcp login|logout|reconnect` to the open session, and Pi's message (including the sign-in link) shows on the row. **Manage in Pi** in the page header opens Pi's own manager in a new terminal tab (`pi --no-session --approve /mcp`), which is where you enable, disable, or change exposure. Quitting Pi closes that tab, and SPOPI then reloads the session and the list. If Pi fails to start, the tab stays open with the error. `/mcp` with more words, such as `/mcp reconnect echo`, goes to Pi.
 - **Configure:** global servers live in Pi's `mcp.json` (`~/.pi/agent/mcp.json`, or `PI_CODING_AGENT_DIR`). Project servers live in `<project>/.pi/mcp.json`. A project's file is listed only after Pi trusts the project; the page can record that trust through Pi. Sessions SPOPI starts already use `--approve`, so they can use a project file before that trust is saved. A project entry with only `enabled`, `exposure`, or `toolExposure` changes the global server of that name in this project. Its row shows the new values and "Changed for this project in `<path>`". The entry is made with "Enable/Disable in this project" in Pi's manager, or by hand in `.pi/mcp.json`. After you remove the global server, Pi reports the leftover project entry under the page's errors until it is deleted from that file.
 - **Limits:** there is no edit form and the page does not show or open the config files; add replaces an entry with the same name. Enable, disable, and exposure are changed in Pi's manager, and a change there reloads only the window that opened it. Refreshing the list starts each enabled server, and can take up to two minutes. A change reloads other windows when their session is idle, and after the next settle when it is busy. Sign-in that needs a real account is completed in the browser. The phone shows the page as desktop-only.
 - **Pi:** `pi mcp list --json`, `pi mcp add`, `pi mcp remove`, and the `/mcp` command.
@@ -460,7 +465,7 @@ Code: `public/app/ui/keybindings.js`, `public/app/utils/keyboard-shortcuts.js`.
 - **First start:** SPOPI opens the newest chat whose folder still exists and is not a closed project, otherwise a new dated folder in the [projects folder](#projects). The first launch shows a short note: set the projects folder (Settings → General; default `SPOPI` in your home directory), add a model (Settings → Models), a Dependencies section, and Recommended packages. Dependencies checks npm and Chrome and always offers **Open Dependencies**, where **Test all** checks the rest. When npm is not working the note marks it Required. Recommended packages says what the [recommended packages](#recommended-packages) add and opens Settings → Packages. A button that opens Settings keeps the note, and it comes back when Settings closes. **Got it**, Escape, or a click outside stores `ui.firstRun.dismissed`, and it does not show again at start. Settings → Dependencies → **Show the first-start note** opens it again. The permission mode starts as Ask.
 - **Updates:** Settings → General → **Check now**. Every release is stable; there is no beta channel. Check now needs a published GitHub release. A private repository does not serve that file to the app.
 - **App data:** `%APPDATA%\spopi\` on Windows, `~/Library/Application Support/spopi/` on macOS, and `~/.config/spopi/` on Linux hold `spopi.sqlite3`, the UI overlay, and terminal state. A database from an older build in the Tauri `app.spopi.desktop` folder moves there on the next start. The WebView cache and the log stay in that Tauri folder (`%LOCALAPPDATA%\app.spopi.desktop\` on Windows).
-- **Which Pi runs:** always the Pi that ships inside SPOPI, the version that release was built and tested with. Bundled Pi is 1.0.2 (pinned in `scripts/pi-version.json`). A Pi you installed yourself (`npm i -g`, a `pi` on your PATH) is ignored, for the chat and for the π terminal button, and updating it does not change SPOPI's. The two still share `~/.pi/agent`, so packages, models, and sessions are the same in both. `PI_BIN=<path to a pi binary>` makes SPOPI start that one instead (for testing a Pi build); SPOPI's bundled extensions and the bridge expect the bundled version, so an older or newer Pi there can break them.
+- **Which Pi runs:** always the Pi that ships inside SPOPI, the version that release was built and tested with. Bundled Pi is 1.4.0 (pinned in `scripts/pi-version.json`). A Pi you installed yourself (`npm i -g`, a `pi` on your PATH) is ignored, for the chat and for the π terminal button, and updating it does not change SPOPI's. The two still share `~/.pi/agent`, so packages, models, and sessions are the same in both. `PI_BIN=<path to a pi binary>` makes SPOPI start that one instead (for testing a Pi build); SPOPI's bundled extensions and the bridge expect the bundled version, so an older or newer Pi there can break them.
 - **Scratch profile:** `SPOPI_APP_DATA_DIR` moves SPOPI's app data; `PI_CODING_AGENT_DIR` moves Pi's agent folder. Together they run SPOPI without touching your real files.
 - **Port:** `SPOPI_HOST_PORT`, otherwise the first free port from 57620 to 57651. The host listens on 127.0.0.1 only.
 - **Passed to Pi:** `SPOPI_HOST_ORIGIN` (the host address, for `spopi_screenshot`) and, when live debugging is on, `SPOPI_CDP_PORT`.

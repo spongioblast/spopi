@@ -32,6 +32,7 @@ import { matchCatalogCommand, resolveComposerInput } from "./slash-commands.js";
  *   getCommandCatalog: () => Map<string, SlashCommand>,
  *   clearPendingFork: () => void,
  *   allowPrompt?: (() => boolean) | null,
+ *   piCommands?: Record<string, (args: string) => unknown> | null,
  * }} options
  */
 export function mountComposer({
@@ -50,6 +51,7 @@ export function mountComposer({
   getCommandCatalog,
   clearPendingFork,
   allowPrompt,
+  piCommands,
 }) {
   /**
    * @param {{ altKey: boolean }} options
@@ -71,7 +73,10 @@ export function mountComposer({
     }
     if (intent.kind === "builtin") {
       const action = "action" in intent ? intent.action : undefined;
-      runBuiltin(action);
+      const args = "arguments" in intent ? String(intent.arguments ?? "") : "";
+      await runBuiltin(action, args);
+      input.value = "";
+      composerAutoResize.sync();
       return;
     }
     const catalogCommand = matchCatalogCommand(value, commandCatalog)?.command;
@@ -96,8 +101,16 @@ export function mountComposer({
     }
   }
 
-  /** @param {unknown} action */
-  function runBuiltin(action) {
+  /**
+   * @param {unknown} action
+   * @param {string} args
+   */
+  async function runBuiltin(action, args) {
+    const piCommand = typeof action === "string" ? piCommands?.[action] : undefined;
+    if (piCommand) {
+      await piCommand(args);
+      return;
+    }
     const binding = appKeybindings()
       .list()
       .find((item) => item.id === action);

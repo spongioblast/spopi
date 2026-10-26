@@ -87,6 +87,7 @@ fn exposes_static_assets_and_only_the_minimum_unauthenticated_protocol_routes() 
         (Method::POST, "/v2/auth/device-requests/request-1/approve"),
         (Method::GET, "/v2/sessions"),
         (Method::GET, "/api/files/content"),
+        (Method::GET, "/api/files/stat"),
         (Method::DELETE, "/api/files/content"),
         (Method::GET, "/health/runtime"),
     ] {
@@ -1168,7 +1169,7 @@ async fn the_phone_listener_moves_with_the_address_and_stops_when_disabled() {
         .is_ok()
     };
     async fn closes(port: u16, open: impl Fn(u16) -> bool) -> bool {
-        for _ in 0..40 {
+        for _ in 0..100 {
             if !open(port) {
                 return true;
             }

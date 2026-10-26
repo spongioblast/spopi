@@ -6,10 +6,12 @@ import { createManualCompaction } from "./chat/manual-compaction.js";
 import { mountChatFileActions } from "./chat/mount-chat-file-actions.js";
 import { mountHistory } from "./chat/mount-history.js";
 import { onNextSettled } from "./chat/on-next-settled.js";
+import { mountPiHungNotice } from "./chat/pi-hung-notice.js";
+import { createPiWatchdog } from "./chat/pi-watchdog.js";
 import { RpivTodoMirrorPanel } from "./chat/rpiv-todo-mirror.js";
 import { createDeferredRuntimeHandler, createRuntimeEventHandler } from "./chat/runtime-events.js";
 import { createForegroundSettle } from "./chat/settle-foreground.js";
-import { cancelQueuedMessage, stopRun } from "./chat/stop-run.js";
+import { cancelQueuedMessage, reorderQueue, stopRun } from "./chat/stop-run.js";
 import { paintExtensionNotice } from "./chat/turn-block.js";
 import { createUndoMarker } from "./chat/undo-marker.js";
 import { showApprovalOrDialog as showNativeDialog } from "./composer/approval-bar.js";
@@ -22,6 +24,7 @@ import { mountGuardChip } from "./composer/guard-chip.js";
 import { createModelConfigRefresh } from "./composer/model-config-refresh.js";
 import { mountModelControls } from "./composer/model-controls.js";
 import { mountComposer } from "./composer/mount-composer.js";
+import { createPiBuiltinCommands } from "./composer/pi-builtin-commands.js";
 import { createSendModelGate } from "./composer/send-model-gate.js";
 import { buildCommandCatalog } from "./composer/slash-commands.js";
 import { mountCenterRepaint } from "./editor/center-paint.js";
@@ -49,6 +52,7 @@ import { describeHostError } from "./session/missing-workspace.js";
 import { mountSessionSidebar } from "./session/mount-session-sidebar.js";
 import { showProjectsFolderFallback } from "./session/projects-folder-fallback.js";
 import { adoptCreatedSessions } from "./session/session-created-action.js";
+import { exportSessionHtml } from "./session/session-export.js";
 import { activeSession, mountSessionInfo } from "./session/session-info.js";
 import { textFromMessageContent } from "./session/session-log.js";
 import { createSessionSelectionHandler } from "./session/session-navigation.js";
@@ -415,6 +419,13 @@ const workbench = createSpopiWorkbench(
       scrapeEngine: (
         /** @type {{ baseUrl: string, metricsUrl: string }} */ { baseUrl, metricsUrl },
       ) => control.engineScrape(baseUrl, metricsUrl),
+      onCompactContext: () =>
+        manualCompaction
+          .request({ fromCommand: true })
+          .then((failure) => {
+            if (failure) throw new Error(failure);
+          })
+          .catch(showError),
       onPinContext: (/** @type {unknown} */ item) => pinContext(target.sessionId || "", item),
       onDropContext: (/** @type {unknown} */ item) =>
         dropContext(item, (entryId) => config.call("drop_context", { entryId }), messagesElement),
@@ -827,7 +838,6 @@ const {
       contextUsage,
       composerModel,
       runtime,
-      cancelQueueItem,
       hydrateHeaderSessionStats,
       late: historyLate,
     })
@@ -840,6 +850,28 @@ document.addEventListener("spopi-notice", (event) => {
   if (detail && typeof detail.message === "string") paintExtensionNotice(messagesElement, detail);
 });
 
+const PI_HUNG_SNOOZE_MS = 5 * 60_000;
+const piHungNotice = mountPiHungNotice(chrome.composer.inputArea, {
+  t,
+  onRestart: async () => {
+    const { workspaceId, sessionId } = target;
+    if (!workspaceId || !sessionId) return;
+    try {
+      await control.restartRuntime(workspaceId, sessionId);
+      window.location.reload();
+    } catch (error) {
+      showError(error);
+    }
+  },
+  onWait: () => piWatchdog.snooze(PI_HUNG_SNOOZE_MS),
+});
+const piWatchdog = createPiWatchdog({
+  ping: () => runtime.request({ type: "get_state" }, target),
+  isWorking: () => bootstrap.isWorking(),
+  onHung: (quietMs) => piHungNotice.show(quietMs),
+  onAlive: () => piHungNotice.hide(),
+});
+
 subscribeRuntimeFrames({
   runtime,
   config,
@@ -850,7 +882,10 @@ subscribeRuntimeFrames({
       /** @type {Parameters<typeof oauthGateway.consumeFrame>[0]} */ (frame),
     ),
   onTaskFrame: taskCompletionNotifications.handleRuntimeFrame,
-  onForegroundEvent: handleRuntimeEvent,
+  onForegroundEvent: (...args) => {
+    piWatchdog.noteEvent();
+    return handleRuntimeEvent(...args);
+  },
   onBackgroundFrame: (frame) =>
     handleBackgroundRuntimeEvent(
       /** @type {Parameters<typeof handleBackgroundRuntimeEvent>[0]} */ (frame),
@@ -1065,6 +1100,7 @@ const bootstrap = createSessionRuntime(
       resolveConfigGatewayReady,
       signalConfigGatewayReady,
       cancelQueueItem,
+      reorderQueueItem,
       syncSessionInfo,
       hydrateHeaderSessionStats,
       updateComposerModel,
@@ -1225,6 +1261,21 @@ mountComposer(
       getCommandCatalog: () => commandCatalog,
       clearPendingFork: () => forkAdopt.setPending(null),
       allowPrompt: sendModelGate.allowPrompt,
+      piCommands: createPiBuiltinCommands({
+        compact: (instructions) => manualCompaction.request({ instructions, fromCommand: true }),
+        openModelPicker,
+        cycleThinking: () => thinkingBtn?.click(),
+        setThinkingLevel: async (level) => {
+          await runtime.request({ type: "set_thinking_level", level }, target, {
+            idempotencyKey: randomId(),
+          });
+          const state = /** @type {{ response?: { data?: { thinkingLevel?: string } } }} */ (
+            await runtime.request({ type: "get_state" }, target)
+          );
+          updateComposerThinking(state?.response?.data?.thinkingLevel || level);
+        },
+        exportSession: () => exportSessionHtml(runtime, target, control),
+      }),
     })
   ),
 );
@@ -1495,6 +1546,18 @@ function cancelQueueItem(item) {
   cancelQueuedMessage(
     /** @type {Parameters<typeof cancelQueuedMessage>[0]} */ (
       /** @type {unknown} */ ({ runtime, target, item, randomId })
+    ),
+  ).catch(showError);
+}
+
+/**
+ * @param {unknown} item
+ * @param {number} to
+ */
+function reorderQueueItem(item, to) {
+  reorderQueue(
+    /** @type {Parameters<typeof reorderQueue>[0]} */ (
+      /** @type {unknown} */ ({ runtime, target, item, to, randomId })
     ),
   ).catch(showError);
 }

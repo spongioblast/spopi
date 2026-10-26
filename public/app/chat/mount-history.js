@@ -10,13 +10,17 @@ import {
   logMessagesDom as logMessagesDomFor,
   summarizeMessageRoles,
 } from "../session/session-log.js";
+import { composerChromeRefs } from "../shell/chrome/composer.js";
 import {
   captureExpandedProcessGroups,
   createProcessDetailsGroup,
   summarizeProcessGroup,
 } from "../ui/process-group.js";
+import { randomId } from "../utils/random-id.js";
 import { createHistoryRenderer } from "./history-render.js";
+import { onNextSettled } from "./on-next-settled.js";
 import { registerRetryAbort, registerRetryBanner } from "./retry-banner.js";
+import { interruptWithQueued } from "./stop-run.js";
 
 let transcriptMarked = false;
 
@@ -58,7 +62,6 @@ function markFirstTranscript() {
  *   setLiveProcessGroup: (group: ProcessDetailsGroup | null) => void,
  *   getDiskHistoryFallback: () => { sessionId?: string, messages: unknown[] } | null | undefined,
  *   todoMirrorPanel: { hydrateFromMessages: (messages: unknown[]) => void },
- *   cancelQueueItem: (item: unknown) => void,
  *   convNav: { rebuild: () => void },
  *   setStatus: (status: string, label?: string) => void,
  *   refreshPiPackages: () => Promise<unknown>,
@@ -96,7 +99,6 @@ export function mountHistory({
   setLiveProcessGroup,
   getDiskHistoryFallback,
   todoMirrorPanel,
-  cancelQueueItem,
   convNav,
   setStatus,
   refreshPiPackages,
@@ -139,7 +141,7 @@ export function mountHistory({
   else messagesElement.before(retryRoot);
   registerRetryBanner(retryRoot, t);
   registerQueueSendNow((item) => {
-    void sendQueuedNow(runtime, getTarget, cancelQueueItem, item);
+    void sendQueuedNow(runtime, getTarget, item);
   });
   registerRetryAbort(() => {
     const request =
@@ -271,18 +273,35 @@ export function mountHistory({
 }
 
 /**
- * Drop the pill, then steer that text so it runs on the next turn.
+ * Send now: stop the running reply, send this text as a prompt, keep the rest queued.
+ * A failed prompt puts all the text back into the composer.
  *
  * @param {unknown} runtime
  * @param {() => unknown} getTarget
- * @param {(item: unknown) => unknown} cancelQueueItem
- * @param {{ message?: string }} item
+ * @param {{ kind?: string, index?: number, message?: string }} item
  */
-async function sendQueuedNow(runtime, getTarget, cancelQueueItem, item) {
-  await cancelQueueItem(item);
-  const request =
-    /** @type {{ request?: (payload: object, target?: unknown) => Promise<unknown> }} */ (runtime)
-      .request;
-  if (!request || !item.message) return;
-  await request({ type: "steer", message: item.message }, getTarget());
+async function sendQueuedNow(runtime, getTarget, item) {
+  await interruptWithQueued(
+    /** @type {Parameters<typeof interruptWithQueued>[0]} */ ({
+      runtime,
+      target: getTarget(),
+      item,
+      randomId,
+      waitSettled: () =>
+        new Promise((resolve) => {
+          const timer = setTimeout(resolve, 5000);
+          onNextSettled(() => {
+            clearTimeout(timer);
+            resolve(undefined);
+          });
+        }),
+      onFailed: (text) => {
+        const input = composerChromeRefs().messageInput;
+        if (!(input instanceof HTMLTextAreaElement)) return;
+        const draft = input.value.trim();
+        input.value = draft ? `${draft}\n\n${text}` : text;
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+      },
+    }),
+  ).catch((error) => console.error("[queue] send now failed", error));
 }

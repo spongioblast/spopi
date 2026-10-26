@@ -13,12 +13,12 @@ describe("mountExtensionsPanel", () => {
       onInstall: (source) => installed.push(source),
     });
     const rows = [...root.querySelectorAll(".extensions-recommended-card")];
-    expect(rows).toHaveLength(7);
+    expect(rows).toHaveLength(6);
     expect(rows[0].textContent).toContain("packages.recommended.checkpoints.why");
     expect(rows[0].querySelector("button")?.disabled).toBe(true);
     expect(rows[1].querySelector("button")?.disabled).toBe(false);
     rows[1].querySelector("button")?.click();
-    expect(installed[0]).toMatch(/^npm:pi-lens/);
+    expect(installed[0]).toMatch(/^npm:pi-subagents/);
   });
 
   it("remounts only the recommended host and leaves the package manager alone", () => {
@@ -32,7 +32,7 @@ describe("mountExtensionsPanel", () => {
     `;
     const host = document.getElementById("extensions-recommended-host");
     mountExtensionsPanel(host, { packages: [] });
-    mountExtensionsPanel(host, { packages: [{ source: "npm:pi-lens" }] });
+    mountExtensionsPanel(host, { packages: [{ source: "npm:pi-subagents" }] });
     expect(document.getElementById("pkg-manager-section")).toBeTruthy();
     expect(
       document.querySelector('[data-settings-panel="extensions"] #pkg-manager-section'),
@@ -45,10 +45,10 @@ describe("mountExtensionsPanel", () => {
     const mounted = mountExtensionsPanel(document.getElementById("host"), {
       packages: [{ source: "npm:pi-workspace-history" }],
     });
-    expect(mounted.missingCount).toBe(6);
+    expect(mounted.missingCount).toBe(5);
     const badge = document.getElementById("extensions-missing-badge");
     expect(badge.hidden).toBe(false);
-    expect(badge.textContent).toBe("6");
+    expect(badge.textContent).toBe("5");
   });
 
   it("shows a first-run card that installs missing packages", () => {
@@ -94,26 +94,26 @@ describe("mountExtensionsPanel", () => {
     /** @type {string[] | undefined} */
     let batch;
     mountExtensionsPanel(root, {
-      packages: [{ source: "npm:pi-lens" }],
+      packages: [{ source: "npm:pi-subagents" }],
       onInstallAll: (sources) => {
         batch = sources;
       },
     });
     root.querySelector(".extensions-first-run .ui-button")?.click();
     expect(batch?.[0]).toMatch(/^npm:/);
-    expect(batch).not.toContain("npm:pi-lens");
+    expect(batch).not.toContain("npm:pi-subagents");
   });
 
   it("shows Update Pi only on a failed package", () => {
     const root = document.createElement("div");
     mountExtensionsPanel(root, {
-      packages: [{ source: "npm:pi-lens" }],
+      packages: [{ source: "npm:pi-subagents" }],
       health: [
-        { name: "pi-lens", state: "failed", error: "load failed" },
+        { name: "pi-subagents", state: "failed", error: "load failed" },
         { name: "pi-workspace-history", state: "loaded" },
       ],
     });
-    const failed = root.querySelector('[data-package="pi-lens"]');
+    const failed = root.querySelector('[data-package="pi-subagents"]');
     const loaded = root.querySelector('[data-package="pi-workspace-history"]');
     expect(failed?.querySelector(".extensions-pi-hint")?.textContent).toBe("recommended.updatePi");
     expect(loaded?.querySelector(".extensions-pi-hint")).toBeNull();

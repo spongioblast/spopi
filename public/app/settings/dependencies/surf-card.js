@@ -11,7 +11,7 @@ const EXTENSION_ID = /^[a-p]{32}$/;
 
 /**
  * @param {{
- *   report?: { state?: string, installed?: boolean, enabled?: boolean, detail?: string, browsers?: Array<{ id: string, name: string, snap?: boolean }> },
+ *   report?: { state?: string, installed?: boolean, enabled?: boolean, detail?: string, extensionId?: string, browsers?: Array<{ id: string, name: string, snap?: boolean }> },
  *   npmOk?: boolean,
  *   control?: {
  *     startDependencyInstall?: (kind: string) => Promise<unknown>,
@@ -157,6 +157,7 @@ export function surfCard({
         "aria-label": t("settings.dependencies.browser.surf.extensionId"),
       })
     );
+    input.value = report.extensionId || "";
     input.dataset.i18nAriaLabel = "settings.dependencies.browser.surf.extensionId";
     const error = /** @type {HTMLElement} */ (
       el("span", {

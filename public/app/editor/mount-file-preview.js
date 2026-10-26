@@ -2,6 +2,7 @@
 // ABOUTME: Opens a workspace-relative path on the desktop through the host.
 
 import { createFileApi } from "../transport/workspace-http.js";
+import { watchPreviewDisk } from "./file-preview-disk-watch.js";
 import { FilePreviewPanel } from "./file-preview-panel.js";
 
 /**
@@ -52,19 +53,21 @@ export function mountFilePreview({
   const fileApi = /** @type {import("./file-preview-panel.js").FilePreviewFileApi} */ (
     /** @type {unknown} */ (createFileApi(apiOptions))
   );
-  return {
-    panel: new FilePreviewPanel({
-      panel,
-      resizer,
-      tabBar,
-      content,
-      mainContainer,
-      fileApi,
-      onOpenDesktop: (relativePath) => openWorkspaceRelativePath(relativePath).catch(showError),
-      onToggleChat,
-      controls,
-      fileSidebarToggle,
-    }),
-    openWorkspaceRelativePath,
-  };
+  const preview = new FilePreviewPanel({
+    panel,
+    resizer,
+    tabBar,
+    content,
+    mainContainer,
+    fileApi,
+    onOpenDesktop: (relativePath) => openWorkspaceRelativePath(relativePath).catch(showError),
+    onToggleChat,
+    controls,
+    fileSidebarToggle,
+  });
+  const diskWatch = watchPreviewDisk(preview, {
+    statFile: (path) => /** @type {(path: string) => Promise<Response>} */ (fileApi.statFile)(path),
+  });
+  preview.cleanupListeners.push(diskWatch.stop);
+  return { panel: preview, openWorkspaceRelativePath };
 }

@@ -75,6 +75,32 @@ describe("slash commands", () => {
     });
   });
 
+  it("runs Pi's terminal built-ins in SPOPI instead of sending their text to the model", () => {
+    const full = buildCommandCatalog();
+    expect(resolveComposerInput("/compact ", full)).toEqual({
+      kind: "builtin",
+      action: "pi_compact",
+      arguments: "",
+    });
+    expect(resolveComposerInput("/compact keep the API notes", full)).toMatchObject({
+      action: "pi_compact",
+      arguments: "keep the API notes",
+    });
+    for (const [name, action] of [
+      ["model", "pi_model"],
+      ["thinking", "pi_thinking"],
+      ["tree", "open_tree"],
+      ["fork", "open_tree"],
+      ["export", "pi_export"],
+    ]) {
+      expect(resolveComposerInput(`/${name}`, full)).toMatchObject({ kind: "builtin", action });
+    }
+    expect(resolveComposerInput("/compact", full, { working: true })).toEqual({
+      kind: "rejected",
+      reason: "Command cannot run while the agent is working: /compact",
+    });
+  });
+
   it("hides internal native commands from the user-facing catalog", () => {
     expect(catalog.has("spopi-config")).toBe(false);
     expect(catalog.has("llama")).toBe(false);

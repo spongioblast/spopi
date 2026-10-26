@@ -136,7 +136,7 @@ export function resolveComposerInput(input, catalog, options = {}) {
         reason: `Command cannot run while the agent is working: /${name}`,
       };
     }
-    if (command.type === "builtin") {
+    if (command.type === "builtin" || command.type === "pi") {
       if (command.passArgsToPi && args.trim()) {
         return runtimeIntent("prompt", message, options.images);
       }

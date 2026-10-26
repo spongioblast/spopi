@@ -2,6 +2,7 @@
 // ABOUTME: A lens result is recorded only when that tool execution ends.
 import { describe, expect, it, vi } from "vitest";
 import { mountProblemsDock } from "../dock/problems-dock.js";
+import { createAssistantMessageStream } from "../session/assistant-message-stream.js";
 import { createDeferredRuntimeHandler, createRuntimeEventHandler } from "./runtime-events.js";
 
 describe("createDeferredRuntimeHandler", () => {
@@ -166,6 +167,46 @@ describe("turn meta", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe("tool calls the model is still writing", () => {
+  it("names the tool, the file, and the size while the arguments stream", async () => {
+    /** @type {string[]} */
+    const steps = [];
+    /** @type {{ element?: unknown, startedAt?: number | null }} */
+    let streaming = {};
+    const handle = createRuntimeEventHandler({
+      metricsOverlay: { onRuntimeEvent() {}, phase: () => "idle" },
+      workbench: {},
+      getTarget: () => ({}),
+      sessionStatus: { isWaiting: () => false },
+      t: (key) => key,
+      showLiveProcessIndicator() {},
+      liveTurn: { host: () => null, adopt() {}, step: (label) => steps.push(label) },
+      messageRenderer: {
+        renderAssistantMessage: () => document.createElement("div"),
+        updateStreamingMessage() {},
+      },
+      assistantMessageStream: createAssistantMessageStream(),
+      getStreaming: () => streaming,
+      setStreaming: (startedAt, element) => {
+        streaming = { startedAt, element };
+      },
+    });
+    const update = (assistantMessageEvent) =>
+      handle({ type: "message_update", assistantMessageEvent });
+    await handle({ type: "message_start", message: { role: "assistant", content: [] } });
+    await update({ type: "toolcall_start", contentIndex: 0, id: "c1", toolName: "write" });
+    await update({ type: "toolcall_delta", contentIndex: 0, delta: '{"path":"D:\\\\w\\\\index' });
+    await update({
+      type: "toolcall_delta",
+      contentIndex: 0,
+      delta: `.html","content":"${"x".repeat(2000)}`,
+    });
+    expect(steps.at(-1)).toBe("Writing index.html · 2.0 KB");
+    await update({ type: "toolcall_start", contentIndex: 1, id: "c2", toolName: "bash" });
+    expect(steps.at(-1)).toBe("Using bash · 0 B");
   });
 });
 

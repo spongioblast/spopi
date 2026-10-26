@@ -48,6 +48,15 @@ export function readFile(path, { signal, workspaceId, fetchImpl = fetch } = {}) 
 }
 
 /**
+ * Size and mtime only, for noticing a change on disk without reading the file.
+ * @param {string} path
+ * @param {FileRequestOptions} [options]
+ */
+function statFile(path, { signal, workspaceId, fetchImpl = fetch } = {}) {
+  return fetchImpl(endpoint("/api/files/stat", path, workspaceId), { signal });
+}
+
+/**
  * @param {WriteFileOptions} [options]
  */
 export function writeFile({
@@ -124,6 +133,13 @@ export function createFileApi({ workspaceId, listFiles, fetchImpl = fetch } = {}
      */
     readFileContent(path, options) {
       return this.readFile(path, options);
+    },
+    /**
+     * @param {string} path
+     * @param {FileRequestOptions} [options]
+     */
+    statFile(path, options = {}) {
+      return statFile(path, { ...options, workspaceId: id(), fetchImpl });
     },
     /**
      * @param {WriteFileOptions} args

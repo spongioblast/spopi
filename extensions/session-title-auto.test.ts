@@ -12,7 +12,9 @@ function deferred<T>() {
 }
 
 function createHarness(generateTitle: (prompt: string) => Promise<string>) {
-  let beforeAgentStart: ((event: { prompt: string }, ctx: { model?: unknown }) => void) | undefined;
+  let beforeAgentStart:
+    | ((event: Record<string, unknown>, ctx: { model?: unknown }) => void)
+    | undefined;
   let sessionName: string | undefined;
   const pi = {
     getSessionName: vi.fn(() => sessionName),
@@ -24,7 +26,11 @@ function createHarness(generateTitle: (prompt: string) => Promise<string>) {
     }),
   };
   registerAutomaticSessionTitle(pi as never, { generateTitle });
-  return { pi, run: (prompt: string) => beforeAgentStart?.({ prompt }, {}) };
+  return {
+    pi,
+    run: (prompt: string) => beforeAgentStart?.({ messageType: "user", prompt }, {}),
+    runCustom: () => beforeAgentStart?.({ messageType: "custom", message: {} }, {}),
+  };
 }
 
 describe("automatic session titles", () => {
@@ -41,6 +47,15 @@ describe("automatic session titles", () => {
     await vi.waitFor(() =>
       expect(pi.setSessionName).toHaveBeenCalledWith("Parallel Session Naming"),
     );
+  });
+
+  it("ignores runs started by a custom message", async () => {
+    const generateTitle = vi.fn(async () => "Title");
+    const { run, runCustom } = createHarness(generateTitle);
+    expect(() => runCustom()).not.toThrow();
+    expect(generateTitle).not.toHaveBeenCalled();
+    run("First real prompt");
+    expect(generateTitle).toHaveBeenCalledWith("First real prompt", undefined);
   });
 
   it("starts only once when multiple agent turns begin before naming completes", async () => {
