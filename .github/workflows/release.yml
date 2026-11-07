@@ -18,9 +18,10 @@ jobs:
           # Two installers per OS: the two architectures people actually use.
           # macOS Apple Silicon (arm64) host build.
           - os: macos-latest
-          # macOS Intel (x64). macos-13 Intel runners are gone, so this
-          # cross-compiles x86_64 from an Apple Silicon runner.
-          - os: macos-14
+          # macOS Intel (x64). Intel runners are gone, and macos-14 was retired
+          # on 2026-11-02, so this cross-compiles x86_64 from an Apple Silicon
+          # runner (macos-15).
+          - os: macos-15
             pi_target_platform: darwin-x64
             rust_target: x86_64-apple-darwin
           # Linux AppImage only. It is the one Linux target the updater
@@ -152,7 +153,7 @@ jobs:
 
       # Sanity-check that the embedded binary actually runs. We can only do
       # this when the embedded binary's architecture matches the runner's:
-      # the macos-14 job cross-compiles an x86_64 (darwin-x64) binary on an
+      # the macos-15 job cross-compiles an x86_64 (darwin-x64) binary on an
       # Apple Silicon runner, which would SIGILL ("Illegal instruction",
       # exit 132) if executed here. That cross-built binary is exercised on
       # its own native runner instead. `matrix.rust_target` is only set for
