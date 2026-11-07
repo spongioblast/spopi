@@ -4,7 +4,11 @@
 import { afterEach, expect, test, vi } from "vitest";
 import { TerminalPanel } from "../dock/terminal-panel.js";
 import { TerminalClient } from "./terminal-client.js";
-import { formatTerminalStartError, handleTerminalFrame } from "./terminal-panel-integration.js";
+import {
+  formatTerminalStartError,
+  handleTerminalFrame,
+  piTerminalOpened,
+} from "./terminal-panel-integration.js";
 
 vi.mock("../i18n/i18n.js", () => ({
   t: (key) => key,
@@ -103,6 +107,20 @@ test("docked empty listed retries expand so a PTY is created after connect", () 
     panel,
   );
   expect(create).toHaveBeenCalledWith("default");
+});
+
+test("piTerminalOpened picks out the tab Pi started and ignores other frames", () => {
+  expect(
+    piTerminalOpened({
+      type: "terminal_event",
+      payload: { type: "terminal_opened", terminalId: "t9", generation: 0, label: "Pi: make" },
+    }),
+  ).toBe("t9");
+  expect(
+    piTerminalOpened({ type: "terminal_event", payload: { type: "terminal_output" } }),
+  ).toBeNull();
+  expect(piTerminalOpened({ type: "terminal_listed", tabs: [] })).toBeNull();
+  expect(piTerminalOpened(null)).toBeNull();
 });
 
 test("formatTerminalStartError maps Git-for-Windows guidance to the locale key", () => {

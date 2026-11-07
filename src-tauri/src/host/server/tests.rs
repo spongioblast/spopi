@@ -5,7 +5,7 @@ use super::auth::{is_public_http_request, trusted_loopback_request};
 use super::session_view::messages_from_entries_response;
 use super::ws::{
     extension_ui_requires_owner, runtime_request_timeout, track_connect, track_disconnect,
-    RUNTIME_INTERACTIVE_REQUEST_TIMEOUT, RUNTIME_REQUEST_TIMEOUT,
+    RUNTIME_INTERACTIVE_REQUEST_TIMEOUT, RUNTIME_REQUEST_TIMEOUT, RUNTIME_STATE_REQUEST_TIMEOUT,
 };
 use super::{bundled_skill_dir, parse_host_port_override, HostServer};
 use crate::data::metadata_store::MetadataStore;
@@ -503,6 +503,10 @@ fn prompts_get_the_interactive_deadline_and_everything_else_the_short_one() {
     assert_eq!(
         runtime_request_timeout(&json!({ "type": "get_commands" })),
         RUNTIME_REQUEST_TIMEOUT
+    );
+    assert_eq!(
+        runtime_request_timeout(&json!({ "type": "get_state" })),
+        RUNTIME_STATE_REQUEST_TIMEOUT
     );
     assert_eq!(
         runtime_request_timeout(&json!({ "type": "steer", "message": "stop" })),
@@ -1293,12 +1297,15 @@ async fn phone_access_comes_back_after_a_restart_only_when_it_was_on() {
         running.handle.shutdown();
     }
     host.state.phone.set_enabled(false);
-    for _ in 0..40 {
+    let mut closed = false;
+    for _ in 0..100 {
         if !open() {
+            closed = true;
             break;
         }
         tokio::time::sleep(std::time::Duration::from_millis(50)).await;
     }
+    assert!(closed, "the listener did not release the port");
     super::http::phone::restore(Arc::clone(&host.state)).await;
     assert!(open(), "phone access did not come back");
     assert!(host.state.phone.is_enabled());

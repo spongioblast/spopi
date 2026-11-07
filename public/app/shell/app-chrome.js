@@ -57,6 +57,7 @@ import { mountSidebarChrome } from "./chrome/sidebar.js";
  *     abortBtn: HTMLButtonElement | null,
  *     thinkingBtn: HTMLButtonElement | null,
  *     queuedMessages: HTMLElement | null,
+ *     errorLog: HTMLElement | null,
  *     widgetsAbove: HTMLElement | null,
  *     widgetsBelow: HTMLElement | null,
  *     skillSlashMenu: HTMLElement | null,

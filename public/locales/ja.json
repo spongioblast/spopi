@@ -362,7 +362,7 @@
     "thinking": "thinking",
     "copy": "コピー",
     "copied": "コピーしました！",
-    "expand": "展開",
+    "expand": "もっと見る",
     "processDetails": "処理の詳細",
     "processStep": "{count} ステップ",
     "processSteps": "{count} ステップ",
@@ -371,7 +371,9 @@
     "providerError": "モデルへのリクエストに失敗しました。",
     "responseTime": "応答時間",
     "youTurn": "あなた · ターン",
-    "collapse": "折りたたむ",
+    "collapse": "閉じる",
+    "costEstimated": "推定コスト",
+    "costBilled": "請求コスト",
     "forkSession": "セッションをフォーク",
     "editMessage": "メッセージを編集"
   },
@@ -614,6 +616,15 @@
   },
   "errors": {
     "treeNavigateFailed": "分岐の切り替えに失敗しました:{error}"
+  },
+  "errorLog": {
+    "header": "{count} 件のエラー",
+    "headerOne": "1 件のエラー",
+    "toggle": "最近のエラーを表示",
+    "dismiss": "閉じる",
+    "clear": "すべて消去",
+    "unknown": "不明なエラー",
+    "whileWorking": "Pi の処理中"
   },
   "terminal": {
     "toggle": "ターミナルを切り替え",

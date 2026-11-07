@@ -9,6 +9,10 @@
    centering, sizing and motion live here.
    ═══════════════════════════════════════════════════════ */
 
+.custom-ui-overlay.custom-ui-blocked {
+  outline: 1px solid var(--accent);
+}
+
 .custom-ui-overlay {
   display: flex;
   align-items: center;

@@ -146,6 +146,7 @@ import { encodeBase64, resolveTerminalTheme, TerminalTab } from "./terminal-tab.
  *   getWorkspaceId: () => (string | null | undefined),
  *   layout: { workspace: HTMLElement, content: HTMLElement, main: HTMLElement },
  *   toolbar: HTMLElement | null,
+ *   revealDock?: () => void,
  * }} MountTerminalPanelOptions
  *
  * @typedef {{
@@ -190,7 +191,7 @@ function currentTerminalPreferences() {
  * @param {MountTerminalPanelOptions} opts
  * @returns {MountTerminalPanelResult | null}
  */
-export function mountTerminalPanel({ adapter, getWorkspaceId, layout, toolbar }) {
+export function mountTerminalPanel({ adapter, getWorkspaceId, layout, toolbar, revealDock }) {
   /** @type {TerminalDisplayPreferences} */
   let prefs = currentTerminalPreferences();
   /** @type {TerminalPanel | undefined} */
@@ -326,7 +327,32 @@ export function mountTerminalPanel({ adapter, getWorkspaceId, layout, toolbar })
     }
     return originalExpand();
   };
+  /**
+   * Pi started a command in a new tab. List it before expanding, so an empty panel does
+   * not start a shell of its own, and give focus back to whatever the user was typing in.
+   * @param {string} terminalId
+   */
+  const showPiTerminal = async (terminalId) => {
+    try {
+      await ensureXterm();
+    } catch {
+      return;
+    }
+    const focused = document.activeElement;
+    panel.activateWhenListed(terminalId);
+    await client.sendAndAwait({ type: "terminal_list" }, (message) => {
+      const msg = /** @type {{ type?: string }} */ (message);
+      return msg.type === "terminal_listed";
+    });
+    revealDock?.();
+    await panel.expand();
+    if (focused instanceof HTMLElement && focused !== document.body && focused.isConnected) {
+      focused.focus({ preventScroll: true });
+    }
+  };
   adapter.setReceiver((frame) => {
+    const opened = piTerminalOpened(frame);
+    if (opened) void showPiTerminal(opened);
     handleTerminalFrame(frame, client, panel);
     const typedFrame = /** @type {TerminalProtocolFrame} */ (frame);
     if (typedFrame?.type !== "terminal_listed") return;
@@ -521,6 +547,18 @@ export function formatTerminalStartError(message) {
     return t("terminal.gitBashMissing");
   }
   return message || t("terminal.statusFailed");
+}
+
+/**
+ * The tab id when the host reports a command Pi started in a new tab.
+ * @param {unknown} frame
+ * @returns {string | null}
+ */
+export function piTerminalOpened(frame) {
+  const msg = /** @type {TerminalProtocolFrame | null | undefined} */ (frame);
+  if (msg?.type !== "terminal_event" || msg.payload?.type !== "terminal_opened") return null;
+  const id = msg.payload.terminalId;
+  return typeof id === "string" && id ? id : null;
 }
 
 /**

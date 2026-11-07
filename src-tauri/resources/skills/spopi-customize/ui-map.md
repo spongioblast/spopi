@@ -16,7 +16,10 @@ Generated. Do not edit by hand. Paths are relative to the shipped UI folder; the
 - `app/chat/context-inspector-tab.js` — Context inspector tab: pin / drop / compact over the bucketed walk.
 - `app/chat/context-pins.js` — Per-session pins for compact customInstructions, and one-way context drops.
 - `app/chat/custom-message-note.js` — Text of a Pi custom_message entry that an extension asked to show (display: true).
+- `app/chat/error-log.css` — Styles the collected-errors strip that sits on top of the composer card.
+- `app/chat/error-log.js` — Collects transport errors into one collapsible strip above the composer.
 - `app/chat/file-actions.js` — File preview and run-in-terminal are chat actions.
+- `app/chat/follow-up-hold.js` — Holds follow-up messages until the current run has settled, then releases one.
 - `app/chat/history-render.js` — Draws turns as prompt, one work row, then the final answer, live and from history.
 - `app/chat/live-label.js` — Names what Pi is doing right now for the live strip: the running tool and its target,
 - `app/chat/live-strip.js` — One 22px row above the composer while the agent runs: tool, elapsed, Steer, Stop.
@@ -494,7 +497,7 @@ Generated. Do not edit by hand. Paths are relative to the shipped UI folder; the
 - `app/ui/loading-placeholder.js` — Shared loading placeholder: spinner icon plus localized loading text.
 - `app/ui/markdown.css` — Styles rendered Markdown in chat and previews.
 - `app/ui/markdown.js` — Renders Markdown for streaming text, finished messages, and user text.
-- `app/ui/message-footer.js` — Builds message footer controls: copy, fork and edit, expand for long prompts, time, response time.
+- `app/ui/message-footer.js` — Builds message footer controls: copy, fork and edit, time, response time.
 - `app/ui/message-format.js` — Pure helpers for chat message data: transcript cleanup, collapse rule, timestamps, images, text.
 - `app/ui/message-markup.js` — Puts sanitized markdown markup into message nodes and enables code-block copy and file links.
 - `app/ui/message-renderer.css` — Styles one chat message, its actions, and the welcome logo.
@@ -514,6 +517,7 @@ Generated. Do not edit by hand. Paths are relative to the shipped UI folder; the
 - `app/ui/tool-card.css` — Styles tool cards with a glass surface and a colored accent.
 - `app/ui/tool-card.js` — Renders collapsible tool execution cards and their streaming output.
 - `app/ui/tool-display-name.js` — Turns Pi MCP tool ids into a readable server and tool name.
+- `app/ui/user-message-fold.js` — Folds long user prompts to a few lines with a Show more / Show less control inside the bubble.
 
 ## utils
 

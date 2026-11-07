@@ -14,6 +14,8 @@ import {
   permissionRecipe,
   protectedRoots,
   rootDeniesMissing,
+  SHELL_TOOLS,
+  shellToolsMissing,
   skillReadsAsk,
   staleReasons,
   upgradeDenied,
@@ -315,7 +317,10 @@ describe("permission recipes", () => {
     mkdirSync(dirname(permissionConfigPath()), { recursive: true });
     const { permission } = permissionRecipe("full", protectedRoots());
     const older = { ...permission, skill: undefined };
-    writeFileSync(permissionConfigPath(), JSON.stringify({ permission: older }));
+    writeFileSync(
+      permissionConfigPath(),
+      JSON.stringify({ permission: older, shellTools: SHELL_TOOLS }),
+    );
     expect(skillReadsAsk(JSON.parse(readFileSync(permissionConfigPath(), "utf8")).permission)).toBe(
       true,
     );
@@ -366,8 +371,13 @@ describe("permission recipes", () => {
     expect(auto.path).toEqual({ "*": "allow" });
     expect(auto.spopi_screenshot).toBe("allow");
 
+    expect(auto.spopi_terminal_read).toBe("allow");
+
     const withoutScreenshot = { ...auto, spopi_screenshot: undefined };
-    writeFileSync(permissionConfigPath(), JSON.stringify({ permission: withoutScreenshot }));
+    writeFileSync(
+      permissionConfigPath(),
+      JSON.stringify({ permission: withoutScreenshot, shellTools: SHELL_TOOLS }),
+    );
     await expect(handlers.get_permission_mode(ctx, {})).resolves.toMatchObject({
       data: { mode: "auto-edit", stale: true, reasons: ["auto-edit"] },
     });
@@ -398,6 +408,27 @@ describe("permission recipes", () => {
     expect((writtenPermission().bash as Record<string, string>)["*"]).toBe("allow");
     await expect(handlers.set_permission_mode(ctx, { mode: "plan" })).resolves.toMatchObject({
       ok: false,
+    });
+  });
+
+  it("checks the terminal tool's command with the bash rules and keeps the user's shell tools", async () => {
+    const ctx = { ui: { setStatus: vi.fn() } };
+    mkdirSync(dirname(permissionConfigPath()), { recursive: true });
+    const { permission } = permissionRecipe("ask", protectedRoots());
+    const own = { exec_command: { commandArgument: "cmd" } };
+    writeFileSync(permissionConfigPath(), JSON.stringify({ permission, shellTools: own }));
+    expect(shellToolsMissing({ permission, shellTools: own })).toBe(true);
+    await expect(handlers.get_permission_mode(ctx, {})).resolves.toMatchObject({
+      data: { mode: "ask", stale: true, reasons: ["shell-tools"] },
+    });
+    await handlers.set_permission_mode(ctx, { mode: "ask" });
+    const written = JSON.parse(readFileSync(permissionConfigPath(), "utf8"));
+    expect(written.shellTools).toEqual({
+      ...own,
+      spopi_terminal_run: { commandArgument: "command", workdirArgument: "cwd" },
+    });
+    await expect(handlers.get_permission_mode(ctx, {})).resolves.toMatchObject({
+      data: { stale: false, reasons: [] },
     });
   });
 });

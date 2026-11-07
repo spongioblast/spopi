@@ -362,7 +362,7 @@
     "thinking": "pensando",
     "copy": "Copiar",
     "copied": "¡Copiado!",
-    "expand": "Expandir",
+    "expand": "Ver más",
     "processDetails": "Detalles del proceso",
     "processStep": "{count} paso",
     "processSteps": "{count} pasos",
@@ -371,7 +371,9 @@
     "providerError": "La solicitud al modelo falló.",
     "responseTime": "Tiempo de respuesta",
     "youTurn": "Tú · turno",
-    "collapse": "Contraer",
+    "collapse": "Ver menos",
+    "costEstimated": "Coste estimado",
+    "costBilled": "Coste facturado",
     "forkSession": "Bifurcar sesión",
     "editMessage": "Editar mensaje"
   },
@@ -614,6 +616,15 @@
   },
   "errors": {
     "treeNavigateFailed": "Error al cambiar de rama: {error}"
+  },
+  "errorLog": {
+    "header": "{count} errores",
+    "headerOne": "1 error",
+    "toggle": "Mostrar errores recientes",
+    "dismiss": "Descartar",
+    "clear": "Borrar todo",
+    "unknown": "Error desconocido",
+    "whileWorking": "mientras Pi trabajaba"
   },
   "terminal": {
     "toggle": "Alternar terminal",

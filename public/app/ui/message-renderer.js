@@ -29,7 +29,6 @@ import {
   createDurationSpan,
   createTimeSpan,
   createUserActionButton,
-  createUserCollapseToggle,
   enableMessageCopy,
 } from "./message-footer.js";
 import {
@@ -52,8 +51,21 @@ import {
   updateStreamingThinkingBlock,
 } from "./message-thinking.js";
 import { escapeHtml } from "./sanitize-markup.js";
+import { foldLongUserMessage, relabelUserMessageFolds } from "./user-message-fold.js";
 
 export { formatMessageTime, shouldCollapseUserMessage } from "./message-format.js";
+
+/**
+ * Cost span. A missing provider total is a catalog estimate, marked with a tilde.
+ * @param {{ total?: number | null, totalFromProvider?: number | null } | null | undefined} cost
+ */
+function usageCostHtml(cost) {
+  if (cost?.total == null || !(cost.total > 0)) return "";
+  const estimated = cost.totalFromProvider == null;
+  const title = t(estimated ? "messages.costEstimated" : "messages.costBilled");
+  const mark = estimated ? "~" : "";
+  return `<span class="message-usage" title="${escapeHtml(title)}">${formatUsd(cost.total, 4)}${mark}</span>`;
+}
 
 /**
  * @typedef {HTMLElement & { _streamingRawText?: string | null }} StreamingMessageElement
@@ -114,11 +126,7 @@ export class MessageRenderer {
         btn.setAttribute("aria-label", t("messages.copyMessage"));
         btn.title = t("messages.copyMessage");
       });
-      this.container.querySelectorAll(".message-user-collapse-toggle").forEach((btn) => {
-        if (!(btn instanceof HTMLElement)) return;
-        const expanded = btn.getAttribute("aria-expanded") === "true";
-        btn.textContent = t(expanded ? "messages.collapse" : "messages.expand");
-      });
+      relabelUserMessageFolds(this.container);
       this.container.querySelectorAll(".thinking-label-text").forEach((el) => {
         if (!(el instanceof HTMLElement)) return;
         el.textContent = t("messages.thinking");
@@ -231,15 +239,14 @@ export class MessageRenderer {
     const rawContent = textFromMessageContent(message.content);
     const displayContent = cleanChatTranscript(rawContent) ?? rawContent;
     appendMarkup(content, renderUserMarkdown(displayContent));
+    foldLongUserMessage(content, displayContent);
     div.appendChild(content);
 
-    const collapseToggle = createUserCollapseToggle(content, displayContent);
     const footer = document.createElement("div");
     footer.className = "message-footer";
-    // Fixed user order: Expand → Fork → Edit → Copy →
-    // Timestamp. Fork/Edit are session-tree actions gated to persisted trees;
-    // the toolbar is always visible (no hover reveal).
-    if (collapseToggle) footer.appendChild(collapseToggle);
+    // Fixed user order: Fork → Edit → Copy → Timestamp. Fork/Edit are
+    // session-tree actions gated to persisted trees; the toolbar is always
+    // visible (no hover reveal).
     if (this.sessionTreeActions) {
       const actionText = typeof rawContent === "string" ? rawContent : "";
       footer.appendChild(createUserActionButton("fork", actionText));
@@ -314,17 +321,18 @@ export class MessageRenderer {
 
     const hasText = rawStreamingText.trim().length > 0;
     if (!isProcessMessage && message.usage?.cost && !hasThinking) {
-      const cost = message.usage.cost.total;
-      if (cost != null && cost > 0) {
-        usageHtml = `<span class="message-usage">${formatUsd(cost, 4)}</span>`;
-      }
+      usageHtml = usageCostHtml(message.usage.cost);
     }
     const timeLabel = formatMessageTime(message.timestamp);
     const timeHtml = timeLabel
       ? `<span class="message-time" title="${escapeHtml(fullTimestampTitle(message.timestamp))}">${timeLabel}</span>`
       : "";
 
-    const streamingClass = isStreaming ? " streaming" : "";
+    const streamingClass = isStreaming
+      ? hasText
+        ? " streaming"
+        : " streaming streaming-empty"
+      : "";
 
     if (!isStreaming && isHistory && !contentHtml) return null;
 
@@ -407,6 +415,9 @@ export class MessageRenderer {
     } else if (text) {
       replaceMarkup(contentDiv, rendered);
     }
+    // Hide the blinking caret while the content area is empty (the step is still thinking
+    // and its thinking streams into the work row, not here).
+    contentDiv.classList.toggle("streaming-empty", (contentDiv.textContent || "").trim() === "");
     enhanceCodeBlocks(contentDiv);
     this.scrollToBottom();
   }
@@ -488,7 +499,9 @@ export class MessageRenderer {
       if (hasUsage && usageCost && usageCost.total != null) {
         const span = document.createElement("span");
         span.className = "message-usage";
-        span.textContent = formatUsd(usageCost.total, 4);
+        const estimated = usageCost.totalFromProvider == null;
+        span.title = t(estimated ? "messages.costEstimated" : "messages.costBilled");
+        span.textContent = `${formatUsd(usageCost.total, 4)}${estimated ? "~" : ""}`;
         footer.appendChild(span);
       }
 

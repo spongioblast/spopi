@@ -57,6 +57,7 @@ import { ensureXterm } from "../utils/load-vendor.js";
  *   op: string,
  *   id?: string | number | null,
  *   width?: number,
+ *   blocked?: { message?: string } | null,
  *   lines?: { length: number } | null,
  *   message?: string,
  * }} CustomUiFrame
@@ -193,6 +194,12 @@ export class CustomUiPanel {
     // look from design-system.css; the local classes only add sizing.
     overlay.className = "ui-overlay custom-ui-overlay";
     overlay.setAttribute("role", "dialog");
+    const waiting = frame.blocked?.message;
+    if (typeof waiting === "string" && waiting) {
+      overlay.classList.add("custom-ui-blocked");
+      overlay.setAttribute("aria-busy", "true");
+      overlay.title = waiting;
+    }
     const surface = document.createElement("div");
     surface.className = "ui-dialog custom-ui-surface";
     const screen = document.createElement("div");

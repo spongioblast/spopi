@@ -10,6 +10,7 @@ import { registerPackageHealth } from "./bridge/package-health-handlers";
 import projectTrust from "./bridge/project-trust";
 import { registerSpopiAwareness } from "./bridge/spopi-awareness";
 import { registerSpopiScreenshot } from "./bridge/spopi-screenshot";
+import { registerSpopiTerminal } from "./bridge/spopi-terminal";
 import { registerSpopiUiCopy } from "./bridge/spopi-ui-copy";
 import { registerAutomaticSessionTitle } from "./session-title-auto";
 import type { ConfigContext } from "./spopi-config";
@@ -29,6 +30,7 @@ export default function spopiBridge(pi: ExtensionAPI) {
   registerSpopiAwareness(pi);
   registerContextBudget(pi);
   registerSpopiScreenshot(pi);
+  registerSpopiTerminal(pi);
   registerSpopiUiCopy(pi);
   projectTrust(pi);
   registerAutomaticSessionTitle(pi);

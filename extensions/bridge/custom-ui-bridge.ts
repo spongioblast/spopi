@@ -40,10 +40,14 @@ type OverlayComponent = {
   dispose?(): void;
 };
 
+type CustomUiBlocked = { kind?: string; message?: string };
+
 type CustomUiOptions = {
   overlay?: boolean;
   overlayOptions?: { width?: number } | (() => { width?: number } | undefined);
   onHandle?: (handle: unknown) => void;
+  /** Pi reports an inline component as waiting for input. Overlays ignore it. */
+  blocked?: CustomUiBlocked;
 };
 
 type Panel = {
@@ -52,6 +56,8 @@ type Panel = {
   width: number;
   /** Temporarily hidden via the overlay handle; still stacked, just not painted. */
   hidden: boolean;
+  /** Set for an inline panel that is waiting on the user. Overlays leave this unset. */
+  blocked?: CustomUiBlocked;
   settle: (result: unknown) => void;
 };
 
@@ -112,7 +118,15 @@ export function registerCustomUiBridge(pi: ExtensionAPI, options?: { enabled?: b
     if ((next?.id ?? null) === shownId) return;
     if (shownId) emit(ui, { op: "close", id: shownId });
     shownId = next?.id ?? null;
-    if (next) emit(ui, { op: "open", id: next.id, width: next.width, lines: renderPanel(next) });
+    if (next) {
+      emit(ui, {
+        op: "open",
+        id: next.id,
+        width: next.width,
+        blocked: next.blocked ?? null,
+        lines: renderPanel(next),
+      });
+    }
   };
 
   /**
@@ -222,7 +236,14 @@ export function registerCustomUiBridge(pi: ExtensionAPI, options?: { enabled?: b
               component.dispose?.();
               return;
             }
-            panel = { id, component, width, hidden: false, settle };
+            panel = {
+              id,
+              component,
+              width,
+              hidden: false,
+              blocked: options?.overlay ? undefined : options?.blocked,
+              settle,
+            };
             stack.push(panel);
             options?.onHandle?.(createOverlayHandle(panel, ui));
             // Paint on the next microtask, not on the call. An extension that

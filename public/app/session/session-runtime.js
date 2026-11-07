@@ -1,6 +1,7 @@
 // ABOUTME: One session runtime per window: transcript state plus start and switch.
 // ABOUTME: RPC commands and snapshot hydration go through this store.
 
+import { heldFollowUps, onHeldFollowUps } from "../chat/follow-up-hold.js";
 import { watchTranscript } from "../chat/history-render.js";
 import { emptyTranscriptState, reduceSession } from "../chat/transcript-reducer.js";
 import { renderQueuedMessages } from "../composer/queued-messages.js";
@@ -56,6 +57,7 @@ import { loadOpenedPage } from "./workspace-actions.js";
  *     }> | unknown,
  *     snapshot: (sessionId: string) => Promise<unknown>,
  *   },
+ *   deliverFollowUp?: (sessionId: string | undefined, target: unknown) => Promise<unknown>,
  *   adapter: {
  *     ready: () => Promise<void> | void,
  *     subscribeTarget: (target: SessionTarget) => void,
@@ -154,12 +156,7 @@ export function createSessionRuntime(deps) {
     state = reduceSession(state, action, deps.target);
     // A frame only advances the sequence; nothing on screen depends on it.
     if (action?.type === "frame") return state;
-    if (previous.queue !== state.queue) {
-      renderQueuedMessages(deps.queuedMessages, state.queue, {
-        onCancel: deps.cancelQueueItem,
-        onReorder: deps.reorderQueueItem,
-      });
-    }
+    if (previous.queue !== state.queue) paintQueue();
     paintSessionChrome(state);
     for (const fn of subscribers) fn(state, action);
     return state;
@@ -168,6 +165,22 @@ export function createSessionRuntime(deps) {
   function isWorking() {
     return state.status.running;
   }
+
+  function paintQueue() {
+    const queue = state.queue ?? {};
+    const steering = Array.isArray(queue.steering) ? queue.steering : [];
+    const followUp = Array.isArray(queue.followUp) ? queue.followUp : [];
+    renderQueuedMessages(
+      deps.queuedMessages,
+      { steering, followUp: [...followUp, ...heldFollowUps(deps.target?.sessionId)] },
+      {
+        onCancel: deps.cancelQueueItem,
+        onReorder: deps.reorderQueueItem,
+      },
+    );
+  }
+
+  onHeldFollowUps(() => paintQueue());
 
   function targetOf() {
     return deps.target;
@@ -565,7 +578,7 @@ export function createSessionRuntime(deps) {
   /**
    * @param {{
    *   target?: SessionTarget,
-   *   event?: { type?: string, message?: { role?: string }, name?: unknown },
+   *   event?: { type?: string, aborted?: boolean, message?: { role?: string }, name?: unknown },
    * }} frame
    */
   async function handleBackgroundRuntimeEvent(frame) {
@@ -576,6 +589,10 @@ export function createSessionRuntime(deps) {
         deps.sidebar?.markUnread(sessionId);
         break;
       case "agent_settled":
+        if (!frame.event.aborted) void deps.deliverFollowUp?.(sessionId, frame.target);
+        deps.sidebar?.setStreaming(sessionId, false);
+        deps.sidebar?.markUnread(sessionId);
+        break;
       case "agent_end":
         deps.sidebar?.setStreaming(sessionId, false);
         deps.sidebar?.markUnread(sessionId);

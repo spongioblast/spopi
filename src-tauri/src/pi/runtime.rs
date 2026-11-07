@@ -326,6 +326,13 @@ impl PiRuntime {
                 mutation_key = Some(key.to_owned());
             }
         }
+        // Named before the command is moved into the bridge, so a failure can say which
+        // command it was instead of a bare "Timeout".
+        let command_kind = command
+            .get("type")
+            .and_then(Value::as_str)
+            .unwrap_or("unknown")
+            .to_owned();
         self.inner.touch(&target.instance_id);
         let bridge = self
             .inner
@@ -338,10 +345,20 @@ impl PiRuntime {
         let response = match bridge.request(command, timeout).await {
             Ok(response) => response,
             Err(error) => {
-                let mut message = format!("Pi RPC request failed: {error:?}");
+                let mut message = format!(
+                    "Pi RPC request failed: {error:?} (command \"{command_kind}\", waited {}s)",
+                    timeout.as_secs()
+                );
                 if let Some(stderr) = self.drain_diagnostics(&target.instance_id) {
                     message.push_str(&format!("\nPi stderr:\n{stderr}"));
                 }
+                // Also recorded in the host log so a dismissed strip entry can still be traced.
+                log::warn!(
+                    "[spopi-host] runtime request failed: {error:?} command={command_kind} waited={}s session={} instance={}",
+                    timeout.as_secs(),
+                    target.session_id,
+                    target.instance_id
+                );
                 return Err(message);
             }
         };

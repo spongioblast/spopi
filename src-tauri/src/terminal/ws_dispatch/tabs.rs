@@ -115,17 +115,17 @@ impl TerminalManager {
             .get("generation")
             .and_then(Value::as_u64)
             .ok_or_else(|| "generation is required".to_string())?;
-        let descriptors = self
-            .inner
-            .registry
-            .descriptors(&self.key(owner, workspace_root));
-        let active_index = descriptors
-            .iter()
-            .position(|descriptor| {
-                descriptor.terminal_id == terminal_id && descriptor.generation == generation
-            })
-            .ok_or_else(|| err_str_owned(TerminalError::UnknownTerminal))?;
-        self.persist_with_active_index(owner, workspace_root, Some(active_index));
+        let key = self.key(owner, workspace_root);
+        let is_tab = |descriptor: &TerminalDescriptor| {
+            descriptor.terminal_id == terminal_id && descriptor.generation == generation
+        };
+        if !self.inner.registry.descriptors(&key).iter().any(is_tab) {
+            return Err(err_str_owned(TerminalError::UnknownTerminal));
+        }
+        // A Pi command tab is not restored, so activating it keeps the restored tab that was active.
+        if let Some(active_index) = self.persisted_descriptors(&key).iter().position(is_tab) {
+            self.persist_with_active_index(owner, workspace_root, Some(active_index));
+        }
         Ok(json!({ "type": "terminal_command_acked" }))
     }
 
@@ -148,7 +148,7 @@ impl TerminalManager {
             })
             .collect::<Result<Vec<_>, _>>()?;
         let key = self.key(owner, workspace_root);
-        let before = self.inner.registry.descriptors(&key);
+        let before = self.persisted_descriptors(&key);
         let active_terminal_id = self
             .inner
             .state_store
@@ -163,9 +163,7 @@ impl TerminalManager {
             .reorder(&key, &ordered_terminal_ids)
             .map_err(err_str_owned)?;
         let active_index = active_terminal_id.and_then(|terminal_id| {
-            self.inner
-                .registry
-                .descriptors(&key)
+            self.persisted_descriptors(&key)
                 .iter()
                 .position(|descriptor| descriptor.terminal_id == terminal_id)
         });
@@ -175,7 +173,7 @@ impl TerminalManager {
 
     pub(super) fn set_panel_height(&self, owner: &OwnerId, workspace_root: &Path, height: u32) {
         let key = self.key(owner, workspace_root);
-        let descriptors = self.inner.registry.descriptors(&key);
+        let descriptors = self.persisted_descriptors(&key);
         let mut metadata = self
             .inner
             .state_store

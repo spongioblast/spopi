@@ -1,6 +1,8 @@
 // ABOUTME: Highlights a search query inside rendered message content and removes those highlights again.
 // ABOUTME: Only text inside .message-content is searched; marks carry data-search-highlight="true".
 
+import { setUserMessageExpanded } from "./user-message-fold.js";
+
 /**
  * @param {string} text
  */
@@ -91,12 +93,14 @@ export function highlightSearchMatches(container, query, scrollToFirst) {
       currentNode = walker.nextNode();
     }
 
+    let contentMatches = 0;
     textNodes.forEach((node) => {
-      const count = highlightTextNode(node, pattern, (mark) => {
+      contentMatches += highlightTextNode(node, pattern, (mark) => {
         if (matches.length === 0) matches.push(mark);
       });
-      matchCount += count;
     });
+    if (contentMatches > 0) setUserMessageExpanded(content, true);
+    matchCount += contentMatches;
   });
 
   const firstMatch = matches[0];

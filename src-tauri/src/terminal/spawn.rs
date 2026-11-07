@@ -227,6 +227,7 @@ impl TerminalManager {
         if let Some(terminal) = removed {
             kill_live_terminal(terminal);
         }
+        self.forget_agent_run(&lease.terminal_id);
         let _ = self
             .inner
             .registry
@@ -253,6 +254,7 @@ fn run_reader(
                 else {
                     continue;
                 };
+                manager.record_agent_output(&terminal_id, generation, &chunk);
                 manager.emit_output(&owner, &terminal_id, generation, sequence, &chunk);
             }
             Err(_) => break,
@@ -293,11 +295,7 @@ fn run_reader(
 }
 
 fn exit_code_of(status: &portable_pty::ExitStatus) -> i32 {
-    if status.success() {
-        0
-    } else {
-        -1
-    }
+    i32::try_from(status.exit_code()).unwrap_or(-1)
 }
 
 /// ConPTY keeps the output pipe open after the shell exits, so the reader never
@@ -359,6 +357,7 @@ fn report_exit(
     // A restart or explicit close may have replaced/removed this generation
     // while the reader was waiting. Only the still-owned running generation may
     // publish an exit event; stale exits must never remove the replacement tab.
+    manager.end_agent_run(&terminal_id, generation);
     if manager
         .inner
         .registry

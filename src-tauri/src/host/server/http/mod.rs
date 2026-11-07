@@ -9,6 +9,7 @@ pub(crate) mod phone_runtime;
 pub(super) mod routes;
 pub(super) mod screenshot;
 pub(super) mod search;
+pub(super) mod terminal_run;
 pub(crate) mod ui;
 
 use super::auth::{is_public_http_request, trusted_loopback_request};
@@ -54,6 +55,9 @@ pub(super) fn router(state: Arc<HostState>, static_dir: PathBuf) -> Router {
         .route("/api/ui/ready", post(ui::ready))
         .route("/api/ui/disabled", post(ui::disabled))
         .route("/api/ui/screenshot", get(screenshot::screenshot))
+        .route("/api/terminal/run", post(terminal_run::run))
+        .route("/api/terminal/output", get(terminal_run::output))
+        .route("/api/terminal/stop", post(terminal_run::stop))
         .route("/api/phone/status", get(phone::status))
         .route("/api/phone/pair", post(phone::pair))
         .route("/api/phone/decide", post(phone::decide))

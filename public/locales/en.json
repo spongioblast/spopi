@@ -362,7 +362,7 @@
     "thinking": "thinking",
     "copy": "Copy",
     "copied": "Copied!",
-    "expand": "Expand",
+    "expand": "Show more",
     "processDetails": "Process details",
     "processStep": "{count} step",
     "processSteps": "{count} steps",
@@ -371,7 +371,9 @@
     "providerError": "The model request failed.",
     "responseTime": "Response time",
     "youTurn": "You · turn",
-    "collapse": "Collapse",
+    "collapse": "Show less",
+    "costEstimated": "Estimated cost",
+    "costBilled": "Billed cost",
     "forkSession": "Fork session",
     "editMessage": "Edit message"
   },
@@ -614,6 +616,15 @@
   },
   "errors": {
     "treeNavigateFailed": "Branch switch failed: {error}"
+  },
+  "errorLog": {
+    "header": "{count} errors",
+    "headerOne": "1 error",
+    "toggle": "Show recent errors",
+    "dismiss": "Dismiss",
+    "clear": "Clear all",
+    "unknown": "Unknown error",
+    "whileWorking": "while Pi was working"
   },
   "terminal": {
     "toggle": "Toggle terminal",

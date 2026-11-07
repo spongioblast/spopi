@@ -2,6 +2,14 @@
 // ABOUTME: SPOPI contracts (packages, PTY, scrape, tree) bind here; Pi stays the only harness.
 
 import { dropContext, pinContext } from "./chat/context-pins.js";
+import { mountErrorLog, pushErrorLog } from "./chat/error-log.js";
+import {
+  deliverNextFollowUp,
+  holdFollowUp,
+  moveHeldFollowUp,
+  removeHeldFollowUp,
+  setPiFollowUpCount,
+} from "./chat/follow-up-hold.js";
 import { createManualCompaction } from "./chat/manual-compaction.js";
 import { mountChatFileActions } from "./chat/mount-chat-file-actions.js";
 import { mountHistory } from "./chat/mount-history.js";
@@ -226,6 +234,7 @@ const atFileMentionMenu = chrome.composer.atFileMentionMenu;
 let atFileMention = null;
 const composerAutoResize = mountComposerAutoResize({ input });
 const queuedMessages = chrome.composer.queuedMessages;
+mountErrorLog(chrome.composer.errorLog);
 const todoMirrorPanel = new RpivTodoMirrorPanel({ container: chrome.composer.inputArea });
 // pi-subagents' commands run inline over RPC without a model turn, so they go as prompts.
 /** @param {string} command */
@@ -347,6 +356,11 @@ const terminalIntegration = mountTerminalPanel({
   getWorkspaceId: () => target.workspaceId,
   layout: chrome.layout,
   toolbar: chrome.chat.headerRight,
+  // A tab Pi opens shows in the dock but does not open the narrow-window drawer over the chat.
+  revealDock: () => {
+    workbench?.dock?.setTab?.("terminal");
+    workbench?.shell?.applyHidden?.({ dockHidden: false });
+  },
 });
 const runtime = new RuntimeGateway(
   /** @type {import("./transport/runtime-gateway.js").RuntimeAdapter} */ (
@@ -1065,6 +1079,21 @@ const bootstrap = createSessionRuntime(
         return infoSidebar;
       },
       runtime,
+      deliverFollowUp: (
+        /** @type {string | undefined} */ sessionId,
+        /** @type {Parameters<typeof runtime.request>[1]} */ liveTarget,
+      ) =>
+        deliverNextFollowUp(sessionId, (entry) =>
+          runtime.request(
+            {
+              type: "prompt",
+              message: entry.message,
+              ...(entry.images?.length ? { images: entry.images } : {}),
+            },
+            liveTarget,
+            { idempotencyKey: randomId() },
+          ),
+        ),
       adapter,
       data,
       history,
@@ -1128,6 +1157,26 @@ const bootstrap = createSessionRuntime(
 );
 const { hydrateSnapshotOnce, adoptTarget, handleBackgroundRuntimeEvent, setupSessionSidebar } =
   bootstrap;
+setPiFollowUpCount(() => bootstrap.getState().queue?.followUp?.length ?? 0);
+const sendRuntimeRequest = runtime.request.bind(runtime);
+runtime.request = (command, requestTarget, options = {}) => {
+  if (
+    command &&
+    typeof command === "object" &&
+    /** @type {{ type?: string }} */ (command).type === "follow_up" &&
+    !options.deliverToPi &&
+    bootstrap.isWorking()
+  ) {
+    const sessionId =
+      requestTarget && typeof requestTarget === "object" && "sessionId" in requestTarget
+        ? String(/** @type {{ sessionId?: string }} */ (requestTarget).sessionId ?? "")
+        : "";
+    const held = /** @type {{ message?: unknown, images?: unknown[] }} */ (command);
+    holdFollowUp(sessionId, held.message, held.images);
+    return /** @type {ReturnType<typeof sendRuntimeRequest>} */ (Promise.resolve({ held: true }));
+  }
+  return sendRuntimeRequest(command, requestTarget, options);
+};
 historyLate.adoptTarget = /** @type {(next?: unknown, opts?: unknown) => Promise<void> | void} */ (
   adoptTarget
 );
@@ -1543,6 +1592,16 @@ function textFromResult(result) {
 
 /** @param {unknown} [item] */
 function cancelQueueItem(item) {
+  const record = /** @type {{ kind?: string, index?: number, message?: string } | null} */ (
+    item ?? null
+  );
+  const piCount = bootstrap.getState().queue?.followUp?.length ?? 0;
+  if (
+    record?.kind === "follow_up" &&
+    removeHeldFollowUp(target.sessionId ?? "", record.index ?? -1, piCount, record.message)
+  ) {
+    return;
+  }
   cancelQueuedMessage(
     /** @type {Parameters<typeof cancelQueuedMessage>[0]} */ (
       /** @type {unknown} */ ({ runtime, target, item, randomId })
@@ -1555,6 +1614,14 @@ function cancelQueueItem(item) {
  * @param {number} to
  */
 function reorderQueueItem(item, to) {
+  const record = /** @type {{ kind?: string, index?: number, message?: string }} */ (item);
+  const piCount = bootstrap.getState().queue?.followUp?.length ?? 0;
+  if (
+    record?.kind === "follow_up" &&
+    moveHeldFollowUp(target.sessionId ?? "", record.index ?? -1, to, piCount, record.message)
+  ) {
+    return;
+  }
   reorderQueue(
     /** @type {Parameters<typeof reorderQueue>[0]} */ (
       /** @type {unknown} */ ({ runtime, target, item, to, randomId })
@@ -1579,16 +1646,22 @@ function abortCurrentRun() {
   extensionUi.cancelForeground();
 }
 
+// A run in flight is the usual cause of an RPC timeout (Pi's thread is busy driving the
+// model), so the strip records that alongside the error to make the pattern obvious.
+function errorContext() {
+  return bootstrap.isWorking() ? t("errorLog.whileWorking") : "";
+}
+
 /** @param {unknown} error */
 function showError(error) {
   setStatus("disconnected");
-  messageRenderer.renderError(describeHostError(error));
+  pushErrorLog(describeHostError(error), errorContext());
 }
 
-// Panel-scoped failures render in chat; only transport errors may flip the status pill.
+// Panel-scoped failures collect in the error strip; only transport errors flip the status pill.
 /** @param {unknown} error */
 function showNonFatalError(error) {
-  messageRenderer.renderError(describeHostError(error));
+  pushErrorLog(describeHostError(error), errorContext());
 }
 
 onLocaleChange(() => {

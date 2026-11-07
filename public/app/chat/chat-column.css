@@ -255,13 +255,15 @@
 }
 
 .app-layout.spopi-shell .main .message.user .message-content {
+  --user-bubble-fill: color-mix(in srgb, var(--accent) 9%, var(--bg-solid));
+  --user-bubble-pad-y: var(--space-2);
   max-width: 100%;
-  background: color-mix(in srgb, var(--accent) 9%, var(--bg-solid));
+  background: var(--user-bubble-fill);
   color: var(--text-primary);
   border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--border));
   border-left: 3px solid var(--accent);
   border-radius: var(--radius-md);
-  padding: var(--space-2) var(--space-3);
+  padding: var(--user-bubble-pad-y) var(--space-3);
   box-shadow: none;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;

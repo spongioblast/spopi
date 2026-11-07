@@ -11,7 +11,9 @@ import {
   sessionTreeModel,
   startSessionTreeModel,
 } from "../session/session-tree-host.js";
+import { randomId } from "../utils/random-id.js";
 import { customMessageNote } from "./custom-message-note.js";
+import { deliverNextFollowUp } from "./follow-up-hold.js";
 import { liveLabel } from "./live-label.js";
 import { notifySettled } from "./on-next-settled.js";
 
@@ -366,6 +368,21 @@ export function createRuntimeEventHandler(ctx) {
         break;
       case "agent_settled": {
         notifySettled();
+        // A stopped or interrupted run keeps its held follow-ups where they are; only a run
+        // that finished on its own releases the next one.
+        if (!event.aborted) {
+          void deliverNextFollowUp(target.sessionId, async (entry) => {
+            await ctx.runtime.request(
+              {
+                type: "prompt",
+                message: entry.message,
+                ...(entry.images?.length ? { images: entry.images } : {}),
+              },
+              target,
+              { idempotencyKey: randomId() },
+            );
+          }).catch((error) => console.error("[queue] follow-up after settle failed", error));
+        }
         ctx.workbench.live?.hide();
         ctx.settleForegroundAgent(event);
         const pending = ctx.getPendingForkSwitchCheck();

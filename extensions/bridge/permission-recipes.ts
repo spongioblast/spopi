@@ -7,6 +7,7 @@ import { getAgentDir } from "@earendil-works/pi-coding-agent";
 import type { ConfigContext } from "./paths";
 import { readSettingsRecord, updateSettingsObject } from "./settings-io";
 import { SCREENSHOT_TOOL } from "./spopi-screenshot";
+import { TERMINAL_READ_TOOL, TERMINAL_RUN_TOOL } from "./spopi-terminal";
 import { UI_COPY_TOOL } from "./spopi-ui-copy";
 import type { BridgeHandlers } from "./types";
 
@@ -197,58 +198,83 @@ export function autoEditBashRules(
  */
 const SKILL_READS = { "*": "allow" } as const;
 
+/**
+ * The terminal tool runs a bash command, so the permission extension checks it with the
+ * bash rules: the same asks, denies, and path checks as the bash tool.
+ */
+export const SHELL_TOOLS = {
+  [TERMINAL_RUN_TOOL]: { commandArgument: "command", workdirArgument: "cwd" },
+} as const;
+
+export type PermissionRecipe = {
+  permission: Record<string, unknown>;
+  shellTools: typeof SHELL_TOOLS;
+};
+
 /** @returns the config object the permission extension loads. */
 export function permissionRecipe(
   mode: PermissionMode,
   roots: string[] = protectedRoots(),
   env: Env = process.env,
-): { permission: Record<string, unknown> } {
+): PermissionRecipe {
+  return { permission: modePermission(mode, roots, env), shellTools: SHELL_TOOLS };
+}
+
+function modePermission(mode: PermissionMode, roots: string[], env: Env): Record<string, unknown> {
   const denies = pathDenies(roots);
   if (mode === "full") {
     // Bash is named on purpose: with only a top-level allow, the permission extension
     // warns on every session start that bash inherits it by accident.
     return {
-      permission: {
-        "*": "allow",
-        bash: withUpgradeDeny({ "*": "allow" }),
-        skill: { ...SKILL_READS },
-        path_write: { ...denies },
-      },
+      "*": "allow",
+      bash: withUpgradeDeny({ "*": "allow" }),
+      skill: { ...SKILL_READS },
+      path_write: { ...denies },
     };
   }
   if (mode === "auto-edit") {
     return {
-      permission: {
-        "*": "ask",
-        skill: { ...SKILL_READS },
-        read: "allow",
-        edit: "allow",
-        write: "allow",
-        // Codemode and tool search reach nothing on their own: every call a script
-        // makes is its own tool_call, and this extension gates nested ones too.
-        codemode: "allow",
-        tool_search: "allow",
-        list_mcp_resources: "allow",
-        list_mcp_resource_templates: "allow",
-        read_mcp_resource: "allow",
-        [SCREENSHOT_TOOL]: "allow",
-        [UI_COPY_TOOL]: "allow",
-        bash: autoEditBashRules(env),
-        external_directory: "ask",
-        path: { "*": "allow" },
-        path_write: { "*/agent-browser.json": "ask", ...denies },
-      },
+      "*": "ask",
+      skill: { ...SKILL_READS },
+      read: "allow",
+      edit: "allow",
+      write: "allow",
+      // Codemode and tool search reach nothing on their own: every call a script
+      // makes is its own tool_call, and this extension gates nested ones too.
+      codemode: "allow",
+      tool_search: "allow",
+      list_mcp_resources: "allow",
+      list_mcp_resource_templates: "allow",
+      read_mcp_resource: "allow",
+      [SCREENSHOT_TOOL]: "allow",
+      [UI_COPY_TOOL]: "allow",
+      // Reading or stopping a command Pi itself started in a terminal tab.
+      [TERMINAL_READ_TOOL]: "allow",
+      bash: autoEditBashRules(env),
+      external_directory: "ask",
+      path: { "*": "allow" },
+      path_write: { "*/agent-browser.json": "ask", ...denies },
     };
   }
   return {
-    permission: {
-      "*": "ask",
-      skill: { ...SKILL_READS },
-      path: { "*": "ask" },
-      path_write: { ...denies },
-      bash: withUpgradeDeny({ "*": "ask" }),
-    },
+    "*": "ask",
+    skill: { ...SKILL_READS },
+    path: { "*": "ask" },
+    path_write: { ...denies },
+    bash: withUpgradeDeny({ "*": "ask" }),
   };
+}
+
+/** A recipe written before the terminal tool existed lets it through the `*` rule, not the bash rules. */
+export function shellToolsMissing(config: Record<string, unknown>): boolean {
+  const tools = asRecord(config.shellTools);
+  return Object.entries(SHELL_TOOLS).some(([name, mapping]) => {
+    const current = asRecord(tools[name]);
+    return (
+      current.commandArgument !== mapping.commandArgument ||
+      current.workdirArgument !== mapping.workdirArgument
+    );
+  });
 }
 
 /** A recipe from a build before skill reads were allowed. */
@@ -281,9 +307,9 @@ export function readPermissionMode(): PermissionMode {
   }
 }
 
-function currentPermission(): Record<string, unknown> {
+function currentConfig(): Record<string, unknown> {
   try {
-    return asRecord(readSettingsRecord(permissionConfigPath()).permission);
+    return readSettingsRecord(permissionConfigPath());
   } catch {
     return {};
   }
@@ -302,7 +328,8 @@ export type StaleReason =
   | "skill-reads"
   | "upgrade-deny"
   | "full-bash"
-  | "auto-edit";
+  | "auto-edit"
+  | "shell-tools";
 
 /** Why the recipe on disk differs from what this build writes for its mode. */
 export function staleReasons(
@@ -328,7 +355,13 @@ export function autoEditRecipeStale(
   permission: Record<string, unknown>,
   env: Env = process.env,
 ): boolean {
-  if (permission[SCREENSHOT_TOOL] !== "allow" || permission[UI_COPY_TOOL] !== "allow") return true;
+  if (
+    permission[SCREENSHOT_TOOL] !== "allow" ||
+    permission[UI_COPY_TOOL] !== "allow" ||
+    permission[TERMINAL_READ_TOOL] !== "allow"
+  ) {
+    return true;
+  }
   if (!upgradeDenied(permission)) return true;
   const port = liveDebugPort(env);
   const cdpKeys = Object.keys(asRecord(permission.bash)).filter((key) =>
@@ -356,6 +389,7 @@ function writeRecipe(mode: PermissionMode): void {
   const recipe = permissionRecipe(mode);
   updateSettingsObject(permissionConfigPath(), (config) => {
     config.permission = recipe.permission;
+    config.shellTools = { ...asRecord(config.shellTools), ...recipe.shellTools };
   });
 }
 
@@ -368,7 +402,8 @@ export const handlers: BridgeHandlers = {
   // and the UI offers set_permission_mode with the same mode as the repair.
   get_permission_mode: async (ctx) => {
     const mode = readPermissionMode();
-    const permission = currentPermission();
+    const config = currentConfig();
+    const permission = asRecord(config.permission);
     // First run: no recipe yet. The extension already asks for everything without one;
     // writing Ask adds the protected-root denies.
     if (Object.keys(permission).length === 0) {
@@ -377,6 +412,7 @@ export const handlers: BridgeHandlers = {
       return { ok: true, data: { mode: "ask", stale: false, reasons: [] } };
     }
     const reasons = staleReasons(mode, permission);
+    if (shellToolsMissing(config)) reasons.push("shell-tools");
     publish(ctx, mode);
     return { ok: true, data: { mode, stale: reasons.length > 0, reasons } };
   },

@@ -1,0 +1,140 @@
+/* ABOUTME: Styles the collected-errors strip that sits on top of the composer card. */
+/* ABOUTME: One line per error; the newest shows on the collapsed header; dismiss per row. */
+
+.error-log {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-1) var(--space-1) 0;
+  background: var(--bg-glass);
+  border: 1px solid var(--border);
+  border-bottom: none;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  font-size: var(--font-size-sm);
+}
+
+.error-log.hidden {
+  display: none;
+}
+
+.input-area:has(> .error-log:not(.hidden)) .composer-card {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+.error-log-top {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.error-log-header {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-0-5) var(--space-1-5);
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.error-log-header svg {
+  flex-shrink: 0;
+  transition: transform var(--duration) var(--ease);
+}
+
+.error-log-header .error-log-warn {
+  color: var(--error);
+  transition: none;
+}
+
+.error-log-header[aria-expanded="false"] svg:first-child {
+  transform: rotate(-90deg);
+}
+
+.error-log-count {
+  flex-shrink: 0;
+}
+
+.error-log-latest {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-tertiary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.error-log-clear {
+  flex-shrink: 0;
+}
+
+.error-log-list {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(var(--space-6) * 5);
+  overflow-y: auto;
+}
+
+.error-log-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  min-height: var(--space-6);
+  padding: 0 var(--space-1-5);
+  border-radius: var(--radius-sm);
+}
+
+.error-log-row:hover,
+.error-log-row:focus-within {
+  background: var(--bg-glass-hover);
+}
+
+.error-log-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.error-log-detail {
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+
+.error-log-badge {
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.error-log-time {
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.error-log-row .ui-icon-button {
+  flex-shrink: 0;
+  opacity: 0;
+}
+
+.error-log-row:hover .ui-icon-button,
+.error-log-row:focus-within .ui-icon-button {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .error-log-row .ui-icon-button {
+    opacity: 1;
+  }
+}
+
+.error-log-dismiss:hover:not(:disabled) {
+  color: var(--error);
+}

@@ -126,7 +126,9 @@ describe("registerCustomUiBridge", () => {
     void open(ctx, component, { overlay: true, overlayOptions: { width: 60 } });
     await flush();
 
-    expect(frames()).toEqual([{ op: "open", id: "panel-1", width: 60, lines: ["line one"] }]);
+    expect(frames()).toEqual([
+      { op: "open", id: "panel-1", width: 60, lines: ["line one"], blocked: null },
+    ]);
   });
 
   it("falls back to a default width when the overlay does not request one", async () => {
@@ -213,7 +215,7 @@ describe("registerCustomUiBridge", () => {
     // underneath has to be re-opened rather than repainted.
     expect(frames().slice(-2)).toEqual([
       { op: "close", id: "panel-2" },
-      { op: "open", id: "panel-1", width: 82, lines: ["outer"] },
+      { op: "open", id: "panel-1", width: 82, lines: ["outer"], blocked: null },
     ]);
   });
 
@@ -273,7 +275,9 @@ describe("registerCustomUiBridge", () => {
     expect(frames()).toEqual([]);
 
     handle?.setHidden(false);
-    expect(frames()).toEqual([{ op: "open", id: "panel-1", width: 82, lines: ["mcp servers"] }]);
+    expect(frames()).toEqual([
+      { op: "open", id: "panel-1", width: 82, lines: ["mcp servers"], blocked: null },
+    ]);
   });
 
   it("hides and re-reveals a parked overlay without disturbing the caller", async () => {
@@ -297,6 +301,7 @@ describe("registerCustomUiBridge", () => {
       id: "panel-1",
       width: 82,
       lines: ["line one"],
+      blocked: null,
     });
   });
 

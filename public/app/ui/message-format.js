@@ -12,7 +12,7 @@
  *   mimeType?: string,
  * }} MessageContentBlock
  *
- * @typedef {{ total?: number }} MessageCost
+ * @typedef {{ total?: number, totalFromProvider?: number | null }} MessageCost
  *
  * @typedef {{ cost?: MessageCost }} MessageUsage
  *

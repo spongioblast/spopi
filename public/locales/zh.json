@@ -372,6 +372,8 @@
     "responseTime": "响应耗时",
     "youTurn": "你 · 回合",
     "collapse": "收起",
+    "costEstimated": "估计费用",
+    "costBilled": "账单费用",
     "forkSession": "复制会话",
     "editMessage": "编辑消息"
   },
@@ -614,6 +616,15 @@
   },
   "errors": {
     "treeNavigateFailed": "分支切换失败:{error}"
+  },
+  "errorLog": {
+    "header": "{count} 个错误",
+    "headerOne": "1 个错误",
+    "toggle": "显示最近的错误",
+    "dismiss": "忽略",
+    "clear": "全部清除",
+    "unknown": "未知错误",
+    "whileWorking": "Pi 正在运行时"
   },
   "terminal": {
     "toggle": "切换终端",

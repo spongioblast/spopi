@@ -362,7 +362,7 @@
     "thinking": "denkt",
     "copy": "Kopieren",
     "copied": "Kopiert!",
-    "expand": "Aufklappen",
+    "expand": "Mehr anzeigen",
     "processDetails": "Ablaufdetails",
     "processStep": "{count} Schritt",
     "processSteps": "{count} Schritte",
@@ -371,7 +371,9 @@
     "providerError": "Die Modellanfrage ist fehlgeschlagen.",
     "responseTime": "Antwortzeit",
     "youTurn": "Du · Zug",
-    "collapse": "Zuklappen",
+    "collapse": "Weniger anzeigen",
+    "costEstimated": "Geschätzte Kosten",
+    "costBilled": "Abgerechnete Kosten",
     "forkSession": "Sitzung abzweigen",
     "editMessage": "Nachricht bearbeiten"
   },
@@ -614,6 +616,15 @@
   },
   "errors": {
     "treeNavigateFailed": "Branch-Wechsel fehlgeschlagen: {error}"
+  },
+  "errorLog": {
+    "header": "{count} Fehler",
+    "headerOne": "1 Fehler",
+    "toggle": "Letzte Fehler anzeigen",
+    "dismiss": "Schließen",
+    "clear": "Alle löschen",
+    "unknown": "Unbekannter Fehler",
+    "whileWorking": "während Pi arbeitete"
   },
   "terminal": {
     "toggle": "Terminal umschalten",

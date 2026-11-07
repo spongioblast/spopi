@@ -8,6 +8,7 @@ import { createIcon } from "../../ui/icons.js";
 export function mountComposerChrome(root) {
   const inputArea = el("div", { class: "input-area" }, [
     el("div", { class: "extension-widgets hidden", id: "extension-widgets-above" }),
+    el("div", { class: "error-log hidden", id: "error-log" }),
     el("div", { class: "queued-messages hidden", id: "queued-messages" }),
     el("form", { id: "chat-form" }, [
       el("div", { class: "composer-card", id: "composer-card" }, [
@@ -198,6 +199,7 @@ export function mountComposerChrome(root) {
     abortBtn: inputArea.querySelector("#abort-btn"),
     thinkingBtn: inputArea.querySelector("#thinking-btn"),
     queuedMessages: inputArea.querySelector("#queued-messages"),
+    errorLog: inputArea.querySelector("#error-log"),
     widgetsAbove: inputArea.querySelector("#extension-widgets-above"),
     widgetsBelow: inputArea.querySelector("#extension-widgets-below"),
     skillSlashMenu: inputArea.querySelector("#skill-slash-menu"),

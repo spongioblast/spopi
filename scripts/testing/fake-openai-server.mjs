@@ -151,6 +151,23 @@ function chooseScript(request) {
       finish: "stop",
     };
   }
+  if (lastUser.includes("TOOL:terminal")) {
+    if (!hasToolResult) {
+      const command = "for i in 1 2 3; do echo tick $i; sleep 1; done";
+      return {
+        status: 200,
+        tools: [
+          {
+            name: "spopi_terminal_run",
+            arguments: JSON.stringify({ command, title: "ticks", wait: 20 }),
+          },
+        ],
+        finish: "tool_calls",
+      };
+    }
+    const seen = toolResultText.includes("exited with code 0") && toolResultText.includes("tick 3");
+    return { status: 200, texts: [seen ? "Terminal seen." : "No terminal."], finish: "stop" };
+  }
   if (lastUser.includes("TOOL:long")) {
     if (!hasToolResult) {
       const command = "node -e \"for (let i = 1; i <= 3000; i++) console.log('line ' + i)\"";

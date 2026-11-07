@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.7.4
+
+### Features
+
+- Embedded Pi is 1.5.0. A reply's cost is marked as an estimate when the provider did not report a billed total. Follow-up messages wait until the current run has settled, then go out one at a time. Steering and **Send now** still interrupt.
+- Pi runs long or background commands (servers, watchers, builds, batch jobs) in a dock terminal tab named `Pi: …` that you can watch, type into, and close, instead of starting them hidden in the background. Pi reads the tab's output, waits for it, or stops it. Its commands are checked like bash commands in every permission mode. Update the permission recipe when SPOPI asks.
+
+### Fixes
+
+- A slow reply no longer turns the state check into a failed request. That check waits up to two minutes. The "Pi not responding" notice is unchanged.
+- Transport errors (like a timed-out request) collect in one collapsible strip above the composer, newest first, instead of being stranded at the bottom of the chat. Repeats of the same error fold into a count; dismiss one or clear them all.
+- Stopping a run now also cancels follow-ups that were waiting for it, and their text goes back to the message box — they no longer slip out as a new reply after you pressed Stop. A **Send now** on a queued follow-up sends that one, not the next in line. A follow-up with only an image is no longer dropped while it waits.
+- A step that is still thinking no longer shows a blinking caret on an empty line under the closed thinking row. The caret appears when the answer text starts.
+- Pi starts Python in UTF-8 mode, so a command that prints characters such as ü or an em dash keeps them in the tool card on Windows. A timeout in the error strip names the command and how long it waited.
+
 ## 0.7.3
 
 ### Features

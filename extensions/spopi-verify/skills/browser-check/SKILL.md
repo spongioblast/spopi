@@ -9,7 +9,11 @@ Text output does not show layout. Look at the page after a visible change, and c
 
 ## Start the app
 
-Use the launch step from the project's `verify` skill if there is one. A server started from the shell must run in the background and write to a log, or the shell call never returns. Save its process id so you can stop exactly that process later:
+Use the launch step from the project's `verify` skill if there is one.
+
+If you have the `spopi_terminal_run` tool, start the server with it (for example `npm run dev`, title `dev server`, `wait` 15). It runs in a terminal tab the user can watch, and the result shows its output with the URL. Read more with `spopi_terminal_read`, and stop it there with `stop: true`.
+
+Without that tool, a server started from the shell must run in the background and write to a log, or the shell call never returns. Save its process id so you can stop exactly that process later:
 
 ```bash
 mkdir -p .pi/tmp && (npm run dev > .pi/tmp/dev.log 2>&1 & echo $! > .pi/tmp/dev.pid)
@@ -72,7 +76,7 @@ After an interaction, check the result, not just that the command succeeded: the
 - If agent-browser reports that no browser is installed, stop and tell the user to open Settings → Dependencies and press Download browser. Never run `agent-browser install` or `agent-browser upgrade` yourself.
 - Open local URLs (`127.0.0.1`, `localhost`) only, unless the user asked for another site.
 - Keep screenshots in `.pi/tmp/screens/`. That folder is not committed.
-- When you are done, run `agent-browser close` and stop only the server you started. On Windows a plain `kill` leaves the child of `npm run` running, so stop the whole tree:
+- When you are done, run `agent-browser close` and stop only the server you started. One started with `spopi_terminal_run` stops with `spopi_terminal_read` and `stop: true`. For one started from the shell: on Windows a plain `kill` leaves the child of `npm run` running, so stop the whole tree:
 
   ```bash
   pid=$(cat .pi/tmp/dev.pid); if [ -e "/proc/$pid/winpid" ]; then taskkill //PID "$(cat /proc/$pid/winpid)" //T //F; else kill "$pid"; fi

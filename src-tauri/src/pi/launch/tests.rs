@@ -30,6 +30,17 @@ fn launch_spec_has_no_tcp_port_and_resumes_only_at_process_start() {
             .map(String::as_str),
         Some("1")
     );
+    assert_eq!(
+        launch.environment.get("PYTHONUTF8").map(String::as_str),
+        Some("1")
+    );
+    assert_eq!(
+        launch
+            .environment
+            .get("PYTHONIOENCODING")
+            .map(String::as_str),
+        Some("utf-8")
+    );
     assert!(!launch
         .args
         .iter()

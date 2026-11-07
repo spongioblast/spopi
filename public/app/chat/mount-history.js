@@ -17,6 +17,7 @@ import {
   summarizeProcessGroup,
 } from "../ui/process-group.js";
 import { randomId } from "../utils/random-id.js";
+import { currentPiFollowUpCount, removeHeldFollowUp } from "./follow-up-hold.js";
 import { createHistoryRenderer } from "./history-render.js";
 import { onNextSettled } from "./on-next-settled.js";
 import { registerRetryAbort, registerRetryBanner } from "./retry-banner.js";
@@ -281,11 +282,20 @@ export function mountHistory({
  * @param {{ kind?: string, index?: number, message?: string }} item
  */
 async function sendQueuedNow(runtime, getTarget, item) {
+  const target = getTarget();
+  const sessionId =
+    target && typeof target === "object" && "sessionId" in target
+      ? String(/** @type {{ sessionId?: string }} */ (target).sessionId ?? "")
+      : "";
+  const held =
+    item?.kind === "follow_up" &&
+    removeHeldFollowUp(sessionId, item.index ?? -1, currentPiFollowUpCount(), item.message);
   await interruptWithQueued(
     /** @type {Parameters<typeof interruptWithQueued>[0]} */ ({
       runtime,
-      target: getTarget(),
+      target,
       item,
+      force: Boolean(held),
       randomId,
       waitSettled: () =>
         new Promise((resolve) => {

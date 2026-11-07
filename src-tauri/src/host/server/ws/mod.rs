@@ -362,6 +362,9 @@ fn schedule_terminal_reap(state: Arc<HostState>, client_id: String, owner: Owner
 /// Most runtime commands are answered as soon as Pi has accepted them, so a
 /// short deadline keeps a wedged runtime from leaking a pending request.
 pub(crate) const RUNTIME_REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
+/// `get_state` is the liveness ping. A slow local model can hold Pi's runtime
+/// thread for one decode round, and a 30s deadline made that ping the error.
+pub(crate) const RUNTIME_STATE_REQUEST_TIMEOUT: Duration = Duration::from_secs(120);
 /// `prompt` is the exception. An extension command runs inline and its response
 /// only arrives once the handler returns — and a handler that opens a dialog
 /// does not return until the user has answered it, possibly several screens
@@ -372,6 +375,7 @@ pub(crate) const RUNTIME_INTERACTIVE_REQUEST_TIMEOUT: Duration = Duration::from_
 pub(crate) fn runtime_request_timeout(command: &Value) -> Duration {
     match command.get("type").and_then(Value::as_str) {
         Some("prompt") => RUNTIME_INTERACTIVE_REQUEST_TIMEOUT,
+        Some("get_state") => RUNTIME_STATE_REQUEST_TIMEOUT,
         _ => RUNTIME_REQUEST_TIMEOUT,
     }
 }

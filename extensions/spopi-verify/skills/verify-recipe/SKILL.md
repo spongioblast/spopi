@@ -21,7 +21,7 @@ In this order. For each one, note the exact command, the folder it runs in, how 
 1. **Install.** Only when dependencies are missing. Use the lockfile form (`npm ci`, `bun install --frozen-lockfile`, `pnpm install --frozen-lockfile`, `uv sync`, `cargo fetch`). Ask the user before installing anything outside the project.
 2. **Fast check.** Typecheck and lint. This is what runs after every change, so note whether it finishes in under a minute.
 3. **Tests.** How to run one test file, then the full suite and how long it takes.
-4. **Run.** Start the app in the background with its output in a log and its process id in a file: `mkdir -p .pi/tmp && (<start command> > .pi/tmp/run.log 2>&1 & echo $! > .pi/tmp/run.pid)`. Find the URL or port, confirm it answers (`curl -sf <url>`), then stop it with the stop line below and confirm the port is free. Never stop processes by name or command-line pattern.
+4. **Run.** Start the app in the background with its output in a log and its process id in a file: `mkdir -p .pi/tmp && (<start command> > .pi/tmp/run.log 2>&1 & echo $! > .pi/tmp/run.pid)`. Find the URL or port, confirm it answers (`curl -sf <url>`), then stop it with the stop line below and confirm the port is free. If you have the `spopi_terminal_run` tool, start `<start command>` with it instead and stop it with `spopi_terminal_read` and `stop: true`; still write the shell form into the recipe, which also has to work without that tool. Never stop processes by name or command-line pattern.
 5. **Look.** For a UI, follow the browser-check skill once: open the URL, take one screenshot, and note what the first screen should show and one thing worth clicking.
 
 A step that fails goes under "Known problems" with the error line and the fix, if you found one. Do not change project code to make a step pass. Tell the user what is broken.
@@ -53,6 +53,7 @@ description: How to build, run, test, and look at <project>. Read before checkin
 ## Run
 - `mkdir -p .pi/tmp && (<start command> > .pi/tmp/run.log 2>&1 & echo $! > .pi/tmp/run.pid)` serves <URL>. Ready when <log line or curl check>.
 - Stop: `pid=$(cat .pi/tmp/run.pid); if [ -e "/proc/$pid/winpid" ]; then taskkill //PID "$(cat /proc/$pid/winpid)" //T //F; else kill "$pid"; fi`
+- With `spopi_terminal_run`: run `<start command>` with it instead; stop it with `spopi_terminal_read` and `stop: true`.
 
 ## Look (UI only)
 - Open <URL> with the browser-check skill. The first screen shows <what>. Try <one interaction>.

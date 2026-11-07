@@ -14,6 +14,8 @@ const enMessages = {
     copied: "Copied!",
     expand: "Expand",
     collapse: "Collapse",
+    costEstimated: "Estimated cost",
+    costBilled: "Billed cost",
     responseTime: "Response time",
   },
   app: {
@@ -78,6 +80,25 @@ describe("MessageRenderer streaming markdown preview", () => {
 
     const content = el.querySelector(".message-content");
     expect(content.innerHTML).toContain("<strong>bold te</strong>");
+  });
+
+  it("hides the streaming caret while the step's thinking streams into the work row", () => {
+    const host = document.createElement("div");
+    const el = renderer.renderAssistantMessage({ content: "" }, true);
+    const content = el.querySelector(".message-content");
+    // Nothing streamed yet: streaming, but no caret.
+    expect(content.classList.contains("streaming")).toBe(true);
+    expect(content.classList.contains("streaming-empty")).toBe(true);
+    // Thinking streams into the work row, leaving the message content empty — still no caret.
+    renderer.setThinkingHost(el, host);
+    renderer.updateStreamingThinking(el, "pondering...");
+    renderer.updateStreamingMessage(el, [{ type: "thinking", thinking: "pondering..." }]);
+    expect(host.querySelector(".streaming-thinking")).not.toBeNull();
+    expect(content.textContent.trim()).toBe("");
+    expect(content.classList.contains("streaming-empty")).toBe(true);
+    // Text arrives: the caret comes back.
+    renderer.updateStreamingMessage(el, "Answer.");
+    expect(content.classList.contains("streaming-empty")).toBe(false);
   });
 
   it("finalizes from the raw text, not the rendered DOM", () => {
@@ -200,11 +221,38 @@ describe("MessageRenderer streaming markdown preview", () => {
       const toggle = el.querySelector(".message-user-collapse-toggle");
       expect(messageContent.classList.contains("user-message-collapsible")).toBe(true);
       expect(messageContent.classList.contains("expanded")).toBe(false);
-      expect(toggle.textContent).toBe("Expand");
+      expect(toggle.dataset.label).toBe("Expand");
+      expect(toggle.getAttribute("aria-label")).toBe("Expand");
       expect(toggle.getAttribute("aria-expanded")).toBe("false");
-      expect(toggle.closest(".message-footer")).toBe(el.querySelector(".message-footer"));
-      expect(el.querySelector(".message-footer").firstElementChild).toBe(toggle);
+      expect(toggle.parentElement).toBe(messageContent);
+      expect(messageContent.lastElementChild).toBe(toggle);
     }
+  });
+
+  it("keeps the fold label out of the prompt text", () => {
+    const el = renderer.renderUserMessage({ content: "a".repeat(400) });
+    expect(el.querySelector(".message-content").textContent).toBe("a".repeat(400));
+  });
+
+  it("unfolds a folded prompt when its bubble is clicked, but not back", () => {
+    const el = renderer.renderUserMessage({ content: "a".repeat(400) });
+    const content = el.querySelector(".message-content");
+    const toggle = el.querySelector(".message-user-collapse-toggle");
+
+    content.click();
+    expect(content.classList.contains("expanded")).toBe(true);
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+
+    content.click();
+    expect(content.classList.contains("expanded")).toBe(true);
+  });
+
+  it("unfolds a folded prompt when chat search matches inside it", () => {
+    const el = renderer.renderUserMessage({ content: `${"a ".repeat(200)}needle` });
+    const content = el.querySelector(".message-content");
+
+    expect(renderer.highlightSearchQuery("needle", { scrollToFirst: false })).toBe(1);
+    expect(content.classList.contains("expanded")).toBe(true);
   });
 
   it("collapses messages with eight or more line breaks", () => {
@@ -222,12 +270,12 @@ describe("MessageRenderer streaming markdown preview", () => {
 
     toggle.click();
     expect(content.classList.contains("expanded")).toBe(true);
-    expect(toggle.textContent).toBe("Collapse");
+    expect(toggle.dataset.label).toBe("Collapse");
     expect(toggle.getAttribute("aria-expanded")).toBe("true");
 
     toggle.click();
     expect(content.classList.contains("expanded")).toBe(false);
-    expect(toggle.textContent).toBe("Expand");
+    expect(toggle.dataset.label).toBe("Expand");
     expect(toggle.getAttribute("aria-expanded")).toBe("false");
   });
 
@@ -454,7 +502,6 @@ describe("MessageRenderer message toolbar timestamps", () => {
       (el) => el.className,
     );
     expect(classes).toEqual([
-      "message-user-collapse-toggle",
       "message-action message-fork-btn",
       "message-action message-edit-btn",
       "message-copy-btn",
@@ -481,7 +528,8 @@ describe("MessageRenderer message toolbar timestamps", () => {
     expect(footer?.querySelector(".message-copy-btn")).not.toBeNull();
     const time = footer?.querySelector(".message-time");
     expect(time?.textContent).toBe("01/15 09:05");
-    expect(footer?.querySelector(".message-usage")?.textContent).toBe("$0.0123");
+    expect(footer?.querySelector(".message-usage")?.textContent).toBe("$0.0123~");
+    expect(footer?.querySelector(".message-usage")?.getAttribute("title")).toBe("Estimated cost");
     const children = [...footer.children].map((el) => el.className);
     expect(children.indexOf("message-copy-btn")).toBeLessThan(children.indexOf("message-time"));
     expect(children.indexOf("message-time")).toBeLessThan(children.indexOf("message-usage"));
@@ -586,20 +634,22 @@ describe("MessageRenderer locale change", () => {
   it("updates user collapse toggle labels on locale change without re-rendering content", async () => {
     const el = renderer.renderUserMessage({ content: "a".repeat(400) });
     const toggle = el.querySelector(".message-user-collapse-toggle");
-    expect(toggle.textContent).toBe("Expand");
+    expect(toggle.dataset.label).toBe("Expand");
 
     toggle.click();
-    expect(toggle.textContent).toBe("Collapse");
+    expect(toggle.dataset.label).toBe("Collapse");
     expect(toggle.getAttribute("aria-expanded")).toBe("true");
 
-    const contentHtmlBefore = el.querySelector(".message-content").innerHTML;
+    const firstChildBefore = el.querySelector(".message-content").firstChild;
 
     await setLocale("zh");
 
     expect(toggle.getAttribute("aria-expanded")).toBe("true");
-    expect(toggle.textContent).toBe("收起");
+    expect(toggle.dataset.label).toBe("收起");
+    expect(toggle.getAttribute("aria-label")).toBe("收起");
     // Content must not be re-rendered on locale change.
-    expect(el.querySelector(".message-content").innerHTML).toBe(contentHtmlBefore);
+    expect(el.querySelector(".message-content").firstChild).toBe(firstChildBefore);
+    expect(toggle.parentElement).toBe(el.querySelector(".message-content"));
   });
 
   it("re-renders welcome on locale change when .welcome exists", async () => {

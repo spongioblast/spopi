@@ -40,6 +40,7 @@ pub(in crate::terminal) struct ManagerInner {
     pub(in crate::terminal) outputs: Mutex<HashMap<String, TerminalOutputStore>>,
     pub(in crate::terminal) event_sink: Mutex<Option<EventSink>>,
     pub(in crate::terminal) state_store: TerminalStateStore,
+    pub(in crate::terminal) agent_runs: Mutex<HashMap<String, super::agent_run::AgentRun>>,
 }
 
 pub(in crate::terminal) struct LiveTerminal {
@@ -72,6 +73,7 @@ impl TerminalManager {
                 outputs: Mutex::new(HashMap::new()),
                 event_sink: Mutex::new(None),
                 state_store,
+                agent_runs: Mutex::new(HashMap::new()),
             }),
         }
     }
@@ -101,6 +103,7 @@ impl TerminalManager {
             let key = self.key(&terminal.owner, &terminal.workspace_root);
             let generation = terminal.generation;
             super::spawn::kill_live_terminal(terminal);
+            self.forget_agent_run(&terminal_id);
             let _ = self
                 .inner
                 .registry
@@ -127,6 +130,7 @@ impl TerminalManager {
             let key = self.key(&lt.owner, &lt.workspace_root);
             let generation = lt.generation;
             super::spawn::kill_live_terminal(lt);
+            self.forget_agent_run(&terminal_id);
             let _ = self
                 .inner
                 .registry
@@ -207,7 +211,7 @@ impl TerminalManager {
         active_index: Option<usize>,
     ) {
         let key = self.key(owner, workspace_root);
-        let descriptors = self.inner.registry.descriptors(&key);
+        let descriptors = self.persisted_descriptors(&key);
         let default_profile = descriptors
             .first()
             .map(|d| d.profile_id.clone())
@@ -236,6 +240,19 @@ impl TerminalManager {
         {
             log::warn!("[spopi-host] failed to persist terminal state: {err:?}");
         }
+    }
+
+    /// The tabs a later start restores. A command Pi ran is not run again.
+    pub(in crate::terminal) fn persisted_descriptors(
+        &self,
+        key: &TerminalKey,
+    ) -> Vec<crate::terminal::registry::TerminalDescriptor> {
+        self.inner
+            .registry
+            .descriptors(key)
+            .into_iter()
+            .filter(|d| !self.is_agent_tab(&d.terminal_id, d.generation))
+            .collect()
     }
 
     pub(in crate::terminal) fn emit(&self, owner: &OwnerId, value: Value) {

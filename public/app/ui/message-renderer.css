@@ -138,13 +138,13 @@
 
 /* User bubble */
 .message.user .message-content {
-  background: var(--user-bubble);
+  background: var(--user-bubble-fill, var(--user-bubble));
   color: var(--user-bubble-text);
   border: 1px solid var(--border);
   /* design-token-ignore: user bubble uses a bespoke 12px radius between --radius-md and --radius */
   border-radius: 12px;
   border-bottom-right-radius: 6px;
-  padding: var(--space-1) var(--space-2);
+  padding: var(--user-bubble-pad-y, var(--space-1)) var(--space-2);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   box-shadow: var(--shadow-sm);
@@ -161,9 +161,10 @@
 }
 
 /* Long user prompts stay readable without pushing the entire chat off-screen. */
+/* Ten whole lines plus the bubble's padding and border, so the cut falls between lines. */
 .message.user .message-content.user-message-collapsible {
   position: relative;
-  max-height: calc(1.6em * 6 + var(--space-2) * 2);
+  max-height: calc(10lh + var(--user-bubble-pad-y, var(--space-1)) * 2 + 2px);
   overflow: hidden;
 }
 
@@ -172,19 +173,25 @@
   overflow: visible;
 }
 
-.message.user .message-content.user-message-collapsible:not(.expanded)::after {
+.message.user .message-content.user-message-overflowing:not(.expanded) {
+  cursor: pointer;
+}
+
+.message.user .message-content.user-message-overflowing:not(.expanded)::after {
   position: absolute;
   right: 0;
   bottom: 0;
   left: 0;
-  height: 2.5em;
-  background: linear-gradient(transparent, var(--user-bubble));
+  height: 3lh;
+  background: linear-gradient(transparent, var(--user-bubble-fill, var(--user-bubble)) 85%);
   content: "";
   pointer-events: none;
 }
 
 .message-user-collapse-toggle {
-  padding: var(--space-0-5) var(--space-1);
+  display: block;
+  margin: var(--space-1) 0 0 auto;
+  padding: 0 var(--space-1);
   border: 0;
   border-radius: var(--radius-sm);
   background: transparent;
@@ -193,11 +200,29 @@
   font: inherit;
   font-size: var(--font-size-sm);
   white-space: nowrap;
+  user-select: none;
+}
+
+.message-user-collapse-toggle::before {
+  content: attr(data-label);
+}
+
+.message-user-collapse-toggle[hidden] {
+  display: none;
+}
+
+.user-message-collapsible:not(.expanded) .message-user-collapse-toggle {
+  position: absolute;
+  right: var(--space-2);
+  bottom: var(--space-1);
+  z-index: 1;
+  margin: 0;
 }
 
 .message-user-collapse-toggle:hover,
 .message-user-collapse-toggle:focus-visible {
   color: var(--text-primary);
+  text-decoration: underline;
 }
 
 /* Assistant — clean, no container */
@@ -270,8 +295,9 @@
   font-style: italic;
 }
 
-/* Streaming cursor */
-.message-content.streaming::after {
+/* Streaming cursor — only once text is streaming, never on an empty line while the
+   step is still thinking (its thinking block lives in the work row, not here). */
+.message-content.streaming:not(.streaming-empty)::after {
   content: "▋";
   animation: blink 1s infinite;
   margin-left: 1px;

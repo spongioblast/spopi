@@ -383,6 +383,11 @@ impl NativeLaunchSpec {
             .map(|dir| crate::dependencies::surf::surf_package_state(&dir))
             .is_some_and(|package| package.installed && package.enabled);
         environment.insert("SPOPI_SURF".into(), if surf_on { "1" } else { "0" }.into());
+        // Windows Python prints to a pipe in the ANSI code page (cp1252 here). Pi reads that
+        // pipe as UTF-8, so ü and an em dash become U+FFFD. UTF-8 mode makes every Python
+        // subprocess of this Pi emit UTF-8, including ones started from bash.
+        environment.insert("PYTHONUTF8".into(), "1".into());
+        environment.insert("PYTHONIOENCODING".into(), "utf-8".into());
         LaunchDescription {
             program: self.binary.clone(),
             args,

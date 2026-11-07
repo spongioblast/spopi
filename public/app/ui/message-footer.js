@@ -1,4 +1,4 @@
-// ABOUTME: Builds message footer controls: copy, fork and edit, expand for long prompts, time, response time.
+// ABOUTME: Builds message footer controls: copy, fork and edit, time, response time.
 // ABOUTME: Each control is returned unplaced; message-renderer.js decides the footer order.
 
 import { editMessage, forkMessage } from "../chat/message-actions.js";
@@ -6,11 +6,7 @@ import { t } from "../i18n/i18n.js";
 import { copyText } from "./clipboard.js";
 import { formatDuration } from "./formatters.js";
 import { createIcon } from "./icons.js";
-import {
-  formatMessageTime,
-  fullTimestampTitle,
-  shouldCollapseUserMessage,
-} from "./message-format.js";
+import { formatMessageTime, fullTimestampTitle } from "./message-format.js";
 import { appendMarkup } from "./message-markup.js";
 import { escapeHtml } from "./sanitize-markup.js";
 
@@ -94,28 +90,6 @@ export function createDurationSpan(durationMs) {
   span.textContent = label;
   span.title = t("messages.responseTime");
   return span;
-}
-
-/** Create the expand/collapse control for long user prompts. */
-/**
- * @param {HTMLElement} contentEl
- * @param {string} rawContent
- */
-export function createUserCollapseToggle(contentEl, rawContent) {
-  if (!shouldCollapseUserMessage(rawContent)) return null;
-
-  contentEl.classList.add("user-message-collapsible");
-  const button = document.createElement("button");
-  button.type = "button";
-  button.className = "message-user-collapse-toggle";
-  button.textContent = t("messages.expand");
-  button.setAttribute("aria-expanded", "false");
-  button.addEventListener("click", () => {
-    const expanded = contentEl.classList.toggle("expanded");
-    button.setAttribute("aria-expanded", String(expanded));
-    button.textContent = t(expanded ? "messages.collapse" : "messages.expand");
-  });
-  return button;
 }
 
 /**

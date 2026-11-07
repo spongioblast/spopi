@@ -4,6 +4,7 @@
 //!
 //! The host creates terminals; the WebView only sends input and resize.
 
+pub(crate) mod agent_run;
 pub(crate) mod manager;
 pub(crate) mod output;
 pub(crate) mod profiles;

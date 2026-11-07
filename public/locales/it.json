@@ -362,7 +362,7 @@
     "thinking": "pensando",
     "copy": "Copia",
     "copied": "Copiato!",
-    "expand": "Espandi",
+    "expand": "Mostra altro",
     "processDetails": "Dettagli del processo",
     "processStep": "{count} passaggio",
     "processSteps": "{count} passaggi",
@@ -371,7 +371,9 @@
     "providerError": "La richiesta al modello non è riuscita.",
     "responseTime": "Tempo di risposta",
     "youTurn": "Tu · turno",
-    "collapse": "Comprimi",
+    "collapse": "Mostra meno",
+    "costEstimated": "Costo stimato",
+    "costBilled": "Costo fatturato",
     "forkSession": "Biforca la sessione",
     "editMessage": "Modifica il messaggio"
   },
@@ -614,6 +616,15 @@
   },
   "errors": {
     "treeNavigateFailed": "Cambio di ramo non riuscito: {error}"
+  },
+  "errorLog": {
+    "header": "{count} errori",
+    "headerOne": "1 errore",
+    "toggle": "Mostra errori recenti",
+    "dismiss": "Ignora",
+    "clear": "Cancella tutto",
+    "unknown": "Errore sconosciuto",
+    "whileWorking": "mentre Pi stava lavorando"
   },
   "terminal": {
     "toggle": "Mostra o nascondi il terminale",

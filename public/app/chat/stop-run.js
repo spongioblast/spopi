@@ -1,6 +1,8 @@
 // ABOUTME: Stop = clear_queue, abort, abort_bash, in that order; returns cleared text.
 // ABOUTME: Queue edits (cancel, reorder, interrupt) clear Pi's queue and re-send it in order.
 
+import { drainHeldFollowUps } from "./follow-up-hold.js";
+
 /**
  * @param {{
  *   response?: { data?: { steering?: unknown[], followUp?: unknown[] } },
@@ -32,7 +34,14 @@ export async function stopRun({ runtime, target, onQueueCleared }) {
       cleared
     ),
   );
-  const texts = [...steering, ...followUp];
+  // Follow-ups held locally while the run worked are cancelled by Stop too, the same as Pi's
+  // own queue, and their text goes back to the composer.
+  const sessionId =
+    target && typeof target === "object" && "sessionId" in target
+      ? /** @type {{ sessionId?: string }} */ (target).sessionId
+      : undefined;
+  const held = drainHeldFollowUps(sessionId).map((entry) => entry.message);
+  const texts = [...steering, ...followUp, ...held];
   if (texts.length) onQueueCleared?.(texts.join("\n\n"));
   await runtime.request({ type: "abort" }, target).catch(() => null);
   await runtime.request({ type: "abort_bash" }, target).catch(() => null);
@@ -89,7 +98,10 @@ async function requeue(runtime, target, steering, followUp, randomId) {
     await runtime.request({ type: "steer", message }, target, { idempotencyKey: randomId() });
   }
   for (const message of followUp) {
-    await runtime.request({ type: "follow_up", message }, target, { idempotencyKey: randomId() });
+    await runtime.request({ type: "follow_up", message }, target, {
+      idempotencyKey: randomId(),
+      deliverToPi: true,
+    });
   }
 }
 
@@ -132,6 +144,7 @@ export async function reorderQueue({ runtime, target, item, to, randomId }) {
  *   randomId: () => string,
  *   waitSettled: () => Promise<void>,
  *   onFailed?: (text: string) => void,
+ *   force?: boolean,
  * }} options
  */
 export async function interruptWithQueued({
@@ -141,6 +154,7 @@ export async function interruptWithQueued({
   randomId,
   waitSettled,
   onFailed,
+  force = false,
 }) {
   const message = String(item.message ?? "").trim();
   if (!message) return;
@@ -152,7 +166,10 @@ export async function interruptWithQueued({
   const steering = item.kind === "steer" ? withoutItem(lists.steering, item) : lists.steering;
   const followUp = item.kind === "follow_up" ? withoutItem(lists.followUp, item) : lists.followUp;
   // Pi already delivered it between the render and the click: do not send it twice.
-  if (steering.length + followUp.length === lists.steering.length + lists.followUp.length) {
+  if (
+    !force &&
+    steering.length + followUp.length === lists.steering.length + lists.followUp.length
+  ) {
     await requeue(runtime, target, steering, followUp, randomId);
     return;
   }

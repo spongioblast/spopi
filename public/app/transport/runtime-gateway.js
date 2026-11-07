@@ -75,7 +75,7 @@ export class RuntimeGateway {
   /**
    * @param {RuntimeCommand} command
    * @param {RuntimeTargetInput | null | undefined} target
-   * @param {{ idempotencyKey?: string }} [options]
+   * @param {{ idempotencyKey?: string, deliverToPi?: boolean }} [options]
    */
   request(command, target, options = {}) {
     try {
